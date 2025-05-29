@@ -1,0 +1,190 @@
+## Project Overview
+Create a complete, production-ready modem website with comprehensive customer and admin functionalities. The website should handle sales of web development sales, services, maintenance packages, and support customer interactions with robust payment options.
+
+## Technology Stack
+- **Frontend**: HTML5, Tailwind CSS, JavaScript (with modern frameworks if needed)
+- **Backend**: PHP (latest stable version)
+- **Database**: MySQL (properly indexed and optimized)
+- **Payment Gateways**: Paystack, BinancePay, Bitget Pay
+- **Email**: SMTP integration with customizable templates
+
+## Core Requirements
+
+### Website Structure
+1. **File Organization**
+   - Provide complete file paths for all components
+   - Follow MVC architecture where appropriate
+   - Include proper documentation within code
+   - Structure folders logically (assets, controllers, models, views, config, etc.)
+
+2. **Database Design**
+   - Create optimized MySQL schema with proper relationships
+   - Implement indexes for performance optimization
+   - Include stored procedures for complex operations
+   - Design with scaling in mind
+   - Include full SQL creation scripts
+
+### User-Facing Features
+
+1. **Authentication System**
+   - Secure registration and login
+   - Password recovery
+   - Session management
+   - Role-based access control
+
+2. **Product Catalog**
+   - Comprehensive modem listings with detailed specifications
+   - Filtering and search functionality
+   - Comparison feature
+   - Image galleries and product reviews
+
+3. **E-commerce Functionality**
+   - Shopping cart
+   - Wishlist
+   - Product recommendations
+   - Inventory management
+
+4. **Order System**
+   - Step-by-step checkout process
+   - Multiple payment methods integration
+   - Order tracking with status updates
+   - Invoice generation
+
+5. **Service Booking**
+   - Maintenance package selection
+   - Service scheduling
+   - Custom service requests
+   - Service level agreements
+
+6. **User Dashboard**
+   - Order history and tracking
+   - Visual analytics of usage and expenditure
+   - Account management
+   - Support ticket system
+   - Milestone-based payment tracking
+   - Service progress visualization
+
+7. **Referral System**
+   - Unique referral codes
+   - Reward tracking
+   - Multi-level referral capabilities
+   - Leaderboards and statistics
+
+8. **Communication System**
+   - In-app messaging
+   - Email notifications with customizable templates
+   - WhatsApp alerts (integration points)
+   - Help documentation and FAQs
+
+### Admin Dashboard
+
+1. **Analytics & Reporting**
+   - Real-time sales metrics
+   - Customer acquisition and retention statistics
+   - Product performance analysis
+   - Revenue projections
+   - Custom report generation
+
+2. **Customer Management**
+   - Comprehensive customer profiles
+   - Purchase history
+   - Communication logs
+   - Segmentation tools
+
+3. **Inventory Management**
+   - Stock level monitoring
+   - Automated reorder triggers
+   - Product categorization
+
+4. **Order Management**
+   - Order processing workflow
+   - Status updates
+   - Return/refund processing
+   - Delivery tracking integration
+
+5. **Service Management**
+   - Technician assignment
+   - Service scheduling
+   - Progress tracking
+   - Quality control metrics
+
+6. **Marketing Tools**
+   - Promotion creation
+   - Discount management
+   - Email campaign integration
+   - Referral program metrics
+
+7. **Content Management**
+   - Product information updates
+   - Blog/news management
+   - FAQ maintenance
+   - Banner and promotional content
+
+8. **System Configuration**
+   - Payment gateway settings
+   - Email template customization
+   - User role management
+   - System backup and maintenance
+
+## Technical Specifications
+
+1. **Security Measures**
+   - HTTPS implementation
+   - SQL injection prevention
+   - XSS protection
+   - CSRF protection
+   - Input validation
+   - Secure password hashing
+   - API security for payment gateways
+
+2. **Performance Optimization**
+   - Database query optimization
+   - Image compression
+   - CDN integration points
+   - Caching strategies
+   - Lazy loading
+   - Code minification
+
+3. **Responsive Design**
+   - Mobile-first approach
+   - Cross-browser compatibility
+   - Progressive enhancement
+   - Accessible design (WCAG compliance)
+
+4. **Payment Processing**
+   - Seamless integration with Paystack
+   - BinancePay cryptocurrency options
+   - Bitget Pay implementation
+   - Transaction logging and reconciliation
+   - Milestone-based payment scheduling
+
+## Output Specifications
+
+1. **Code Quality**
+   - Well-commented code
+   - Consistent coding style
+   - Error handling and logging
+   - Unit tests where appropriate
+
+2. **Deliverables**
+   - Complete source code for all components
+   - Database schema and initialization scripts
+   - Configuration instructions
+   - API documentation
+   - Deployment guide
+
+3. **Bonus Features**
+   - Progressive Web App capabilities
+   - Advanced search with filters
+   - Integration points for CRM systems
+
+## Development Notes
+- Prioritize scalability in all architectural decisions
+- Implement proper error handling throughout the system
+- Create comprehensive logging for debugging and auditing
+- Use prepared statements for all database operations
+- Follow security best practices for authentication and data protection
+- Ensure code is maintainable with proper documentation
+
+## Continuity Instructions
+If generation stops due to length constraints, respond with "CONTINUE" and the AI will resume from the exact point where it left off, maintaining consistency in the code structure and logic. Each continuation will pick up precisely where the previous section ended.

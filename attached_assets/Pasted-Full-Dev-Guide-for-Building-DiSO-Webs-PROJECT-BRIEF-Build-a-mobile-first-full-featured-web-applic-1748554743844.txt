@@ -1,0 +1,418 @@
+Full Dev Guide for Building DiSO Webs
+
+PROJECT BRIEF: Build a mobile-first, full-featured web application for DiSO Webs, a modern web development agency. The app should display services, allow clients to order packages or request custom quotes, handle payments, enable people gift others website, provide a client dashboard to track the progress of their projects or their maintenance packages, an admin dashboard to manage the website and clients projects.
+
+🎯 KEY REQUIREMENTS
+1. Design & UX
+Responsive design, mobile-first
+Clean, modern aesthetic aligned with tech/startup and luxury branding
+Accessible and fast loading
+Optimized for conversions (clear CTAs, low-friction order flow)
+
+2. Core Features
+A. Marketing Website
+Homepage with tagline, featured services, client logos/testimonials
+Services page with 3 tiers: Launch, Growth, Elite + Custom Quotes
+About & contact pages
+Blog or resources (for SEO)
+
+B. Order & Payment System
+Service selection and checkout flow
+Optional add-ons or upsells during checkout
+Payment integration: Paystack and NowPayment. 
+Option for requesting a custom quote (form with scope inputs)
+C. Client Portal (After Login)
+Project dashboard:
+Status updates: “Discovery → Design → Dev → Launch”
+Timeline view or Kanban-style tracker
+File uploads/downloads
+Chat or messaging (or link to email/Slack)
+Invoices and payment history
+Support request form
+D. Admin Dashboard (For Agency Use)
+View/manage client orders and statuses
+Update project stages and notes
+Send messages or updates to clients
+Manage service packages and pricing
+
+3. Tech Stack Suggestions
+Frontend:
+React + Next.js 14 (App Router)
+Tailwind CSS for styling
+Framer Motion for subtle animations
+Backend:
+Node.js + Express or Next.js API routes
+Supabase or Firebase for auth, database, storage
+CMS: Sanity.io (for dynamic contents)
+Payments:
+Paystack integration (API + Webhooks for order confirmation)
+Hosting:
+Vercel (for seamless Next.js deployment)
+Cloudflare for CDN, security
+
+4. Database Schema
+
+Build a robust, scalable relational database schema to handle:
+Users (clients, admins)
+Orders & services
+Projects & their stages
+Messaging
+Payments
+Notifications
+Files (uploads)
+Support requests
+Audit logs (for traceability)
+Below is a full schema you can use for PostgreSQL
+
+📦DiSO Webs
+
+🧑 users
+Stores all user accounts (clients, admins, project managers)
+Column
+Type
+Constraints
+id
+UUID
+PK, default uuid_generate_v4()
+name
+VARCHAR
+NOT NULL
+email
+VARCHAR
+UNIQUE, NOT NULL
+password_hash
+TEXT
+NOT NULL
+role
+ENUM
+('client', 'admin', 'pm'), default 'client'
+phone
+VARCHAR
+NULL
+company_name
+VARCHAR
+NULL
+created_at
+TIMESTAMP
+DEFAULT now()
+updated_at
+TIMESTAMP
+DEFAULT now()
+
+📄 services
+Stores the tiered packages and add-ons
+Column
+Type
+Constraints
+id
+UUID
+PK, default uuid_generate_v4()
+name
+VARCHAR
+NOT NULL
+description
+TEXT
+NOT NULL
+price_usd
+DECIMAL
+NOT NULL
+category
+ENUM
+('launch', 'growth', 'elite', 'custom')
+is_active
+BOOLEAN
+DEFAULT true
+created_at
+TIMESTAMP
+DEFAULT now()
+
+🛒 orders
+Every submitted order from a client
+Column
+Type
+Constraints
+id
+UUID
+PK
+user_id
+UUID
+FK → users(id)
+service_id
+UUID
+FK → services(id)
+custom_request
+TEXT
+Optional, if custom quote
+total_price
+DECIMAL
+NOT NULL
+status
+ENUM
+('pending', 'paid', 'in_progress', 'complete', 'cancelled')
+payment_id
+UUID
+FK → payments(id), nullable
+created_at
+TIMESTAMP
+DEFAULT now()
+
+📁 projects
+Represents a full project lifecycle
+Column
+Type
+Constraints
+id
+UUID
+PK
+order_id
+UUID
+FK → orders(id)
+user_id
+UUID
+FK → users(id)
+project_name
+VARCHAR
+NULLABLE (auto from order or custom)
+current_stage
+VARCHAR
+e.g., "Design", "Development", etc.
+notes
+TEXT
+NULLABLE
+start_date
+DATE
+NULLABLE
+due_date
+DATE
+NULLABLE
+status
+ENUM
+('not_started', 'active', 'paused', 'completed')
+created_at
+TIMESTAMP
+DEFAULT now()
+
+📌 project_stages
+For stage-by-stage tracking within a project
+Column
+Type
+Constraints
+id
+UUID
+PK
+project_id
+UUID
+FK → projects(id)
+title
+VARCHAR
+NOT NULL
+description
+TEXT
+NULL
+order_index
+INT
+To display stages sequentially
+is_complete
+BOOLEAN
+DEFAULT false
+updated_at
+TIMESTAMP
+DEFAULT now()
+
+💬 messages
+For communication between client and admin/PM
+Column
+Type
+Constraints
+id
+UUID
+PK
+project_id
+UUID
+FK → projects(id)
+sender_id
+UUID
+FK → users(id)
+content
+TEXT
+NOT NULL
+sent_at
+TIMESTAMP
+DEFAULT now()
+is_admin
+BOOLEAN
+Helps for UI display
+
+💸 payments
+Stripe or PayPal payment records
+Column
+Type
+Constraints
+id
+UUID
+PK
+user_id
+UUID
+FK → users(id)
+order_id
+UUID
+FK → orders(id)
+amount
+DECIMAL
+NOT NULL
+currency
+VARCHAR
+DEFAULT 'USD'
+provider
+VARCHAR
+'stripe' or 'paypal'
+provider_id
+VARCHAR
+External transaction ID
+status
+ENUM
+('succeeded', 'failed', 'refunded')
+paid_at
+TIMESTAMP
+NULLABLE
+created_at
+TIMESTAMP
+DEFAULT now()
+
+📎 files
+For upload/downloads related to a project
+Column
+Type
+Constraints
+id
+UUID
+PK
+project_id
+UUID
+FK → projects(id)
+uploaded_by
+UUID
+FK → users(id)
+file_url
+TEXT
+Stored path or external URL
+filename
+VARCHAR
+Original name
+uploaded_at
+TIMESTAMP
+DEFAULT now()
+
+📣 notifications
+Optional for user dashboard alerts
+Column
+Type
+Constraints
+id
+UUID
+PK
+user_id
+UUID
+FK → users(id)
+type
+VARCHAR
+e.g., 'status_update', 'new_message'
+content
+TEXT
+Notification text
+is_read
+BOOLEAN
+DEFAULT false
+created_at
+TIMESTAMP
+DEFAULT now()
+
+🧾 support_requests
+If client has a tech or project issue
+Column
+Type
+Constraints
+id
+UUID
+PK
+user_id
+UUID
+FK → users(id)
+project_id
+UUID
+FK → projects(id), nullable
+subject
+VARCHAR
+NOT NULL
+description
+TEXT
+NOT NULL
+status
+ENUM
+('open', 'in_progress', 'resolved')
+created_at
+TIMESTAMP
+DEFAULT now()
+
+🛡 audit_logs
+Optional but great for traceability
+Column
+Type
+Constraints
+id
+UUID
+PK
+user_id
+UUID
+FK → users(id)
+action_type
+VARCHAR
+e.g., 'status_update', 'login'
+details
+TEXT
+JSON or plain text
+created_at
+TIMESTAMP
+DEFAULT now()
+
+🧠 Tips for 
+Use PostgreSQL
+Pair with Prisma ORM if using TypeScript/Node.js
+Secure sensitive endpoints with auth and role-based access
+Add indexes to created_at, user_id, project_id fields for performance
+
+
+5. Enhancements
+AI-powered project brief generator (for custom quotes)
+AI chat assistant for clients
+
+6. Security
+Auth with email/password and JWT or session
+RBAC: separate permissions for clients vs admins
+Secure file storage and download permissions
+
+7. Performance & SEO
+Mobile-first performance optimization (LCP, CLS)
+Static generation of marketing pages where possible (SSG)
+SEO meta tags, OG tags, sitemap.xml, robots.txt
+
+8. Development Flow
+Codebase setup in Next.js + Tailwind CSS
+GitHub repo with CI/CD via Vercel
+Environment variables for Paystack, DB, etc.
+Use TypeScript and follow clean folder structure
+
+9. Deliverables
+Fully functional deployed site (production-ready)
+Admin access to dashboard
+Stripe test/demo accounts enabled
+README with setup instructions
+
+✅ GOAL
+The end product should let visitors:
+Learn about DiSO Web Services
+Purchase packages or request quotes
+Log in to a dashboard to track their project
+Communicate securely and manage billing
+
+671805
