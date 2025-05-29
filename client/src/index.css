@@ -1,0 +1,273 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 210 11% 98%; /* #F5F7FA */
+  --foreground: 217 19% 12%; /* #1E293B */
+  --muted: 210 9% 96%; /* #F1F5F9 */
+  --muted-foreground: 215 16% 47%; /* #64748B */
+  --popover: 0 0% 100%; /* #FFFFFF */
+  --popover-foreground: 217 19% 12%; /* #1E293B */
+  --card: 0 0% 100%; /* #FFFFFF */
+  --card-foreground: 217 19% 12%; /* #1E293B */
+  --border: 220 13% 91%; /* #E2E8F0 */
+  --input: 220 13% 91%; /* #E2E8F0 */
+  --primary: 221 83% 53%; /* #3B82F6 */
+  --primary-foreground: 0 0% 100%; /* #FFFFFF */
+  --secondary: 210 11% 96%; /* #F1F5F9 */
+  --secondary-foreground: 217 19% 12%; /* #1E293B */
+  --accent: 210 11% 96%; /* #F1F5F9 */
+  --accent-foreground: 217 19% 12%; /* #1E293B */
+  --destructive: 0 84% 60%; /* #EF4444 */
+  --destructive-foreground: 0 0% 100%; /* #FFFFFF */
+  --ring: 221 83% 53%; /* #3B82F6 */
+  --radius: 0.75rem;
+  --chart-1: 221 83% 53%; /* #3B82F6 */
+  --chart-2: 262 83% 58%; /* #8B5CF6 */
+  --chart-3: 189 94% 40%; /* #06B6D4 */
+  --chart-4: 142 71% 45%; /* #10B981 */
+  --chart-5: 39 85% 59%; /* #F59E0B */
+  --sidebar-background: 0 0% 100%; /* #FFFFFF */
+  --sidebar-foreground: 217 19% 12%; /* #1E293B */
+  --sidebar-primary: 221 83% 53%; /* #3B82F6 */
+  --sidebar-primary-foreground: 0 0% 100%; /* #FFFFFF */
+  --sidebar-accent: 210 11% 96%; /* #F1F5F9 */
+  --sidebar-accent-foreground: 217 19% 12%; /* #1E293B */
+  --sidebar-border: 220 13% 91%; /* #E2E8F0 */
+  --sidebar-ring: 221 83% 53%; /* #3B82F6 */
+}
+
+.dark {
+  --background: 217 19% 12%; /* #1E293B */
+  --foreground: 210 11% 98%; /* #F5F7FA */
+  --muted: 217 19% 18%; /* #334155 */
+  --muted-foreground: 215 16% 65%; /* #94A3B8 */
+  --popover: 217 19% 12%; /* #1E293B */
+  --popover-foreground: 210 11% 98%; /* #F5F7FA */
+  --card: 217 19% 12%; /* #1E293B */
+  --card-foreground: 210 11% 98%; /* #F5F7FA */
+  --border: 217 19% 18%; /* #334155 */
+  --input: 217 19% 18%; /* #334155 */
+  --primary: 221 83% 53%; /* #3B82F6 */
+  --primary-foreground: 0 0% 100%; /* #FFFFFF */
+  --secondary: 217 19% 18%; /* #334155 */
+  --secondary-foreground: 210 11% 98%; /* #F5F7FA */
+  --accent: 217 19% 18%; /* #334155 */
+  --accent-foreground: 210 11% 98%; /* #F5F7FA */
+  --destructive: 0 84% 60%; /* #EF4444 */
+  --destructive-foreground: 0 0% 100%; /* #FFFFFF */
+  --ring: 221 83% 53%; /* #3B82F6 */
+  --chart-1: 221 83% 53%; /* #3B82F6 */
+  --chart-2: 262 83% 58%; /* #8B5CF6 */
+  --chart-3: 189 94% 40%; /* #06B6D4 */
+  --chart-4: 142 71% 45%; /* #10B981 */
+  --chart-5: 39 85% 59%; /* #F59E0B */
+  --sidebar-background: 217 19% 12%; /* #1E293B */
+  --sidebar-foreground: 210 11% 98%; /* #F5F7FA */
+  --sidebar-primary: 221 83% 53%; /* #3B82F6 */
+  --sidebar-primary-foreground: 0 0% 100%; /* #FFFFFF */
+  --sidebar-accent: 217 19% 18%; /* #334155 */
+  --sidebar-accent-foreground: 210 11% 98%; /* #F5F7FA */
+  --sidebar-border: 217 19% 18%; /* #334155 */
+  --sidebar-ring: 221 83% 53%; /* #3B82F6 */
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-tight;
+  }
+
+  h1 {
+    @apply text-4xl lg:text-5xl;
+  }
+
+  h2 {
+    @apply text-3xl lg:text-4xl;
+  }
+
+  h3 {
+    @apply text-2xl lg:text-3xl;
+  }
+
+  h4 {
+    @apply text-xl lg:text-2xl;
+  }
+
+  h5 {
+    @apply text-lg lg:text-xl;
+  }
+
+  h6 {
+    @apply text-base lg:text-lg;
+  }
+
+  p {
+    @apply leading-7;
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-muted;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-border rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground;
+  }
+
+  /* Focus styles */
+  button:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2;
+  }
+
+  /* Animation utilities */
+  .animate-fade-in {
+    animation: fadeIn 0.6s ease-out;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.6s ease-out;
+  }
+
+  .animate-scale-in {
+    animation: scaleIn 0.3s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes scaleIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  /* Gradient text utility */
+  .gradient-text {
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--chart-2)));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Glass effect utility */
+  .glass-effect {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  /* Card hover effects */
+  .card-hover {
+    @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-1;
+  }
+
+  /* Button variants */
+  .btn-gradient {
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--chart-2)));
+    @apply text-primary-foreground hover:opacity-90 transition-opacity;
+  }
+
+  /* Loading skeleton */
+  .skeleton {
+    @apply animate-pulse bg-muted rounded;
+  }
+
+  /* Error state */
+  .error-state {
+    @apply text-destructive border-destructive;
+  }
+
+  /* Success state */
+  .success-state {
+    @apply text-green-600 border-green-300;
+  }
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  body {
+    @apply text-black bg-white;
+  }
+  
+  a {
+    text-decoration: none !important;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --border: 0 0% 0%;
+    --input: 0 0% 0%;
+  }
+  
+  .dark {
+    --border: 0 0% 100%;
+    --input: 0 0% 100%;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  
+  html {
+    scroll-behavior: auto;
+  }
+}
