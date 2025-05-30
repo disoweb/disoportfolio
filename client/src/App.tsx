@@ -19,8 +19,8 @@ import ClientDashboard from "@/pages/ClientDashboard";
 import AdminDashboard from "@/pages/AdminDashboard";
 
 function Router() {
-  const [mounted, setMounted] = useState(false);
   const { isAuthenticated, isLoading, user } = useAuth();
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
