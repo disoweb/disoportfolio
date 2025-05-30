@@ -13,7 +13,7 @@ import {
 export default function Navigation() {
   const [isOpen, setIsOpen] = useState(false);
   const [location] = useLocation();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, logout, isLoggingOut } = useAuth();
 
   const navLinks = [
     { href: "/", label: "Home" },
@@ -71,27 +71,25 @@ export default function Navigation() {
                         Dashboard
                       </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <a href="/api/logout" className="flex items-center">
-                        <LogOut className="h-4 w-4 mr-2" />
-                        Logout
-                      </a>
+                    <DropdownMenuItem onClick={logout} disabled={isLoggingOut}>
+                      <LogOut className="h-4 w-4 mr-2" />
+                      {isLoggingOut ? "Logging out..." : "Logout"}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
             ) : (
               <div className="flex items-center space-x-4">
-                <a href="/api/login">
+                <Link href="/auth">
                   <Button variant="ghost" size="sm">
                     Login
                   </Button>
-                </a>
-                <a href="/api/login">
+                </Link>
+                <Link href="/auth">
                   <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
                     Get Started
                   </Button>
-                </a>
+                </Link>
               </div>
             )}
           </div>
@@ -136,25 +134,26 @@ export default function Navigation() {
                 >
                   Dashboard
                 </Link>
-                <a
-                  href="/api/logout"
-                  className="block px-3 py-2 text-slate-600 hover:text-blue-600"
+                <button
+                  onClick={logout}
+                  disabled={isLoggingOut}
+                  className="block px-3 py-2 text-slate-600 hover:text-blue-600 w-full text-left"
                 >
-                  Logout
-                </a>
+                  {isLoggingOut ? "Logging out..." : "Logout"}
+                </button>
               </>
             ) : (
               <div className="px-3 py-2 space-y-2">
-                <a href="/api/login" className="block">
+                <Link href="/auth" className="block" onClick={() => setIsOpen(false)}>
                   <Button variant="ghost" size="sm" className="w-full">
                     Login
                   </Button>
-                </a>
-                <a href="/api/login" className="block">
+                </Link>
+                <Link href="/auth" className="block" onClick={() => setIsOpen(false)}>
                   <Button size="sm" className="w-full bg-blue-600 hover:bg-blue-700">
                     Get Started
                   </Button>
-                </a>
+                </Link>
               </div>
             )}
           </div>
