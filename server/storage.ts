@@ -528,6 +528,11 @@ export const storage = {
     return user[0] || null;
   },
 
+  async getUserByEmail(email: string) {
+    const user = await db.select().from(users).where(eq(users.email, email)).limit(1);
+    return user[0] || null;
+  },
+
   async createUser(userData: any) {
     const result = await db.insert(users).values(userData).returning();
     return result[0];
