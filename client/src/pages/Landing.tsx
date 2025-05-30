@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { ArrowRight, CheckCircle, Star, Users, Award, Zap, Shield, HeadphonesIcon, Globe, Smartphone } from "lucide-react";
+import { ArrowRight, CheckCircle, Star, Users, Award, Zap, Shield, HeadphonesIcon, Globe, Smartphone, Rocket } from "lucide-react";
 
 export default function Landing() {
   return (
@@ -314,7 +314,8 @@ export default function Landing() {
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </div>
-        </section>
+        </div>
+      </section>
 
         {/* FAQ Section */}
         <section className="py-20 bg-white">
