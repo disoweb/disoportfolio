@@ -17,6 +17,7 @@ import About from "./pages/About";
 import Contact from "./pages/Contact";
 import ClientDashboard from "@/pages/ClientDashboard";
 import AdminDashboard from "@/pages/AdminDashboard";
+import WhatsAppFloat from "@/components/WhatsAppFloat";
 
 function Router() {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -70,8 +71,9 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
         <Router />
+        <Toaster />
+        <WhatsAppFloat />
       </TooltipProvider>
     </QueryClientProvider>
   );

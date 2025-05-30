@@ -67,7 +67,7 @@ export default function Contact() {
   return (
     <div className="min-h-screen bg-slate-50">
       <Navigation />
-      
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div className="text-center mb-16">
           <h1 className="text-4xl lg:text-5xl font-bold text-slate-900 mb-6">Get In Touch</h1>
@@ -112,7 +112,7 @@ export default function Contact() {
                     )}
                   </div>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-2">
                     Email Address *
@@ -127,7 +127,7 @@ export default function Contact() {
                     <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>
                   )}
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-2">
                     Subject *
@@ -147,7 +147,7 @@ export default function Contact() {
                     <p className="text-red-500 text-sm mt-1">{errors.subject.message}</p>
                   )}
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-2">
                     Message *
@@ -162,7 +162,7 @@ export default function Contact() {
                     <p className="text-red-500 text-sm mt-1">{errors.message.message}</p>
                   )}
                 </div>
-                
+
                 <Button 
                   type="submit" 
                   className="w-full" 
@@ -195,7 +195,7 @@ export default function Contact() {
                     </p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-start">
                   <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
                     <Phone className="h-6 w-6 text-blue-600" />
@@ -205,7 +205,7 @@ export default function Contact() {
                     <p className="text-slate-600">+1 (555) 123-4567</p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-start">
                   <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
                     <Mail className="h-6 w-6 text-blue-600" />
@@ -215,7 +215,7 @@ export default function Contact() {
                     <p className="text-slate-600">hello@disowebs.com</p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-start">
                   <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
                     <Clock className="h-6 w-6 text-blue-600" />

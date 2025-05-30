@@ -1,10 +1,13 @@
-
-import React from "react";
+import React, { useState } from "react";
 import { useLocation } from "wouter";
+import Navigation from "@/components/Navigation";
+import Footer from "@/components/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ExternalLink, Calendar, Tag, ArrowRight } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calendar, ExternalLink, Search, Filter, ArrowRight } from "lucide-react";
 
 const projects = [
   {
@@ -154,6 +157,7 @@ export default function Projects() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <Navigation />
       {/* Header */}
       <div className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -221,7 +225,7 @@ export default function Projects() {
                       )}
                     </div>
                   </div>
-                  
+
                   <Button variant="ghost" className="w-full justify-between p-0 h-auto text-blue-600 hover:text-blue-700">
                     View Case Study
                     <ArrowRight className="h-4 w-4" />
@@ -250,6 +254,7 @@ export default function Projects() {
           </div>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

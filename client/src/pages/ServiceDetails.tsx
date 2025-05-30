@@ -1,6 +1,8 @@
 
 import React from "react";
 import { useLocation } from "wouter";
+import Navigation from "@/components/Navigation";
+import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -180,6 +182,7 @@ export default function ServiceDetails() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <Navigation />
       {/* Header */}
       <div className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -359,6 +362,7 @@ export default function ServiceDetails() {
           </div>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

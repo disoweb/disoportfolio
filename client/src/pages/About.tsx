@@ -7,7 +7,7 @@ export default function About() {
   return (
     <div className="min-h-screen bg-slate-50">
       <Navigation />
-      
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         {/* Hero Section */}
         <div className="text-center mb-20">
@@ -60,7 +60,7 @@ export default function About() {
             <h2 className="text-3xl font-bold text-slate-900 mb-4">Meet Our Team</h2>
             <p className="text-xl text-slate-600">The talented individuals who bring your digital vision to life</p>
           </div>
-          
+
           <div className="grid md:grid-cols-3 gap-8">
             <Card className="text-center">
               <CardContent className="pt-6">
@@ -74,7 +74,7 @@ export default function About() {
                 <p className="text-slate-600">Full-stack developer with 8+ years experience in building scalable web applications.</p>
               </CardContent>
             </Card>
-            
+
             <Card className="text-center">
               <CardContent className="pt-6">
                 <img 
@@ -87,7 +87,7 @@ export default function About() {
                 <p className="text-slate-600">Award-winning UX/UI designer passionate about creating intuitive user experiences.</p>
               </CardContent>
             </Card>
-            
+
             <Card className="text-center">
               <CardContent className="pt-6">
                 <img 

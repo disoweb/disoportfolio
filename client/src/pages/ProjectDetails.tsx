@@ -1,6 +1,8 @@
 
 import React from "react";
 import { useLocation } from "wouter";
+import Navigation from "@/components/Navigation";
+import Footer from "@/components/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -82,6 +84,7 @@ export default function ProjectDetails() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <Navigation />
       {/* Header */}
       <div className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -205,6 +208,38 @@ export default function ProjectDetails() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* FAQ Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Frequently Asked Questions</CardTitle>
+                <CardDescription>Common questions about this project type</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-2">How long did this project take to complete?</h4>
+                    <p className="text-gray-600">This project was completed in {project.duration}, including planning, development, testing, and deployment phases.</p>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-2">What technologies were used?</h4>
+                    <p className="text-gray-600">We used modern technologies including {project.technologies.slice(0, 3).join(', ')} and others to ensure scalability and performance.</p>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-2">Can you build something similar for my business?</h4>
+                    <p className="text-gray-600">Absolutely! We specialize in creating custom solutions tailored to each client's unique needs. Contact us to discuss your requirements.</p>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-2">What kind of support was provided?</h4>
+                    <p className="text-gray-600">We provided comprehensive support including training, documentation, ongoing maintenance, and technical assistance to ensure project success.</p>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-2">Is this solution scalable?</h4>
+                    <p className="text-gray-600">Yes, all our solutions are built with scalability in mind using modern architecture patterns and cloud-native technologies.</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Sidebar */}
@@ -261,6 +296,7 @@ export default function ProjectDetails() {
           </div>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }
