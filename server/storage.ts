@@ -513,4 +513,142 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-export const storage = new DatabaseStorage();
+import { db } from "./db";
+import { 
+  users, services, orders, projects, projectStages, messages, 
+  payments, supportRequests, files, notifications, auditLogs 
+} from "@shared/schema";
+import { eq, and, desc } from "drizzle-orm";
+import crypto from "crypto";
+
+export const storage = {
+  // User functions
+  async getUser(id: string) {
+    const user = await db.select().from(users).where(eq(users.id, id)).limit(1);
+    return user[0] || null;
+  },
+
+  async createUser(userData: any) {
+    const result = await db.insert(users).values(userData).returning();
+    return result[0];
+  },
+
+  // Service functions
+  async getActiveServices() {
+    return await db.select().from(services).where(eq(services.isActive, true));
+  },
+
+  // Order functions
+  async createOrder(orderData: any) {
+    const result = await db.insert(orders).values(orderData).returning();
+    return result[0];
+  },
+
+  async getAllOrders() {
+    return await db.select().from(orders).orderBy(desc(orders.createdAt));
+  },
+
+  async getUserOrders(userId: string) {
+    return await db.select().from(orders).where(eq(orders.userId, userId)).orderBy(desc(orders.createdAt));
+  },
+
+  async updateOrderStatus(orderId: string, status: string) {
+    const result = await db.update(orders).set({ status }).where(eq(orders.id, orderId)).returning();
+    return result[0];
+  },
+
+  // Project functions
+  async getAllProjects() {
+    return await db.select().from(projects).orderBy(desc(projects.createdAt));
+  },
+
+  async getUserProjects(userId: string) {
+    return await db.select().from(projects).where(eq(projects.userId, userId)).orderBy(desc(projects.createdAt));
+  },
+
+  async createProject(projectData: any) {
+    const result = await db.insert(projects).values(projectData).returning();
+    return result[0];
+  },
+
+  async updateProject(projectId: string, updateData: any) {
+    const result = await db.update(projects).set(updateData).where(eq(projects.id, projectId)).returning();
+    return result[0];
+  },
+
+  async userHasProjectAccess(userId: string, projectId: string) {
+    const user = await this.getUser(userId);
+    if (user?.role === 'admin') return true;
+
+    const project = await db.select().from(projects).where(
+      and(eq(projects.id, projectId), eq(projects.userId, userId))
+    ).limit(1);
+
+    return project.length > 0;
+  },
+
+  // Message functions
+  async getProjectMessages(projectId: string) {
+    return await db.select().from(messages).where(eq(messages.projectId, projectId)).orderBy(messages.sentAt);
+  },
+
+  async createMessage(messageData: any) {
+    const result = await db.insert(messages).values(messageData).returning();
+    return result[0];
+  },
+
+  // Payment functions
+  async initializePayment(paymentData: any) {
+    // This would integrate with Paystack API
+    // For now, return a mock URL
+    return "https://checkout.paystack.com/mock-payment-url";
+  },
+
+  async verifyPaystackWebhook(signature: string, body: string) {
+    // Verify Paystack webhook signature
+    // Implementation depends on Paystack setup
+    return true; // Mock verification
+  },
+
+  async handleSuccessfulPayment(paymentData: any) {
+    // Handle successful payment from webhook
+    console.log("Payment successful:", paymentData);
+  },
+
+  // Support request functions
+  async getAllSupportRequests() {
+    return await db.select().from(supportRequests).orderBy(desc(supportRequests.createdAt));
+  },
+
+  async getUserSupportRequests(userId: string) {
+    return await db.select().from(supportRequests).where(eq(supportRequests.userId, userId)).orderBy(desc(supportRequests.createdAt));
+  },
+
+  async createSupportRequest(requestData: any) {
+    const result = await db.insert(supportRequests).values(requestData).returning();
+    return result[0];
+  },
+
+  // Analytics functions
+  async getAnalytics() {
+    // Return mock analytics data
+    return {
+      totalOrders: 10,
+      totalRevenue: 1000000,
+      activeProjects: 5,
+      completedProjects: 8
+    };
+  },
+
+  // Contact form function
+  async handleContactForm(formData: any) {
+    console.log("Contact form submitted:", formData);
+    // In production, this would send email or store in database
+  },
+
+  // Quote request function
+  async handleQuoteRequest(quoteData: any) {
+    console.log("Quote request submitted:", quoteData);
+    // In production, this would notify admins or create a custom order
+  }
+};
