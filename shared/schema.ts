@@ -16,6 +16,14 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
 
+// Define enums first
+export const userRoleEnum = pgEnum("user_role", ["client", "admin", "pm"]);
+export const serviceCategoryEnum = pgEnum("service_category", ["launch", "growth", "elite", "custom"]);
+export const orderStatusEnum = pgEnum("order_status", ["pending", "paid", "in_progress", "complete", "cancelled"]);
+export const projectStatusEnum = pgEnum("project_status", ["not_started", "active", "paused", "completed"]);
+export const paymentStatusEnum = pgEnum("payment_status", ["succeeded", "failed", "refunded"]);
+export const supportStatusEnum = pgEnum("support_status", ["open", "in_progress", "resolved"]);
+
 // Session storage table.
 // (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
 export const sessions = pgTable(
@@ -36,7 +44,7 @@ export const users = pgTable("users", {
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
-  role: pgEnum("user_role", ["client", "admin", "pm"])("role").default("client"),
+  role: userRoleEnum("role").default("client"),
   phone: varchar("phone"),
   companyName: varchar("company_name"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -48,7 +56,7 @@ export const services = pgTable("services", {
   name: varchar("name").notNull(),
   description: text("description").notNull(),
   priceUsd: decimal("price_usd").notNull(),
-  category: pgEnum("service_category", ["launch", "growth", "elite", "custom"])("category").notNull(),
+  category: serviceCategoryEnum("category").notNull(),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -59,7 +67,7 @@ export const orders = pgTable("orders", {
   serviceId: uuid("service_id").references(() => services.id),
   customRequest: text("custom_request"),
   totalPrice: decimal("total_price").notNull(),
-  status: pgEnum("order_status", ["pending", "paid", "in_progress", "complete", "cancelled"])("status").default("pending"),
+  status: orderStatusEnum("status").default("pending"),
   paymentId: uuid("payment_id"),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -73,7 +81,7 @@ export const projects = pgTable("projects", {
   notes: text("notes"),
   startDate: date("start_date"),
   dueDate: date("due_date"),
-  status: pgEnum("project_status", ["not_started", "active", "paused", "completed"])("status").default("not_started"),
+  status: projectStatusEnum("status").default("not_started"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -104,7 +112,7 @@ export const payments = pgTable("payments", {
   currency: varchar("currency").default("USD"),
   provider: varchar("provider").notNull(),
   providerId: varchar("provider_id").notNull(),
-  status: pgEnum("payment_status", ["succeeded", "failed", "refunded"])("status").notNull(),
+  status: paymentStatusEnum("status").notNull(),
   paidAt: timestamp("paid_at"),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -133,7 +141,7 @@ export const supportRequests = pgTable("support_requests", {
   projectId: uuid("project_id").references(() => projects.id),
   subject: varchar("subject").notNull(),
   description: text("description").notNull(),
-  status: pgEnum("support_status", ["open", "in_progress", "resolved"])("status").default("open"),
+  status: supportStatusEnum("status").default("open"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
