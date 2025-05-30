@@ -141,14 +141,9 @@ function PricingCalculator({
   const savings = service.originalPrice - service.price;
   const savingsPercentage = Math.round((savings / service.originalPrice) * 100);
 
-  // Use useCallback to memoize the onPriceUpdate function reference
-  const memoizedOnPriceUpdate = useCallback((price: number) => {
-    onPriceUpdate(price);
-  }, [onPriceUpdate]);
-
   useEffect(() => {
-    memoizedOnPriceUpdate(totalPrice);
-  }, [totalPrice, memoizedOnPriceUpdate]);
+    onPriceUpdate(totalPrice);
+  }, [totalPrice]);
 
   const toggleAddOn = (addonName: string) => {
     setSelectedAddOns((prev) =>

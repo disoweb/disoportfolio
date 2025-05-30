@@ -54,8 +54,10 @@ export function setupAuth(app: Express) {
     cookie: {
       secure: process.env.NODE_ENV === 'production',
       httpOnly: true,
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-    }
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      sameSite: 'lax'
+    },
+    name: 'sessionId'
   };
 
   app.set("trust proxy", 1);
@@ -69,18 +71,23 @@ export function setupAuth(app: Express) {
       { usernameField: 'email' },
       async (email, password, done) => {
         try {
+          console.log('Login attempt for email:', email);
           const user = await storage.getUserByEmail(email);
           if (!user || !user.password) {
+            console.log('User not found or no password for email:', email);
             return done(null, false, { message: 'Invalid email or password' });
           }
 
           const isValid = await comparePasswords(password, user.password);
           if (!isValid) {
+            console.log('Invalid password for email:', email);
             return done(null, false, { message: 'Invalid email or password' });
           }
 
+          console.log('Login successful for user:', user.id);
           return done(null, user);
         } catch (error) {
+          console.error('Login strategy error:', error);
           return done(error);
         }
       }
@@ -98,11 +105,16 @@ export function setupAuth(app: Express) {
         },
         async (accessToken, refreshToken, profile, done) => {
           try {
-            let user = await storage.getUserByEmail(profile.emails?.[0]?.value || '');
+            const email = profile.emails?.[0]?.value;
+            if (!email) {
+              return done(new Error('No email provided by Google'));
+            }
+
+            let user = await storage.getUserByEmail(email);
             
             if (!user) {
               user = await storage.createUser({
-                email: profile.emails?.[0]?.value || '',
+                email,
                 firstName: profile.name?.givenName || '',
                 lastName: profile.name?.familyName || '',
                 profileImageUrl: profile.photos?.[0]?.value || '',
@@ -111,8 +123,13 @@ export function setupAuth(app: Express) {
               });
             }
 
+            if (!user || !user.id) {
+              return done(new Error('Failed to create or retrieve user'));
+            }
+
             return done(null, user);
           } catch (error) {
+            console.error('Google OAuth error:', error);
             return done(error);
           }
         }
@@ -132,11 +149,16 @@ export function setupAuth(app: Express) {
         },
         async (token, tokenSecret, profile, done) => {
           try {
-            let user = await storage.getUserByEmail(profile.emails?.[0]?.value || '');
+            const email = profile.emails?.[0]?.value;
+            if (!email) {
+              return done(new Error('No email provided by Twitter'));
+            }
+
+            let user = await storage.getUserByEmail(email);
             
             if (!user) {
               user = await storage.createUser({
-                email: profile.emails?.[0]?.value || '',
+                email,
                 firstName: profile.displayName?.split(' ')[0] || '',
                 lastName: profile.displayName?.split(' ')[1] || '',
                 profileImageUrl: profile.photos?.[0]?.value || '',
@@ -145,8 +167,13 @@ export function setupAuth(app: Express) {
               });
             }
 
+            if (!user || !user.id) {
+              return done(new Error('Failed to create or retrieve user'));
+            }
+
             return done(null, user);
           } catch (error) {
+            console.error('Twitter OAuth error:', error);
             return done(error);
           }
         }
@@ -155,14 +182,25 @@ export function setupAuth(app: Express) {
   }
 
   passport.serializeUser((user: Express.User, done) => {
+    console.log('Serializing user:', user?.id);
+    if (!user || !user.id) {
+      return done(new Error('User object or ID is missing'));
+    }
     done(null, user.id);
   });
   
   passport.deserializeUser(async (id: string, done) => {
     try {
+      if (!id) {
+        return done(new Error('User ID is missing during deserialization'));
+      }
       const user = await storage.getUser(id);
+      if (!user) {
+        return done(new Error('User not found during deserialization'));
+      }
       done(null, user);
     } catch (error) {
+      console.error('Deserialization error:', error);
       done(error);
     }
   });
@@ -191,6 +229,10 @@ export function setupAuth(app: Express) {
         phone,
         provider: 'local'
       });
+
+      if (!user || !user.id) {
+        return res.status(500).json({ message: "User creation failed" });
+      }
 
       req.login(user, (err) => {
         if (err) {
@@ -234,10 +276,17 @@ export function setupAuth(app: Express) {
   });
 
   app.get("/api/auth/user", (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.json(null);
+    try {
+      if (!req.isAuthenticated() || !req.user) {
+        return res.json(null);
+      }
+      const sanitizedUser = { ...req.user };
+      delete sanitizedUser.password;
+      res.json(sanitizedUser);
+    } catch (error) {
+      console.error('Get user error:', error);
+      res.status(500).json({ message: 'Failed to get user' });
     }
-    res.json({ ...req.user, password: undefined });
   });
 
   // Social auth routes - only register if strategies are configured
@@ -271,12 +320,21 @@ export function setupAuth(app: Express) {
 
   // Replit auth routes
   if (process.env.REPL_ID && process.env.ISSUER_URL) {
-    app.get("/api/auth/replit", (req, res) => {
-      res.redirect("/api/login");
-    });
+    // Import and setup Replit auth if configured
+    try {
+      const replitAuth = require('./replitAuth');
+      app.get("/api/auth/replit", (req, res) => {
+        res.redirect("/api/login");
+      });
+    } catch (error) {
+      console.warn('Replit auth not available:', error.message);
+      app.get("/api/auth/replit", (req, res) => {
+        res.status(501).json({ message: "Replit OAuth not configured properly" });
+      });
+    }
   } else {
     app.get("/api/auth/replit", (req, res) => {
-      res.status(501).json({ message: "Replit OAuth not configured" });
+      res.status(501).json({ message: "Replit OAuth not configured - missing REPL_ID or ISSUER_URL" });
     });
   }
 }
