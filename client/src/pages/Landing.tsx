@@ -200,10 +200,20 @@ export default function Landing() {
             Join thousands of businesses that trust DiSO Webs for their digital transformation.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" variant="secondary" className="px-8 py-4 text-lg">
+            <Button 
+              size="lg" 
+              variant="secondary" 
+              className="px-8 py-4 text-lg font-semibold"
+              onClick={() => window.location.href = '/services'}
+            >
               View Packages
             </Button>
-            <Button size="lg" variant="outline" className="px-8 py-4 text-lg border-white text-white hover:bg-white hover:text-blue-600">
+            <Button 
+              size="lg" 
+              variant="outline" 
+              className="px-8 py-4 text-lg font-semibold border-white text-white hover:bg-white hover:text-blue-600"
+              onClick={() => window.location.href = '/contact'}
+            >
               Contact Us
             </Button>
           </div>
