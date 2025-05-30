@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { useState, useEffect } from 'react';
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import ServicePackages from "@/components/ServicePackages";
@@ -6,11 +7,165 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { ArrowRight, CheckCircle, Star, Users, Award, Zap, Shield, HeadphonesIcon, Globe, Smartphone, Rocket } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ArrowRight, CheckCircle, Star, Users, Award, Zap, Shield, HeadphonesIcon, Globe, Smartphone, Rocket, Clock, TrendingUp, X, AlertCircle, ShoppingCart } from "lucide-react";
+
+const liveNotifications = [
+  "Engr Chidi ordered E-commerce Website from Abuja",
+  "Sarah M. just completed Web App project in Lagos",
+  "Tech Solutions Ltd booked Custom Development from Port Harcourt",
+  "Ahmad K. ordered Landing Page from Kano",
+  "Grace O. just paid for E-commerce Plus in Enugu",
+  "David Tech Hub booked Web App from Ibadan",
+  "Fashion Store NG ordered E-commerce from Lagos",
+  "StartupCo just upgraded to Premium package in Abuja"
+];
+
+const urgencyMessages = [
+  "Only 2 spots available this month!",
+  "3 premium slots remaining",
+  "Last 4 enterprise consultations available",
+  "2 e-commerce projects left in queue"
+];
+
+const socialProofs = [
+  "95% of tech startups choose our Web App package",
+  "87% of e-commerce businesses prefer our E-commerce Plus",
+  "92% of agencies recommend our Custom Development"
+];
+
+function LiveNotification({ message, onClose }: { message: string; onClose: () => void }) {
+  return (
+    <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-full duration-500">
+      <Alert className="bg-white border-green-200 shadow-lg max-w-sm">
+        <CheckCircle className="h-4 w-4 text-green-600" />
+        <AlertDescription className="pr-8">
+          <span className="font-medium text-green-800">{message}</span>
+          <span className="text-xs text-green-600 block">Just now</span>
+        </AlertDescription>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="absolute top-2 right-2 h-auto p-1"
+          onClick={onClose}
+        >
+          <X className="h-3 w-3" />
+        </Button>
+      </Alert>
+    </div>
+  );
+}
+
+function UrgencyBanner() {
+  const [currentMessage, setCurrentMessage] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentMessage((prev) => (prev + 1) % urgencyMessages.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white py-2 px-4 text-center text-sm font-medium">
+      <div className="flex items-center justify-center space-x-2">
+        <AlertCircle className="h-4 w-4" />
+        <span>{urgencyMessages[currentMessage]}</span>
+      </div>
+    </div>
+  );
+}
+
+function LiveProjectCounter() {
+  const [count, setCount] = useState(127);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCount(prev => prev + Math.floor(Math.random() * 3));
+    }, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white py-8">
+      <div className="max-w-7xl mx-auto px-4 text-center">
+        <div className="flex items-center justify-center space-x-4">
+          <TrendingUp className="h-8 w-8" />
+          <div>
+            <div className="text-3xl font-bold">{count}</div>
+            <div className="text-sm opacity-90">Projects completed this month</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SecurityBadges() {
+  return (
+    <div className="flex flex-wrap items-center justify-center gap-6 py-8">
+      <div className="flex items-center space-x-2 bg-white rounded-lg px-4 py-2 shadow-sm border">
+        <Shield className="h-5 w-5 text-green-600" />
+        <span className="text-sm font-medium">SSL Secured</span>
+      </div>
+      <div className="flex items-center space-x-2 bg-white rounded-lg px-4 py-2 shadow-sm border">
+        <Award className="h-5 w-5 text-blue-600" />
+        <span className="text-sm font-medium">ISO 27001</span>
+      </div>
+      <div className="flex items-center space-x-2 bg-white rounded-lg px-4 py-2 shadow-sm border">
+        <CheckCircle className="h-5 w-5 text-purple-600" />
+        <span className="text-sm font-medium">GDPR Compliant</span>
+      </div>
+      <div className="flex items-center space-x-2 bg-white rounded-lg px-4 py-2 shadow-sm border">
+        <Clock className="h-5 w-5 text-orange-600" />
+        <span className="text-sm font-medium">99.9% Uptime</span>
+      </div>
+    </div>
+  );
+}
 
 export default function Landing() {
+  const [showNotification, setShowNotification] = useState(false);
+  const [currentNotification, setCurrentNotification] = useState('');
+  const [socialProofIndex, setSocialProofIndex] = useState(0);
+
+  useEffect(() => {
+    const showRandomNotification = () => {
+      const randomNotification = liveNotifications[Math.floor(Math.random() * liveNotifications.length)];
+      setCurrentNotification(randomNotification);
+      setShowNotification(true);
+    };
+
+    // Show first notification after 5 seconds
+    const initialTimeout = setTimeout(showRandomNotification, 5000);
+
+    // Then show notifications every 15-25 seconds
+    const interval = setInterval(() => {
+      if (!showNotification) {
+        showRandomNotification();
+      }
+    }, Math.random() * 10000 + 15000);
+
+    return () => {
+      clearTimeout(initialTimeout);
+      clearInterval(interval);
+    };
+  }, [showNotification]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setSocialProofIndex((prev) => (prev + 1) % socialProofs.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleNotificationClose = () => {
+    setShowNotification(false);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+      <UrgencyBanner />
       <Navigation />
 
       {/* Hero Section */}
@@ -27,13 +182,27 @@ export default function Landing() {
               Transform your business with stunning, high-performance websites. From startups to enterprises, 
               we deliver exceptional digital experiences that drive results.
             </p>
+            
+            {/* Social Proof Rotating Message */}
+            <div className="mb-6">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 inline-block">
+                <p className="text-blue-800 text-sm font-medium">
+                  ✨ {socialProofs[socialProofIndex]}
+                </p>
+              </div>
+            </div>
+
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button 
                 size="lg" 
-                className="bg-blue-600 hover:bg-blue-700 px-8 py-4 text-lg"
+                className="bg-blue-600 hover:bg-blue-700 px-8 py-4 text-lg relative"
                 onClick={() => window.location.href = '/services'}
               >
+                <ShoppingCart className="mr-2 h-5 w-5" />
                 View Packages
+                <Badge variant="destructive" className="absolute -top-2 -right-2 text-xs">
+                  Hot
+                </Badge>
               </Button>
               <Button 
                 variant="outline" 
@@ -44,7 +213,26 @@ export default function Landing() {
                 Contact Us
               </Button>
             </div>
+
+            {/* Refund Policy */}
+            <div className="mt-6">
+              <p className="text-sm text-slate-600 flex items-center justify-center">
+                <Shield className="h-4 w-4 mr-1 text-green-600" />
+                30-day money-back guarantee • No questions asked
+              </p>
+            </div>
           </div>
+        </div>
+      </section>
+
+      {/* Live Project Counter */}
+      <LiveProjectCounter />
+
+      {/* Security Badges */}
+      <section className="py-8 bg-slate-50">
+        <div className="max-w-7xl mx-auto px-4">
+          <p className="text-center text-sm text-slate-600 mb-4">Trusted by 500+ businesses with enterprise-grade security</p>
+          <SecurityBadges />
         </div>
       </section>
 
@@ -106,6 +294,22 @@ export default function Landing() {
             <p className="text-xl text-slate-600 max-w-3xl mx-auto">
               From small businesses to large enterprises, we have the right solution for your needs.
             </p>
+            
+            {/* Pricing Benefits */}
+            <div className="flex flex-wrap justify-center gap-4 mt-6">
+              <Badge variant="secondary" className="text-sm py-1 px-3">
+                <Clock className="h-3 w-3 mr-1" />
+                Pay in installments available
+              </Badge>
+              <Badge variant="secondary" className="text-sm py-1 px-3">
+                <Award className="h-3 w-3 mr-1" />
+                Industry-specific recommendations
+              </Badge>
+              <Badge variant="secondary" className="text-sm py-1 px-3">
+                <CheckCircle className="h-3 w-3 mr-1" />
+                AI-powered suggestions
+              </Badge>
+            </div>
           </div>
           <ServicePackages />
         </div>
@@ -416,6 +620,14 @@ export default function Landing() {
       </section>
 
       <Footer />
+
+      {/* Live Notification */}
+      {showNotification && (
+        <LiveNotification 
+          message={currentNotification} 
+          onClose={handleNotificationClose}
+        />
+      )}
     </div>
   );
 }

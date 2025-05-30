@@ -653,7 +653,47 @@ export const storage = {
 
   // Quote request function
   async handleQuoteRequest(quoteData: any) {
-    console.log("Quote request submitted:", quoteData);
-    // In production, this would notify admins or create a custom order
+    // For now, just log the quote request
+    // In a real implementation, you might save to database and send email
+    console.log("Quote request received:", quoteData);
+  }
+
+  async getWorkloadStatus() {
+    const activeProjects = await db
+      .select()
+      .from(projects)
+      .where(eq(projects.status, 'active'));
+
+    const currentWeekProjects = activeProjects.filter(project => {
+      const createdAt = new Date(project.createdAt);
+      const weekAgo = new Date();
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      return createdAt >= weekAgo;
+    });
+
+    return {
+      totalActiveProjects: activeProjects.length,
+      thisWeekProjects: currentWeekProjects.length,
+      capacity: Math.max(10 - activeProjects.length, 0),
+      estimatedDelivery: this.calculateEstimatedDelivery(activeProjects.length)
+    };
+  }
+
+  calculateEstimatedDelivery(currentLoad: number) {
+    const baseWeeks = 2;
+    const additionalWeeks = Math.floor(currentLoad / 3);
+    const totalWeeks = baseWeeks + additionalWeeks;
+
+    const deliveryDate = new Date();
+    deliveryDate.setDate(deliveryDate.getDate() + (totalWeeks * 7));
+
+    return deliveryDate.toISOString().split('T')[0];
+  }
+
+  async updateServiceAvailability(serviceId: string, spots: number, deliveryDate: string) {
+    // In a real implementation, you would update a services table
+    // For now, we'll just log the update
+    console.log(`Updated ${serviceId}: ${spots} spots, delivery by ${deliveryDate}`);
+    return { success: true };
   }
 };

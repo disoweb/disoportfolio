@@ -33,6 +33,10 @@ export default function AdminDashboard() {
     queryKey: ["/api/projects"],
   });
 
+  const { data: workload } = useQuery({
+    queryKey: ["/api/admin/workload"],
+  });
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -337,17 +341,87 @@ export default function AdminDashboard() {
           </TabsContent>
 
           <TabsContent value="analytics">
-            <Card>
-              <CardHeader>
-                <CardTitle>Analytics & Reports</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8">
-                  <TrendingUp className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                  <p className="text-slate-600">Detailed analytics coming soon</p>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="space-y-6">
+              {/* Workload Management */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Workload & Capacity Management</CardTitle>
+                  <CardDescription>Manage project capacity and delivery estimates</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {workload ? (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="text-center p-4 bg-blue-50 rounded-lg">
+                        <div className="text-2xl font-bold text-blue-600">{workload.totalActiveProjects}</div>
+                        <div className="text-sm text-blue-800">Active Projects</div>
+                      </div>
+                      <div className="text-center p-4 bg-green-50 rounded-lg">
+                        <div className="text-2xl font-bold text-green-600">{workload.capacity}</div>
+                        <div className="text-sm text-green-800">Available Capacity</div>
+                      </div>
+                      <div className="text-center p-4 bg-purple-50 rounded-lg">
+                        <div className="text-2xl font-bold text-purple-600">{workload.thisWeekProjects}</div>
+                        <div className="text-sm text-purple-800">This Week</div>
+                      </div>
+                      <div className="text-center p-4 bg-orange-50 rounded-lg">
+                        <div className="text-2xl font-bold text-orange-600">
+                          {new Date(workload.estimatedDelivery).toLocaleDateString()}
+                        </div>
+                        <div className="text-sm text-orange-800">Next Available</div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-4">Loading workload data...</div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Service Availability */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Service Availability Management</CardTitle>
+                  <CardDescription>Update available spots and delivery dates</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {['landing', 'ecommerce', 'webapp'].map(serviceId => (
+                      <div key={serviceId} className="flex items-center justify-between p-4 border rounded-lg">
+                        <div>
+                          <h4 className="font-medium capitalize">{serviceId} Page</h4>
+                          <p className="text-sm text-slate-600">Current spots and delivery estimates</p>
+                        </div>
+                        <div className="flex items-center space-x-4">
+                          <input
+                            type="number"
+                            placeholder="Spots"
+                            className="w-20 px-2 py-1 border rounded"
+                            min="0"
+                            max="10"
+                          />
+                          <input
+                            type="date"
+                            className="px-2 py-1 border rounded"
+                          />
+                          <Button size="sm">Update</Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Analytics & Reports</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-8">
+                    <TrendingUp className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                    <p className="text-slate-600">Detailed analytics coming soon</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
       </div>

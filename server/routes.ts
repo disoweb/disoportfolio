@@ -291,6 +291,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Workload management routes (admin only)
+  app.get('/api/admin/workload', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (user?.role !== 'admin') {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
+      const workload = await storage.getWorkloadStatus();
+      res.json(workload);
+    } catch (error) {
+      console.error("Error fetching workload:", error);
+      res.status(500).json({ message: "Failed to fetch workload" });
+    }
+  });
+
+  app.post('/api/admin/availability', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (user?.role !== 'admin') {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
+      const { serviceId, spots, deliveryDate } = req.body;
+      await storage.updateServiceAvailability(serviceId, spots, deliveryDate);
+      res.json({ message: "Availability updated successfully" });
+    } catch (error) {
+      console.error("Error updating availability:", error);
+      res.status(500).json({ message: "Failed to update availability" });
+    }
+  });
+
   // Contact form route (public)
   app.post('/api/contact', async (req, res) => {
     try {

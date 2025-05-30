@@ -25,10 +25,13 @@ async function hashPassword(password: string) {
 }
 
 async function comparePasswords(supplied: string, stored: string) {
+  if (!stored || !stored.includes('.')) {
+    return false;
+  }
   const [hashed, salt] = stored.split(".");
   const hashedBuf = Buffer.from(hashed, "hex");
   const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
-  return timingSafeEqual(hashedBuf, suppliedBuf);
+  return hashedBuf.length === suppliedBuf.length && timingSafeEqual(hashedBuf, suppliedBuf);
 }
 
 export function setupAuth(app: Express) {
@@ -148,7 +151,10 @@ export function setupAuth(app: Express) {
     )
   );
 
-  passport.serializeUser((user, done) => done(null, user.id));
+  passport.serializeUser((user: any, done) => {
+    done(null, user.id);
+  });
+  
   passport.deserializeUser(async (id: string, done) => {
     try {
       const user = await storage.getUser(id);
@@ -184,8 +190,13 @@ export function setupAuth(app: Express) {
       });
 
       req.login(user, (err) => {
-        if (err) return next(err);
-        res.status(201).json({ user: { ...user, password: undefined } });
+        if (err) {
+          console.error("Login error after registration:", err);
+          return next(err);
+        }
+        const sanitizedUser = { ...user };
+        delete sanitizedUser.password;
+        res.status(201).json({ user: sanitizedUser });
       });
     } catch (error) {
       console.error("Registration error:", error);
