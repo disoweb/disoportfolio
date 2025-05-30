@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -141,9 +141,14 @@ function PricingCalculator({
   const savings = service.originalPrice - service.price;
   const savingsPercentage = Math.round((savings / service.originalPrice) * 100);
 
+  // Use useCallback to memoize the onPriceUpdate function reference
+  const memoizedOnPriceUpdate = useCallback((price: number) => {
+    onPriceUpdate(price);
+  }, [onPriceUpdate]);
+
   useEffect(() => {
-    onPriceUpdate(totalPrice);
-  }, [totalPrice]);
+    memoizedOnPriceUpdate(totalPrice);
+  }, [totalPrice, memoizedOnPriceUpdate]);
 
   const toggleAddOn = (addonName: string) => {
     setSelectedAddOns((prev) =>

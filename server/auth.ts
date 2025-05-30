@@ -40,7 +40,10 @@ export function setupAuth(app: Express) {
   const sessionStore = new PostgresSessionStore({
     conString: process.env.DATABASE_URL,
     createTableIfMissing: true,
-    tableName: "sessions"
+    tableName: "sessions",
+    errorLog: (error: any) => {
+      console.error('Session store error:', error);
+    }
   });
 
   const sessionSettings: session.SessionOptions = {
@@ -192,7 +195,7 @@ export function setupAuth(app: Express) {
       req.login(user, (err) => {
         if (err) {
           console.error("Login error after registration:", err);
-          return next(err);
+          return res.status(500).json({ message: "Login failed after registration" });
         }
         const sanitizedUser = { ...user };
         delete sanitizedUser.password;
@@ -212,8 +215,13 @@ export function setupAuth(app: Express) {
       }
 
       req.login(user, (err) => {
-        if (err) return next(err);
-        res.json({ user: { ...user, password: undefined } });
+        if (err) {
+          console.error("Login error:", err);
+          return res.status(500).json({ message: "Login failed" });
+        }
+        const sanitizedUser = { ...user };
+        delete sanitizedUser.password;
+        res.json({ user: sanitizedUser });
       });
     })(req, res, next);
   });
