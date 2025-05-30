@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -210,7 +209,7 @@ function PricingCalculator({ service, onPriceUpdate }: { service: any, onPriceUp
 
 function ROICalculator({ service }: { service: any }) {
   const [monthlyRevenue, setMonthlyRevenue] = useState(500000);
-  
+
   const projectedIncrease = service.id === 'ecommerce' ? 40 : service.id === 'webapp' ? 35 : 25;
   const monthlyIncrease = (monthlyRevenue * projectedIncrease) / 100;
   const roiMonths = Math.ceil(service.price / monthlyIncrease);
@@ -293,7 +292,7 @@ export default function ServicePackages() {
                 Recommended for you
               </Badge>
             )}
-            
+
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="text-xl">{service.name}</CardTitle>
@@ -305,7 +304,7 @@ export default function ServicePackages() {
                 )}
               </div>
               <CardDescription>{service.description}</CardDescription>
-              
+
               {/* Delivery Info */}
               <div className="flex items-center space-x-4 text-sm text-slate-600">
                 <div className="flex items-center">

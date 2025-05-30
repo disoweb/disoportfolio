@@ -84,74 +84,74 @@ export function setupAuth(app: Express) {
     )
   );
 
-  // Google Strategy - Always register with dummy config if env vars missing
-  const googleConfig = {
-    clientID: process.env.GOOGLE_CLIENT_ID || 'dummy',
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'dummy',
-    callbackURL: "/api/auth/google/callback"
-  };
+  // Google Strategy - Only register if env vars exist
+  if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+    passport.use(
+      new GoogleStrategy(
+        {
+          clientID: process.env.GOOGLE_CLIENT_ID,
+          clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+          callbackURL: "/api/auth/google/callback"
+        },
+        async (accessToken, refreshToken, profile, done) => {
+          try {
+            let user = await storage.getUserByEmail(profile.emails?.[0]?.value || '');
+            
+            if (!user) {
+              user = await storage.createUser({
+                email: profile.emails?.[0]?.value || '',
+                firstName: profile.name?.givenName || '',
+                lastName: profile.name?.familyName || '',
+                profileImageUrl: profile.photos?.[0]?.value || '',
+                provider: 'google',
+                providerId: profile.id
+              });
+            }
 
-  passport.use(
-    new GoogleStrategy(
-      googleConfig,
-      async (accessToken, refreshToken, profile, done) => {
-        try {
-          let user = await storage.getUserByEmail(profile.emails?.[0]?.value || '');
-          
-          if (!user) {
-            user = await storage.createUser({
-              email: profile.emails?.[0]?.value || '',
-              firstName: profile.name?.givenName || '',
-              lastName: profile.name?.familyName || '',
-              profileImageUrl: profile.photos?.[0]?.value || '',
-              provider: 'google',
-              providerId: profile.id
-            });
+            return done(null, user);
+          } catch (error) {
+            return done(error);
           }
-
-          return done(null, user);
-        } catch (error) {
-          return done(error);
         }
-      }
-    )
-  );
+      )
+    );
+  }
 
-  // Twitter Strategy - Always register with dummy config if env vars missing
-  const twitterConfig = {
-    consumerKey: process.env.TWITTER_CONSUMER_KEY || 'dummy',
-    consumerSecret: process.env.TWITTER_CONSUMER_SECRET || 'dummy',
-    callbackURL: "/api/auth/twitter/callback",
-    includeEmail: true
-  };
+  // Twitter Strategy - Only register if env vars exist
+  if (process.env.TWITTER_CONSUMER_KEY && process.env.TWITTER_CONSUMER_SECRET) {
+    passport.use(
+      new TwitterStrategy(
+        {
+          consumerKey: process.env.TWITTER_CONSUMER_KEY,
+          consumerSecret: process.env.TWITTER_CONSUMER_SECRET,
+          callbackURL: "/api/auth/twitter/callback",
+          includeEmail: true
+        },
+        async (token, tokenSecret, profile, done) => {
+          try {
+            let user = await storage.getUserByEmail(profile.emails?.[0]?.value || '');
+            
+            if (!user) {
+              user = await storage.createUser({
+                email: profile.emails?.[0]?.value || '',
+                firstName: profile.displayName?.split(' ')[0] || '',
+                lastName: profile.displayName?.split(' ')[1] || '',
+                profileImageUrl: profile.photos?.[0]?.value || '',
+                provider: 'twitter',
+                providerId: profile.id
+              });
+            }
 
-  passport.use(
-    new TwitterStrategy(
-      twitterConfig,
-      async (token, tokenSecret, profile, done) => {
-        try {
-          let user = await storage.getUserByEmail(profile.emails?.[0]?.value || '');
-          
-          if (!user) {
-            user = await storage.createUser({
-              email: profile.emails?.[0]?.value || '',
-              firstName: profile.displayName?.split(' ')[0] || '',
-              lastName: profile.displayName?.split(' ')[1] || '',
-              profileImageUrl: profile.photos?.[0]?.value || '',
-              provider: 'twitter',
-              providerId: profile.id
-            });
+            return done(null, user);
+          } catch (error) {
+            return done(error);
           }
-
-          return done(null, user);
-        } catch (error) {
-          return done(error);
         }
-      }
-    )
-  );
+      )
+    );
+  }
 
-  passport.serializeUser((user: any, done) => {
+  passport.serializeUser((user: Express.User, done) => {
     done(null, user.id);
   });
   
@@ -232,27 +232,45 @@ export function setupAuth(app: Express) {
     res.json({ ...req.user, password: undefined });
   });
 
-  // Social auth routes
-  app.get("/api/auth/google", passport.authenticate("google", { scope: ["profile", "email"] }));
-  app.get("/api/auth/google/callback", 
-    passport.authenticate("google", { failureRedirect: "/auth?error=google_failed" }),
-    (req, res) => {
-      res.redirect("/?auth=success");
-    }
-  );
+  // Social auth routes - only register if strategies are configured
+  if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+    app.get("/api/auth/google", passport.authenticate("google", { scope: ["profile", "email"] }));
+    app.get("/api/auth/google/callback", 
+      passport.authenticate("google", { failureRedirect: "/auth?error=google_failed" }),
+      (req, res) => {
+        res.redirect("/?auth=success");
+      }
+    );
+  } else {
+    app.get("/api/auth/google", (req, res) => {
+      res.status(501).json({ message: "Google OAuth not configured" });
+    });
+  }
 
-  app.get("/api/auth/twitter", passport.authenticate("twitter"));
-  app.get("/api/auth/twitter/callback",
-    passport.authenticate("twitter", { failureRedirect: "/auth?error=twitter_failed" }),
-    (req, res) => {
-      res.redirect("/?auth=success");
-    }
-  );
+  if (process.env.TWITTER_CONSUMER_KEY && process.env.TWITTER_CONSUMER_SECRET) {
+    app.get("/api/auth/twitter", passport.authenticate("twitter"));
+    app.get("/api/auth/twitter/callback",
+      passport.authenticate("twitter", { failureRedirect: "/auth?error=twitter_failed" }),
+      (req, res) => {
+        res.redirect("/?auth=success");
+      }
+    );
+  } else {
+    app.get("/api/auth/twitter", (req, res) => {
+      res.status(501).json({ message: "Twitter OAuth not configured" });
+    });
+  }
 
-  // Replit auth fallback
-  app.get("/api/auth/replit", (req, res) => {
-    res.redirect("/api/login");
-  });
+  // Replit auth routes
+  if (process.env.REPL_ID && process.env.ISSUER_URL) {
+    app.get("/api/auth/replit", (req, res) => {
+      res.redirect("/api/login");
+    });
+  } else {
+    app.get("/api/auth/replit", (req, res) => {
+      res.status(501).json({ message: "Replit OAuth not configured" });
+    });
+  }
 }
 
 export const isAuthenticated = (req: any, res: any, next: any) => {

@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./auth";
+import { setupAuth as setupReplitAuth } from "./replitAuth";
 import { 
   insertOrderSchema, 
   insertProjectSchema, 
@@ -13,7 +14,13 @@ import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
-  setupAuth(app);
+  if (process.env.REPL_ID && process.env.ISSUER_URL) {
+    // Use Replit auth if in Replit environment
+    await setupReplitAuth(app);
+  } else {
+    // Use standard auth otherwise
+    setupAuth(app);
+  }
 
   // No need for separate auth routes as they're handled in setupAuth
 
