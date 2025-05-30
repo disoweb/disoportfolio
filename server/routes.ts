@@ -49,7 +49,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/orders', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       
       let orders;
@@ -67,7 +67,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch('/api/orders/:id/status', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       
       if (user?.role !== 'admin') {
@@ -87,7 +87,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Projects routes
   app.get('/api/projects', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       
       let projects;
@@ -105,7 +105,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/projects', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       
       if (user?.role !== 'admin') {
@@ -126,7 +126,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch('/api/projects/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       
       if (user?.role !== 'admin') {
@@ -145,7 +145,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Messages routes
   app.get('/api/projects/:projectId/messages', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const { projectId } = req.params;
       
       // Check if user has access to this project
@@ -164,7 +164,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/projects/:projectId/messages', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const { projectId } = req.params;
       const user = await storage.getUser(userId);
       
@@ -195,7 +195,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Payment routes
   app.post('/api/payments/initialize', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const { orderId, amount, email } = req.body;
 
       const paymentUrl = await storage.initializePayment({
@@ -238,7 +238,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Support requests routes
   app.get('/api/support-requests', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       
       let supportRequests;
@@ -256,7 +256,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/support-requests', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const supportRequestData = insertSupportRequestSchema.parse({
         ...req.body,
         userId,
@@ -276,7 +276,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Analytics routes (admin only)
   app.get('/api/analytics', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       
       if (user?.role !== 'admin') {

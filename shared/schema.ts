@@ -15,6 +15,7 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
+import crypto from "crypto";
 
 // Define enums first
 export const userRoleEnum = pgEnum("user_role", ["client", "admin", "pm"]);
