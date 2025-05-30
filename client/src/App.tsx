@@ -9,9 +9,12 @@ import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth-page";
 import Landing from "@/pages/Landing";
 import Home from "@/pages/Home";
-import Services from "@/pages/Services";
-import About from "@/pages/About";
-import Contact from "@/pages/Contact";
+import Services from "./pages/Services";
+import ServiceDetails from "./pages/ServiceDetails";
+import Projects from "./pages/Projects";
+import ProjectDetails from "./pages/ProjectDetails";
+import About from "./pages/About";
+import Contact from "./pages/Contact";
 import ClientDashboard from "@/pages/ClientDashboard";
 import AdminDashboard from "@/pages/AdminDashboard";
 
@@ -38,6 +41,9 @@ function Router() {
           <Route path="/" component={Landing} />
           <Route path="/auth" component={AuthPage} />
           <Route path="/services" component={Services} />
+          <Route path="/service/:id" component={ServiceDetails} />
+          <Route path="/projects" component={Projects} />
+          <Route path="/project/:id" component={ProjectDetails} />
           <Route path="/about" component={About} />
           <Route path="/contact" component={Contact} />
         </>
@@ -48,6 +54,9 @@ function Router() {
             {user?.role === 'admin' ? <AdminDashboard /> : <ClientDashboard />}
           </Route>
           <Route path="/services" component={Services} />
+          <Route path="/service/:id" component={ServiceDetails} />
+          <Route path="/projects" component={Projects} />
+          <Route path="/project/:id" component={ProjectDetails} />
           <Route path="/about" component={About} />
           <Route path="/contact" component={Contact} />
         </>

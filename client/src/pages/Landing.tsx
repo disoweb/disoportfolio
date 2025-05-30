@@ -2,14 +2,16 @@ import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import ServicePackages from "@/components/ServicePackages";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { CheckCircle, Rocket, Shield, Zap, Users, Star } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { ArrowRight, CheckCircle, Star, Users, Award, Zap, Shield, HeadphonesIcon, Globe, Smartphone } from "lucide-react";
 
 export default function Landing() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       <Navigation />
-      
+
       {/* Hero Section */}
       <section className="pt-20 pb-16 lg:pt-28 lg:pb-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -192,8 +194,199 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-16 lg:py-24 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+      {/* Stats Section */}
+      <section className="py-20 bg-slate-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+            <div>
+              <div className="text-4xl font-bold text-slate-900 mb-2">500+</div>
+              <div className="text-slate-600">Projects Completed</div>
+            </div>
+            <div>
+              <div className="text-4xl font-bold text-slate-900 mb-2">200+</div>
+              <div className="text-slate-600">Happy Clients</div>
+            </div>
+            <div>
+              <div className="text-4xl font-bold text-slate-900 mb-2">5</div>
+              <div className="text-slate-600">Years Experience</div>
+            </div>
+            <div>
+              <div className="text-4xl font-bold text-slate-900 mb-2">24/7</div>
+              <div className="text-slate-600">Support Available</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Featured Projects Section */}
+      <section className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">
+              Our Latest <span className="text-blue-600">Success Stories</span>
+            </h2>
+            <p className="text-xl text-slate-600 max-w-3xl mx-auto">
+              See how we've helped businesses transform their digital presence and achieve remarkable results
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+            {/* Project 1 */}
+            <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-300">
+              <div className="aspect-video overflow-hidden">
+                <img 
+                  src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=250&fit=crop" 
+                  alt="Fashion E-commerce Platform"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <CardHeader>
+                <Badge variant="secondary" className="w-fit">E-commerce</Badge>
+                <CardTitle className="text-lg">Fashion E-commerce Platform</CardTitle>
+                <CardDescription>
+                  Complete online store with 300% sales increase
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button variant="ghost" className="w-full justify-between p-0" 
+                        onClick={() => window.location.href = '/project/ecommerce-fashion'}>
+                  View Case Study
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Project 2 */}
+            <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-300">
+              <div className="aspect-video overflow-hidden">
+                <img 
+                  src="https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400&h=250&fit=crop" 
+                  alt="Restaurant Management System"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <CardHeader>
+                <Badge variant="secondary" className="w-fit">Web App</Badge>
+                <CardTitle className="text-lg">Restaurant Management System</CardTitle>
+                <CardDescription>
+                  Streamlined operations with 60% more online orders
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button variant="ghost" className="w-full justify-between p-0"
+                        onClick={() => window.location.href = '/projects'}>
+                  View Case Study
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Project 3 */}
+            <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-300">
+              <div className="aspect-video overflow-hidden">
+                <img 
+                  src="https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=400&h=250&fit=crop" 
+                  alt="Healthcare Patient Portal"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <CardHeader>
+                <Badge variant="secondary" className="w-fit">Healthcare</Badge>
+                <CardTitle className="text-lg">Healthcare Patient Portal</CardTitle>
+                <CardDescription>
+                  Secure portal with 80% reduction in phone bookings
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button variant="ghost" className="w-full justify-between p-0"
+                        onClick={() => window.location.href = '/projects'}>
+                  View Case Study
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="text-center">
+            <Button size="lg" variant="outline" onClick={() => window.location.href = '/projects'}>
+              View All Projects
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
+        </section>
+
+        {/* FAQ Section */}
+        <section className="py-20 bg-white">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">
+                Frequently Asked Questions
+              </h2>
+              <p className="text-xl text-slate-600">
+                Everything you need to know about our services
+              </p>
+            </div>
+
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="item-1">
+                <AccordionTrigger className="text-left text-lg font-semibold">
+                  How long does it take to build a website?
+                </AccordionTrigger>
+                <AccordionContent className="text-slate-600 text-base">
+                  Timeline depends on the complexity of your project. A basic website typically takes 1-2 weeks, e-commerce solutions take 3-4 weeks, and custom web applications can take 6-12 weeks. We provide detailed timelines during our initial consultation.
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="item-2">
+                <AccordionTrigger className="text-left text-lg font-semibold">
+                  Do you provide hosting and domain services?
+                </AccordionTrigger>
+                <AccordionContent className="text-slate-600 text-base">
+                  We can help you set up hosting and domain registration with reliable providers. While we don't provide hosting directly, we recommend trusted partners and assist with the entire setup process.
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="item-3">
+                <AccordionTrigger className="text-left text-lg font-semibold">
+                  What payment methods do you accept?
+                </AccordionTrigger>
+                <AccordionContent className="text-slate-600 text-base">
+                  We accept bank transfers, online payments via Paystack, and installment payment plans for larger projects. A 50% deposit is typically required to start the project, with the balance due upon completion.
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="item-4">
+                <AccordionTrigger className="text-left text-lg font-semibold">
+                  Do you offer ongoing maintenance and support?
+                </AccordionTrigger>
+                <AccordionContent className="text-slate-600 text-base">
+                  Yes! All our packages include initial support, and we offer ongoing maintenance plans starting from ₦25,000/month. This includes security updates, content updates, backup management, and technical support.
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="item-5">
+                <AccordionTrigger className="text-left text-lg font-semibold">
+                  Can I update the website content myself?
+                </AccordionTrigger>
+                <AccordionContent className="text-slate-600 text-base">
+                  Absolutely! We build user-friendly content management systems that allow you to update text, images, and other content easily. We also provide training and documentation to help you manage your website independently.
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="item-6">
+                <AccordionTrigger className="text-left text-lg font-semibold">
+                  What if I'm not satisfied with the result?
+                </AccordionTrigger>
+                <AccordionContent className="text-slate-600 text-base">
+                  Your satisfaction is our priority. We include multiple revision rounds in our process and work closely with you at each stage. We offer a satisfaction guarantee and will work until you're happy with the final result.
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </div>
+        </section>
+
+        {/* CTA Section */}
+        <section className="py-20 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl lg:text-4xl font-bold mb-4">Ready to Start Your Project?</h2>
           <p className="text-xl mb-8 opacity-90 max-w-2xl mx-auto">

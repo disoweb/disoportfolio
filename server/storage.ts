@@ -36,41 +36,41 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: UpsertUser): Promise<User>;
   upsertUser(user: UpsertUser): Promise<User>;
-  
+
   // Service operations
   getActiveServices(): Promise<Service[]>;
   createService(service: InsertService): Promise<Service>;
-  
+
   // Order operations
   createOrder(order: InsertOrder): Promise<Order>;
   getUserOrders(userId: string): Promise<Order[]>;
   getAllOrders(): Promise<Order[]>;
   updateOrderStatus(orderId: string, status: string): Promise<Order>;
-  
+
   // Project operations
   getUserProjects(userId: string): Promise<Project[]>;
   getAllProjects(): Promise<Project[]>;
   createProject(project: InsertProject): Promise<Project>;
   updateProject(projectId: string, updates: Partial<Project>): Promise<Project>;
   userHasProjectAccess(userId: string, projectId: string): Promise<boolean>;
-  
+
   // Message operations
   getProjectMessages(projectId: string): Promise<Message[]>;
   createMessage(message: InsertMessage): Promise<Message>;
-  
+
   // Payment operations
   initializePayment(params: { orderId: string; amount: number; email: string; userId: string }): Promise<string>;
   verifyPaystackWebhook(signature: string, body: string): Promise<boolean>;
   handleSuccessfulPayment(paymentData: any): Promise<void>;
-  
+
   // Support operations
   getUserSupportRequests(userId: string): Promise<SupportRequest[]>;
   getAllSupportRequests(): Promise<SupportRequest[]>;
   createSupportRequest(request: InsertSupportRequest): Promise<SupportRequest>;
-  
+
   // Analytics operations
   getAnalytics(): Promise<any>;
-  
+
   // Contact and quote operations
   handleContactForm(data: { name: string; email: string; subject: string; message: string }): Promise<void>;
   handleQuoteRequest(data: any): Promise<void>;
@@ -267,7 +267,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(projects)
       .where(and(eq(projects.id, projectId), eq(projects.userId, userId)));
-    
+
     return !!project;
   }
 
@@ -308,7 +308,7 @@ export class DatabaseStorage implements IStorage {
     }
 
     const reference = `PSK_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
+
     const response = await fetch('https://api.paystack.co/transaction/initialize', {
       method: 'POST',
       headers: {
@@ -328,7 +328,7 @@ export class DatabaseStorage implements IStorage {
     });
 
     const data = await response.json();
-    
+
     if (!data.status) {
       throw new Error(data.message || 'Failed to initialize payment');
     }
@@ -357,7 +357,7 @@ export class DatabaseStorage implements IStorage {
       .createHmac('sha512', paystackSecretKey)
       .update(body, 'utf8')
       .digest('hex');
-    
+
     return hash === signature;
   }
 
@@ -485,7 +485,7 @@ export class DatabaseStorage implements IStorage {
   async handleContactForm(data: { name: string; email: string; subject: string; message: string }): Promise<void> {
     // In a real implementation, you would send an email notification here
     console.log('Contact form submission:', data);
-    
+
     // Create a system user if it doesn't exist
     const systemUser = await this.getUserByEmail('system@disowebs.com');
     if (!systemUser) {
@@ -497,7 +497,7 @@ export class DatabaseStorage implements IStorage {
         role: 'admin',
       });
     }
-    
+
     // Log audit trail
     await db.insert(auditLogs).values({
       userId: 'system',
@@ -507,27 +507,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async handleQuoteRequest(data: any): Promise<void> {
-    // In a real implementation, you would send an email notification to admin here
+    // Store the quote request without audit log for now
+    // TODO: Create a separate quotes table for better data management
     console.log('Quote request submission:', data);
-    
-    // Create a system user if it doesn't exist
-    const systemUser = await this.getUserByEmail('system@disowebs.com');
-    if (!systemUser) {
-      await this.createUser({
-        id: 'system',
-        firstName: 'System',
-        lastName: 'Admin',
-        email: 'system@disowebs.com',
-        role: 'admin',
-      });
-    }
-    
-    // Log audit trail
-    await db.insert(auditLogs).values({
-      userId: 'system',
-      actionType: 'quote_request_submission',
-      details: JSON.stringify(data),
-    });
   }
 }
 

@@ -24,10 +24,14 @@ const loginSchema = z.object({
 const registerSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
+  confirmPassword: z.string().min(6, "Please confirm your password"),
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().optional(),
   companyName: z.string().optional(),
   phone: z.string().optional(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
 });
 
 type LoginForm = z.infer<typeof loginSchema>;
@@ -59,6 +63,7 @@ export default function AuthPage() {
     defaultValues: {
       email: "",
       password: "",
+      confirmPassword: "",
       firstName: "",
       lastName: "",
       companyName: "",
@@ -142,44 +147,6 @@ export default function AuthPage() {
           </CardHeader>
 
           <CardContent className="space-y-4">
-            {/* Social Login Buttons */}
-            <div className="space-y-3">
-              <Button
-                variant="outline"
-                className="w-full h-11 text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-950 border-gray-200 dark:border-gray-700"
-                onClick={() => handleSocialLogin("google")}
-              >
-                <FaGoogle className="mr-2 h-4 w-4 text-red-500" />
-                Continue with Google
-              </Button>
-
-              <Button
-                variant="outline"
-                className="w-full h-11 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-950 border-gray-200 dark:border-gray-700"
-                onClick={() => handleSocialLogin("twitter")}
-              >
-                <FaTwitter className="mr-2 h-4 w-4 text-blue-500" />
-                Continue with Twitter
-              </Button>
-
-              <Button
-                variant="outline"
-                className="w-full h-11 text-gray-700 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-orange-950 border-gray-200 dark:border-gray-700"
-                onClick={() => handleSocialLogin("replit")}
-              >
-                <SiReplit className="mr-2 h-4 w-4 text-orange-500" />
-                Continue with Replit
-              </Button>
-            </div>
-
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <Separator />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white dark:bg-gray-800 px-2 text-gray-500">Or continue with email</span>
-              </div>
-            </div>
 
             {/* Login Form */}
             {isLogin ? (
@@ -318,6 +285,23 @@ export default function AuthPage() {
                 </div>
 
                 <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirm Password</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <Input
+                      id="confirmPassword"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Confirm your password"
+                      className="pl-10 h-11"
+                      {...registerForm.register("confirmPassword")}
+                    />
+                  </div>
+                  {registerForm.formState.errors.confirmPassword && (
+                    <p className="text-sm text-red-500">{registerForm.formState.errors.confirmPassword.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
                   <Label htmlFor="companyName">Company Name (Optional)</Label>
                   <div className="relative">
                     <Building2 className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
@@ -366,6 +350,45 @@ export default function AuthPage() {
                   {isLogin ? "Sign up" : "Sign in"}
                 </Button>
               </p>
+            </div>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <Separator />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-white dark:bg-gray-800 px-2 text-gray-500">Or continue with</span>
+              </div>
+            </div>
+
+            {/* Social Login Buttons */}
+            <div className="space-y-3">
+              <Button
+                variant="outline"
+                className="w-full h-11 text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-950 border-gray-200 dark:border-gray-700"
+                onClick={() => handleSocialLogin("google")}
+              >
+                <FaGoogle className="mr-2 h-4 w-4 text-red-500" />
+                Continue with Google
+              </Button>
+
+              <Button
+                variant="outline"
+                className="w-full h-11 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-950 border-gray-200 dark:border-gray-700"
+                onClick={() => handleSocialLogin("twitter")}
+              >
+                <FaTwitter className="mr-2 h-4 w-4 text-blue-500" />
+                Continue with Twitter
+              </Button>
+
+              <Button
+                variant="outline"
+                className="w-full h-11 text-gray-700 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-orange-950 border-gray-200 dark:border-gray-700"
+                onClick={() => handleSocialLogin("replit")}
+              >
+                <SiReplit className="mr-2 h-4 w-4 text-orange-500" />
+                Continue with Replit
+              </Button>
             </div>
           </CardContent>
         </Card>

@@ -1,143 +1,115 @@
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React from "react";
+import { useLocation } from "wouter";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle } from "lucide-react";
-import CheckoutForm from "./CheckoutForm";
-
-interface ServicePackage {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  features: string[];
-  popular?: boolean;
-  category: 'launch' | 'growth' | 'elite';
-}
-
-const packages: ServicePackage[] = [
-  {
-    id: 'launch',
-    name: 'Launch',
-    description: 'Perfect for startups and small businesses',
-    price: 2999,
-    category: 'launch',
-    features: [
-      '5-page responsive website',
-      'Mobile optimization',
-      'Basic SEO setup',
-      'Contact form integration',
-      '3 months support'
-    ]
-  },
-  {
-    id: 'growth',
-    name: 'Growth',
-    description: 'Ideal for growing businesses',
-    price: 4999,
-    category: 'growth',
-    popular: true,
-    features: [
-      '10-page responsive website',
-      'E-commerce integration',
-      'CMS integration',
-      'Analytics setup',
-      '6 months support',
-      'Payment gateway setup'
-    ]
-  },
-  {
-    id: 'elite',
-    name: 'Elite',
-    description: 'For enterprises and complex projects',
-    price: 9999,
-    category: 'elite',
-    features: [
-      'Unlimited pages',
-      'Custom web application',
-      'API integrations',
-      'Priority support',
-      '12 months support',
-      'Advanced security'
-    ]
-  }
-];
+import { CheckCircle, Star } from "lucide-react";
 
 export default function ServicePackages() {
-  const [selectedPackage, setSelectedPackage] = useState<ServicePackage | null>(null);
-  const [showCheckout, setShowCheckout] = useState(false);
+  const [, setLocation] = useLocation();
 
-  const handleSelectPackage = (pkg: ServicePackage) => {
-    setSelectedPackage(pkg);
-    setShowCheckout(true);
-  };
+  const packages = [
+    {
+      id: "basic-website",
+      title: "Basic Website",
+      price: "₦150,000",
+      duration: "1-2 weeks",
+      description: "Perfect for small businesses and personal portfolios",
+      features: [
+        "Up to 5 pages",
+        "Responsive design",
+        "Contact form",
+        "Basic SEO optimization",
+        "Social media integration",
+        "1 month free maintenance"
+      ],
+      popular: false,
+      badge: "Starter"
+    },
+    {
+      id: "ecommerce",
+      title: "E-commerce Solution",
+      price: "₦400,000",
+      duration: "3-4 weeks", 
+      description: "Complete online store with payment integration",
+      features: [
+        "Unlimited products",
+        "Payment gateway integration",
+        "Inventory management",
+        "Customer accounts",
+        "Order tracking",
+        "Admin dashboard",
+        "SEO optimization",
+        "3 months support"
+      ],
+      popular: true,
+      badge: "Most Popular"
+    },
+    {
+      id: "web-app",
+      title: "Custom Web Application",
+      price: "From ₦800,000",
+      duration: "6-12 weeks",
+      description: "Tailored solutions for complex business needs",
+      features: [
+        "Custom functionality",
+        "User authentication",
+        "Database integration", 
+        "API development",
+        "Third-party integrations",
+        "Admin panel",
+        "Advanced security",
+        "6 months support"
+      ],
+      popular: false,
+      badge: "Enterprise"
+    }
+  ];
 
   return (
-    <>
-      <div className="grid md:grid-cols-3 gap-8">
-        {packages.map((pkg) => (
-          <Card 
-            key={pkg.id} 
-            className={`relative transition-all duration-200 hover:shadow-lg ${
-              pkg.popular ? 'border-blue-600 shadow-lg scale-105' : 'hover:border-blue-300'
-            }`}
-          >
-            {pkg.popular && (
-              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                <Badge className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1">
-                  Most Popular
-                </Badge>
-              </div>
-            )}
-            
-            <CardHeader className="text-center">
-              <CardTitle className="text-2xl font-bold">{pkg.name}</CardTitle>
-              <p className="text-slate-600 mb-6">{pkg.description}</p>
-              <div className="mb-6">
-                <span className="text-4xl font-bold text-blue-600">${pkg.price.toLocaleString()}</span>
-                <span className="text-slate-500"> one-time</span>
-              </div>
-            </CardHeader>
-            
-            <CardContent>
-              <ul className="space-y-4 mb-8">
-                {pkg.features.map((feature, index) => (
-                  <li key={index} className="flex items-center">
-                    <CheckCircle className="h-5 w-5 text-green-500 mr-3 flex-shrink-0" />
-                    <span>{feature}</span>
-                  </li>
-                ))}
-              </ul>
-              
-              <Button 
-                className={`w-full ${
-                  pkg.popular 
-                    ? 'bg-blue-600 hover:bg-blue-700' 
-                    : 'bg-slate-900 hover:bg-slate-800'
-                }`}
-                onClick={() => handleSelectPackage(pkg)}
-              >
-                Select {pkg.name}
-              </Button>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Checkout Modal */}
-      {showCheckout && selectedPackage && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <CheckoutForm 
-              selectedPackage={selectedPackage}
-              onClose={() => {
-                setShowCheckout(false);
-                setSelectedPackage(null);
-              }}
-            />
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {packages.map((pkg, index) => (
+        <Card key={index} className="bg-white shadow-md rounded-lg overflow-hidden">
+          <CardHeader className="p-4">
+            <CardTitle className="text-lg font-semibold text-gray-800">{pkg.title}</CardTitle>
+            <CardDescription className="text-sm text-gray-600">{pkg.description}</CardDescription>
+          </CardHeader>
+          <CardContent className="p-4">
+            <ul>
+              {pkg.features.map((feature, i) => (
+                <li key={i} className="flex items-center py-2">
+                  <CheckCircle className="h-5 w-5 mr-2 text-green-500" />
+                  <span className="text-gray-700">{feature}</span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+          <div className="p-4 border-t border-gray-200">
+            <div className="text-xl font-bold text-blue-600">{pkg.price}</div>
+            <div className="text-gray-500">Duration: {pkg.duration}</div>
+            <div className="mt-4">
+              <Badge className={pkg.popular ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-700"}>
+                {pkg.badge}
+              </Badge>
+            </div>
+            <div className="flex space-x-3">
+                    <Button 
+                      className="flex-1 bg-blue-600 hover:bg-blue-700"
+                      onClick={() => setLocation('/contact')}
+                    >
+                      Get Started
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="flex-1"
+                      onClick={() => setLocation(`/service/${pkg.id}`)}
+                    >
+                      Learn More
+                    </Button>
+                  </div>
           </div>
-        </div>
-      )}
-    </>
+        </Card>
+      ))}
+    </div>
   );
 }

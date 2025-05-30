@@ -81,72 +81,72 @@ export function setupAuth(app: Express) {
     )
   );
 
-  // Google Strategy
-  if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
-    passport.use(
-      new GoogleStrategy(
-        {
-          clientID: process.env.GOOGLE_CLIENT_ID,
-          clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-          callbackURL: "/api/auth/google/callback"
-        },
-        async (accessToken, refreshToken, profile, done) => {
-          try {
-            let user = await storage.getUserByEmail(profile.emails?.[0]?.value || '');
-            
-            if (!user) {
-              user = await storage.createUser({
-                email: profile.emails?.[0]?.value || '',
-                firstName: profile.name?.givenName || '',
-                lastName: profile.name?.familyName || '',
-                profileImageUrl: profile.photos?.[0]?.value || '',
-                provider: 'google',
-                providerId: profile.id
-              });
-            }
+  // Google Strategy - Always register with dummy config if env vars missing
+  const googleConfig = {
+    clientID: process.env.GOOGLE_CLIENT_ID || 'dummy',
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'dummy',
+    callbackURL: "/api/auth/google/callback"
+  };
 
-            return done(null, user);
-          } catch (error) {
-            return done(error);
+  passport.use(
+    new GoogleStrategy(
+      googleConfig,
+      async (accessToken, refreshToken, profile, done) => {
+        try {
+          let user = await storage.getUserByEmail(profile.emails?.[0]?.value || '');
+          
+          if (!user) {
+            user = await storage.createUser({
+              email: profile.emails?.[0]?.value || '',
+              firstName: profile.name?.givenName || '',
+              lastName: profile.name?.familyName || '',
+              profileImageUrl: profile.photos?.[0]?.value || '',
+              provider: 'google',
+              providerId: profile.id
+            });
           }
+
+          return done(null, user);
+        } catch (error) {
+          return done(error);
         }
-      )
-    );
-  }
+      }
+    )
+  );
 
-  // Twitter Strategy
-  if (process.env.TWITTER_CONSUMER_KEY && process.env.TWITTER_CONSUMER_SECRET) {
-    passport.use(
-      new TwitterStrategy(
-        {
-          consumerKey: process.env.TWITTER_CONSUMER_KEY,
-          consumerSecret: process.env.TWITTER_CONSUMER_SECRET,
-          callbackURL: "/api/auth/twitter/callback",
-          includeEmail: true
-        },
-        async (token, tokenSecret, profile, done) => {
-          try {
-            let user = await storage.getUserByEmail(profile.emails?.[0]?.value || '');
-            
-            if (!user) {
-              user = await storage.createUser({
-                email: profile.emails?.[0]?.value || '',
-                firstName: profile.displayName?.split(' ')[0] || '',
-                lastName: profile.displayName?.split(' ')[1] || '',
-                profileImageUrl: profile.photos?.[0]?.value || '',
-                provider: 'twitter',
-                providerId: profile.id
-              });
-            }
+  // Twitter Strategy - Always register with dummy config if env vars missing
+  const twitterConfig = {
+    consumerKey: process.env.TWITTER_CONSUMER_KEY || 'dummy',
+    consumerSecret: process.env.TWITTER_CONSUMER_SECRET || 'dummy',
+    callbackURL: "/api/auth/twitter/callback",
+    includeEmail: true
+  };
 
-            return done(null, user);
-          } catch (error) {
-            return done(error);
+  passport.use(
+    new TwitterStrategy(
+      twitterConfig,
+      async (token, tokenSecret, profile, done) => {
+        try {
+          let user = await storage.getUserByEmail(profile.emails?.[0]?.value || '');
+          
+          if (!user) {
+            user = await storage.createUser({
+              email: profile.emails?.[0]?.value || '',
+              firstName: profile.displayName?.split(' ')[0] || '',
+              lastName: profile.displayName?.split(' ')[1] || '',
+              profileImageUrl: profile.photos?.[0]?.value || '',
+              provider: 'twitter',
+              providerId: profile.id
+            });
           }
+
+          return done(null, user);
+        } catch (error) {
+          return done(error);
         }
-      )
-    );
-  }
+      }
+    )
+  );
 
   passport.serializeUser((user, done) => done(null, user.id));
   passport.deserializeUser(async (id: string, done) => {
