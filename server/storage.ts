@@ -486,6 +486,18 @@ export class DatabaseStorage implements IStorage {
     // In a real implementation, you would send an email notification here
     console.log('Contact form submission:', data);
     
+    // Create a system user if it doesn't exist
+    const systemUser = await this.getUserByEmail('system@disowebs.com');
+    if (!systemUser) {
+      await this.createUser({
+        id: 'system',
+        firstName: 'System',
+        lastName: 'Admin',
+        email: 'system@disowebs.com',
+        role: 'admin',
+      });
+    }
+    
     // Log audit trail
     await db.insert(auditLogs).values({
       userId: 'system',
@@ -497,6 +509,18 @@ export class DatabaseStorage implements IStorage {
   async handleQuoteRequest(data: any): Promise<void> {
     // In a real implementation, you would send an email notification to admin here
     console.log('Quote request submission:', data);
+    
+    // Create a system user if it doesn't exist
+    const systemUser = await this.getUserByEmail('system@disowebs.com');
+    if (!systemUser) {
+      await this.createUser({
+        id: 'system',
+        firstName: 'System',
+        lastName: 'Admin',
+        email: 'system@disowebs.com',
+        role: 'admin',
+      });
+    }
     
     // Log audit trail
     await db.insert(auditLogs).values({

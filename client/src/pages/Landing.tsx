@@ -25,11 +25,20 @@ export default function Landing() {
               we deliver exceptional digital experiences that drive results.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" className="bg-blue-600 hover:bg-blue-700 px-8 py-4 text-lg">
+              <Button 
+                size="lg" 
+                className="bg-blue-600 hover:bg-blue-700 px-8 py-4 text-lg"
+                onClick={() => window.location.href = '/services'}
+              >
                 View Packages
               </Button>
-              <Button variant="outline" size="lg" className="px-8 py-4 text-lg">
-                Custom Quote
+              <Button 
+                variant="outline" 
+                size="lg" 
+                className="px-8 py-4 text-lg"
+                onClick={() => window.location.href = '/contact'}
+              >
+                Contact Us
               </Button>
             </div>
           </div>
