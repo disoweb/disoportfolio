@@ -143,7 +143,7 @@ function PricingCalculator({
 
   useEffect(() => {
     onPriceUpdate(totalPrice);
-  }, [totalPrice, onPriceUpdate]);
+  }, [totalPrice]);
 
   const toggleAddOn = (addonName: string) => {
     setSelectedAddOns((prev) =>
