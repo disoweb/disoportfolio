@@ -31,53 +31,54 @@ import crypto from "crypto";
 
 // Interface for storage operations
 export interface IStorage {
-  // User operations
   getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: UpsertUser): Promise<User>;
   upsertUser(user: UpsertUser): Promise<User>;
 
-  // Service operations
   getActiveServices(): Promise<Service[]>;
   createService(service: InsertService): Promise<Service>;
 
-  // Order operations
   createOrder(order: InsertOrder): Promise<Order>;
   getUserOrders(userId: string): Promise<Order[]>;
   getAllOrders(): Promise<Order[]>;
   updateOrderStatus(orderId: string, status: string): Promise<Order>;
 
-  // Project operations
   getUserProjects(userId: string): Promise<Project[]>;
   getAllProjects(): Promise<Project[]>;
   createProject(project: InsertProject): Promise<Project>;
   updateProject(projectId: string, updates: Partial<Project>): Promise<Project>;
   userHasProjectAccess(userId: string, projectId: string): Promise<boolean>;
 
-  // Message operations
   getProjectMessages(projectId: string): Promise<Message[]>;
   createMessage(message: InsertMessage): Promise<Message>;
 
-  // Payment operations
-  initializePayment(params: { orderId: string; amount: number; email: string; userId: string }): Promise<string>;
+  initializePayment(params: {
+    orderId: string;
+    amount: number;
+    email: string;
+    userId: string;
+  }): Promise<string>;
   verifyPaystackWebhook(signature: string, body: string): Promise<boolean>;
   handleSuccessfulPayment(paymentData: any): Promise<void>;
 
-  // Support operations
   getUserSupportRequests(userId: string): Promise<SupportRequest[]>;
   getAllSupportRequests(): Promise<SupportRequest[]>;
   createSupportRequest(request: InsertSupportRequest): Promise<SupportRequest>;
 
-  // Analytics operations
   getAnalytics(): Promise<any>;
 
-  // Contact and quote operations
-  handleContactForm(data: { name: string; email: string; subject: string; message: string }): Promise<void>;
+  handleContactForm(data: {
+    name: string;
+    email: string;
+    subject: string;
+    message: string;
+  }): Promise<void>;
   handleQuoteRequest(data: any): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
-  // User operations (IMPORTANT) these user operations are mandatory for Replit Auth.
+  // User operations
   async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
@@ -89,10 +90,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(userData: UpsertUser): Promise<User> {
-    const [user] = await db
-      .insert(users)
-      .values(userData)
-      .returning();
+    const [user] = await db.insert(users).values(userData).returning();
     return user;
   }
 
@@ -121,19 +119,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createService(service: InsertService): Promise<Service> {
-    const [newService] = await db
-      .insert(services)
-      .values(service)
-      .returning();
+    const [newService] = await db.insert(services).values(service).returning();
     return newService;
   }
 
   // Order operations
   async createOrder(order: InsertOrder): Promise<Order> {
-    const [newOrder] = await db
-      .insert(orders)
-      .values(order)
-      .returning();
+    const [newOrder] = await db.insert(orders).values(order).returning();
     return newOrder;
   }
 
@@ -243,14 +235,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createProject(project: InsertProject): Promise<Project> {
-    const [newProject] = await db
-      .insert(projects)
-      .values(project)
-      .returning();
+    const [newProject] = await db.insert(projects).values(project).returning();
     return newProject;
   }
 
-  async updateProject(projectId: string, updates: Partial<Project>): Promise<Project> {
+  async updateProject(
+    projectId: string,
+    updates: Partial<Project>,
+  ): Promise<Project> {
     const [updatedProject] = await db
       .update(projects)
       .set(updates)
@@ -259,9 +251,12 @@ export class DatabaseStorage implements IStorage {
     return updatedProject;
   }
 
-  async userHasProjectAccess(userId: string, projectId: string): Promise<boolean> {
+  async userHasProjectAccess(
+    userId: string,
+    projectId: string,
+  ): Promise<boolean> {
     const user = await this.getUser(userId);
-    if (user?.role === 'admin') return true;
+    if (user?.role === "admin") return true;
 
     const [project] = await db
       .select()
@@ -293,44 +288,51 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createMessage(message: InsertMessage): Promise<Message> {
-    const [newMessage] = await db
-      .insert(messages)
-      .values(message)
-      .returning();
+    const [newMessage] = await db.insert(messages).values(message).returning();
     return newMessage;
   }
 
   // Payment operations
-  async initializePayment(params: { orderId: string; amount: number; email: string; userId: string }): Promise<string> {
+  async initializePayment(params: {
+    orderId: string;
+    amount: number;
+    email: string;
+    userId: string;
+  }): Promise<string> {
     const paystackSecretKey = process.env.PAYSTACK_SECRET_KEY;
     if (!paystackSecretKey) {
       throw new Error("Paystack secret key not configured");
     }
 
-    const reference = `PSK_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const reference = `PSK_${Date.now()}_${Math.random()
+      .toString(36)
+      .substr(2, 9)}`;
 
-    const response = await fetch('https://api.paystack.co/transaction/initialize', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${paystackSecretKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        email: params.email,
-        amount: params.amount * 100, // Convert to kobo
-        reference,
-        callback_url: `${process.env.FRONTEND_URL || 'http://localhost:5000'}/payment/callback`,
-        metadata: {
-          orderId: params.orderId,
-          userId: params.userId,
+    const response = await fetch(
+      "https://api.paystack.co/transaction/initialize",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${paystackSecretKey}`,
+          "Content-Type": "application/json",
         },
-      }),
-    });
+        body: JSON.stringify({
+          email: params.email,
+          amount: params.amount * 100, // Convert to kobo
+          reference,
+          callback_url: `${process.env.FRONTEND_URL || "http://localhost:5000"}/payment/callback`,
+          metadata: {
+            orderId: params.orderId,
+            userId: params.userId,
+          },
+        }),
+      },
+    );
 
     const data = await response.json();
 
     if (!data.status) {
-      throw new Error(data.message || 'Failed to initialize payment');
+      throw new Error(data.message || "Failed to initialize payment");
     }
 
     // Store payment record
@@ -338,25 +340,28 @@ export class DatabaseStorage implements IStorage {
       userId: params.userId,
       orderId: params.orderId,
       amount: params.amount.toString(),
-      currency: 'USD',
-      provider: 'paystack',
+      currency: "USD",
+      provider: "paystack",
       providerId: reference,
-      status: 'pending' as any,
+      status: "pending" as any,
     });
 
     return data.data.authorization_url;
   }
 
-  async verifyPaystackWebhook(signature: string, body: string): Promise<boolean> {
+  async verifyPaystackWebhook(
+    signature: string,
+    body: string,
+  ): Promise<boolean> {
     const paystackSecretKey = process.env.PAYSTACK_SECRET_KEY;
     if (!paystackSecretKey) {
       return false;
     }
 
     const hash = crypto
-      .createHmac('sha512', paystackSecretKey)
-      .update(body, 'utf8')
-      .digest('hex');
+      .createHmac("sha512", paystackSecretKey)
+      .update(body, "utf8")
+      .digest("hex");
 
     return hash === signature;
   }
@@ -366,14 +371,14 @@ export class DatabaseStorage implements IStorage {
     const orderId = paymentData.metadata?.orderId;
 
     if (!orderId) {
-      throw new Error('Order ID not found in payment metadata');
+      throw new Error("Order ID not found in payment metadata");
     }
 
     // Update payment status
     await db
       .update(payments)
-      .set({ 
-        status: 'succeeded' as any,
+      .set({
+        status: "succeeded" as any,
         paidAt: new Date(),
       })
       .where(eq(payments.providerId, reference));
@@ -381,7 +386,7 @@ export class DatabaseStorage implements IStorage {
     // Update order status
     await db
       .update(orders)
-      .set({ status: 'paid' as any })
+      .set({ status: "paid" as any })
       .where(eq(orders.id, orderId));
 
     // Create project if it doesn't exist
@@ -400,9 +405,11 @@ export class DatabaseStorage implements IStorage {
         await db.insert(projects).values({
           orderId: order.id,
           userId: order.userId,
-          projectName: `Project for ${order.customRequest?.split('\n')[0] || 'New Project'}`,
-          currentStage: 'Discovery',
-          status: 'active' as any,
+          projectName: `Project for ${
+            order.customRequest?.split("\n")[0] || "New Project"
+          }`,
+          currentStage: "Discovery",
+          status: "active" as any,
         });
       }
     }
@@ -438,7 +445,9 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(supportRequests.createdAt));
   }
 
-  async createSupportRequest(request: InsertSupportRequest): Promise<SupportRequest> {
+  async createSupportRequest(
+    request: InsertSupportRequest,
+  ): Promise<SupportRequest> {
     const [newRequest] = await db
       .insert(supportRequests)
       .values(request)
@@ -451,26 +460,26 @@ export class DatabaseStorage implements IStorage {
     const [totalRevenue] = await db
       .select({ value: sum(orders.totalPrice) })
       .from(orders)
-      .where(eq(orders.status, 'paid'));
+      .where(eq(orders.status, "paid"));
 
     const [totalClients] = await db
       .select({ count: count() })
       .from(users)
-      .where(eq(users.role, 'client'));
+      .where(eq(users.role, "client"));
 
     const [activeProjects] = await db
       .select({ count: count() })
       .from(projects)
-      .where(eq(projects.status, 'active'));
+      .where(eq(projects.status, "active"));
 
     const [newOrders] = await db
       .select({ count: count() })
       .from(orders)
       .where(
         and(
-          eq(orders.status, 'pending'),
-          sql`${orders.createdAt} >= NOW() - INTERVAL '30 days'`
-        )
+          eq(orders.status, "pending"),
+          sql`${orders.createdAt} >= NOW() - INTERVAL '30 days'`,
+        ),
       );
 
     return {
@@ -482,26 +491,31 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Contact and quote operations
-  async handleContactForm(data: { name: string; email: string; subject: string; message: string }): Promise<void> {
+  async handleContactForm(data: {
+    name: string;
+    email: string;
+    subject: string;
+    message: string;
+  }): Promise<void> {
     // In a real implementation, you would send an email notification here
-    console.log('Contact form submission:', data);
+    console.log("Contact form submission:", data);
 
     // Create a system user if it doesn't exist
-    const systemUser = await this.getUserByEmail('system@disowebs.com');
+    const systemUser = await this.getUserByEmail("system@disowebs.com");
     if (!systemUser) {
       await this.createUser({
-        id: 'system',
-        firstName: 'System',
-        lastName: 'Admin',
-        email: 'system@disowebs.com',
-        role: 'admin',
+        id: "system",
+        firstName: "System",
+        lastName: "Admin",
+        email: "system@disowebs.com",
+        role: "admin",
       });
     }
 
     // Log audit trail
     await db.insert(auditLogs).values({
-      userId: 'system',
-      actionType: 'contact_form_submission',
+      userId: "system",
+      actionType: "contact_form_submission",
       details: JSON.stringify(data),
     });
   }
@@ -509,8 +523,9 @@ export class DatabaseStorage implements IStorage {
   async handleQuoteRequest(data: any): Promise<void> {
     // Store the quote request without audit log for now
     // TODO: Create a separate quotes table for better data management
-    console.log('Quote request submission:', data);
+    console.log("Quote request submission:", data);
   }
 }
 
-}
+// Export a singleton instance for easy import
+export const storage = new DatabaseStorage();

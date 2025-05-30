@@ -1,0 +1,22 @@
+[vite] connecting...
+[vite] connected.
+Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn&#x27;t have a dependency array, or one of the dependencies changes on every render.
+    at PricingCalculator (https://c3dc035b-4f44-4a89-a2ce-32417e438627-00-38nuy3par0egq.picard.replit.dev/src/components/ServicePackages.tsx?t=1748607160491:139:3)
+    at div
+    at _c9 (https://c3dc035b-4f44-4a89-a2ce-32417e438627-00-38nuy3par0egq.picard.replit.dev/src/components/ui/card.tsx:114:12)
+    at div
+    at _c (https://c3dc035b-4f44-4a89-a2ce-32417e438627-00-38nuy3par0egq.picard.replit.dev/src/components/ui/card.tsx:20:11)
+    at div
+    at div
+    at ServicePackages (https://c3dc035b-4f44-4a89-a2ce-32417e438627-00-38nuy3par0egq.picard.replit.dev/src/components/ServicePackages.tsx?t=1748607160491:446:51)
+    at div
+    at section
+    at div
+    at Landing (https://c3dc035b-4f44-4a89-a2ce-32417e438627-00-38nuy3par0egq.picard.replit.dev/src/pages/Landing.tsx?t=1748607160491:261:51)
+    at Route (https://c3dc035b-4f44-4a89-a2ce-32417e438627-00-38nuy3par0egq.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=11db484f:323:16)
+    at Switch (https://c3dc035b-4f44-4a89-a2ce-32417e438627-00-38nuy3par0egq.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=11db484f:379:17)
+    at Router (https://c3dc035b-4f44-4a89-a2ce-32417e438627-00-38nuy3par0egq.picard.replit.dev/src/App.tsx?t=1748607160491&v=gopB307LDU09apFOhISND:40:48)
+    at Provider (https://c3dc035b-4f44-4a89-a2ce-32417e438627-00-38nuy3par0egq.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-XIZKKOCE.js?v=11db484f:22:15)
+    at TooltipProvider (https://c3dc035b-4f44-4a89-a2ce-32417e438627-00-38nuy3par0egq.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=11db484f:62:5)
+    at QueryClientProvider (https://c3dc035b-4f44-4a89-a2ce-32417e438627-00-38nuy3par0egq.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=11db484f:2805:3)
+    at App

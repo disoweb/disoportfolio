@@ -1,129 +1,142 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState, useEffect, useCallback } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { 
-  CheckCircle, 
-  ArrowRight, 
-  Clock, 
-  Users, 
-  Zap, 
-  TrendingUp, 
+import {
+  CheckCircle,
+  ArrowRight,
+  Clock,
+  Users,
+  TrendingUp,
   AlertTriangle,
   Star,
   Calculator,
   CreditCard,
   Shield,
-  Calendar
+  Calendar,
 } from "lucide-react";
 
 const services = [
   {
-    id: 'landing',
-    name: 'Landing Page',
-    description: 'Perfect for showcasing your business',
+    id: "landing",
+    name: "Landing Page",
+    description: "Perfect for showcasing your business",
     price: 150000,
     originalPrice: 200000,
-    duration: '3-5 days',
-    deliveryDate: '2025-02-05',
+    duration: "3-5 days",
+    deliveryDate: "2025-02-05",
     spots: 8,
     totalSpots: 10,
     features: [
-      'Responsive design',
-      'Contact form',
-      'SEO optimization',
-      'Basic analytics',
-      'Social media integration',
-      '1 month support'
+      "Responsive design",
+      "Contact form",
+      "SEO optimization",
+      "Basic analytics",
+      "Social media integration",
+      "1 month support",
     ],
     addOns: [
-      { name: 'WhatsApp Integration', price: 15000 },
-      { name: 'Live Chat Widget', price: 25000 },
-      { name: 'Advanced Analytics', price: 20000 }
+      { name: "WhatsApp Integration", price: 15000 },
+      { name: "Live Chat Widget", price: 25000 },
+      { name: "Advanced Analytics", price: 20000 },
     ],
     recommended: false,
-    category: 'startup',
-    industry: ['tech', 'consulting', 'portfolio']
+    category: "startup",
+    industry: ["tech", "consulting", "portfolio"],
   },
   {
-    id: 'ecommerce',
-    name: 'E-commerce Website',
-    description: 'Complete online store solution',
+    id: "ecommerce",
+    name: "E-commerce Website",
+    description: "Complete online store solution",
     price: 450000,
     originalPrice: 600000,
-    duration: '2-3 weeks',
-    deliveryDate: '2025-02-20',
+    duration: "2-3 weeks",
+    deliveryDate: "2025-02-20",
     spots: 3,
     totalSpots: 5,
     features: [
-      'Product catalog',
-      'Shopping cart',
-      'Payment integration',
-      'Order management',
-      'Inventory tracking',
-      'Customer accounts',
-      'Mobile responsive',
-      '3 months support'
+      "Product catalog",
+      "Shopping cart",
+      "Payment integration",
+      "Order management",
+      "Inventory tracking",
+      "Customer accounts",
+      "Mobile responsive",
+      "3 months support",
     ],
     addOns: [
-      { name: 'Multi-vendor Support', price: 100000 },
-      { name: 'Advanced Reporting', price: 50000 },
-      { name: 'Email Marketing Integration', price: 35000 }
+      { name: "Multi-vendor Support", price: 100000 },
+      { name: "Advanced Reporting", price: 50000 },
+      { name: "Email Marketing Integration", price: 35000 },
     ],
     recommended: true,
-    category: 'business',
-    industry: ['retail', 'fashion', 'electronics']
+    category: "business",
+    industry: ["retail", "fashion", "electronics"],
   },
   {
-    id: 'webapp',
-    name: 'Web Application',
-    description: 'Custom functionality for your needs',
+    id: "webapp",
+    name: "Web Application",
+    description: "Custom functionality for your needs",
     price: 800000,
     originalPrice: 1000000,
-    duration: '4-6 weeks',
-    deliveryDate: '2025-03-15',
+    duration: "4-6 weeks",
+    deliveryDate: "2025-03-15",
     spots: 2,
     totalSpots: 3,
     features: [
-      'Custom development',
-      'User authentication',
-      'Database integration',
-      'API development',
-      'Admin dashboard',
-      'Advanced security',
-      '6 months support'
+      "Custom development",
+      "User authentication",
+      "Database integration",
+      "API development",
+      "Admin dashboard",
+      "Advanced security",
+      "6 months support",
     ],
     addOns: [
-      { name: 'Mobile App', price: 400000 },
-      { name: 'Third-party Integrations', price: 150000 },
-      { name: 'Advanced Security', price: 100000 }
+      { name: "Mobile App", price: 400000 },
+      { name: "Third-party Integrations", price: 150000 },
+      { name: "Advanced Security", price: 100000 },
     ],
     recommended: false,
-    category: 'enterprise',
-    industry: ['saas', 'healthcare', 'fintech']
-  }
+    category: "enterprise",
+    industry: ["saas", "healthcare", "fintech"],
+  },
 ];
 
 const industryRecommendations = {
-  tech: ['webapp', 'landing'],
-  retail: ['ecommerce', 'landing'],
-  consulting: ['landing', 'webapp'],
-  healthcare: ['webapp', 'landing'],
-  finance: ['webapp', 'landing'],
-  education: ['webapp', 'landing'],
-  restaurant: ['ecommerce', 'landing']
+  tech: ["webapp", "landing"],
+  retail: ["ecommerce", "landing"],
+  consulting: ["landing", "webapp"],
+  healthcare: ["webapp", "landing"],
+  finance: ["webapp", "landing"],
+  education: ["webapp", "landing"],
+  restaurant: ["ecommerce", "landing"],
 };
 
-function PricingCalculator({ service, onPriceUpdate }: { service: any, onPriceUpdate: (total: number) => void }) {
+function PricingCalculator({
+  service,
+  onPriceUpdate,
+}: {
+  service: any;
+  onPriceUpdate: (total: number) => void;
+}) {
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
   const [installmentPlan, setInstallmentPlan] = useState(false);
 
-  const totalPrice = service.price + selectedAddOns.reduce((sum, addonName) => {
-    const addon = service.addOns.find((a: any) => a.name === addonName);
-    return sum + (addon?.price || 0);
-  }, 0);
+  const totalPrice =
+    service.price +
+    selectedAddOns.reduce((sum, addonName) => {
+      const addon = service.addOns.find((a: any) => a.name === addonName);
+      return sum + (addon?.price || 0);
+    }, 0);
 
   const savings = service.originalPrice - service.price;
   const savingsPercentage = Math.round((savings / service.originalPrice) * 100);
@@ -133,10 +146,10 @@ function PricingCalculator({ service, onPriceUpdate }: { service: any, onPriceUp
   }, [totalPrice, onPriceUpdate]);
 
   const toggleAddOn = (addonName: string) => {
-    setSelectedAddOns(prev => 
-      prev.includes(addonName) 
-        ? prev.filter(name => name !== addonName)
-        : [...prev, addonName]
+    setSelectedAddOns((prev) =>
+      prev.includes(addonName)
+        ? prev.filter((name) => name !== addonName)
+        : [...prev, addonName],
     );
   };
 
@@ -146,7 +159,9 @@ function PricingCalculator({ service, onPriceUpdate }: { service: any, onPriceUp
       <div className="flex items-center justify-between">
         <span className="font-medium">{service.name}</span>
         <div className="flex items-center space-x-2">
-          <span className="text-sm text-slate-500 line-through">₦{service.originalPrice.toLocaleString()}</span>
+          <span className="text-sm text-slate-500 line-through">
+            ₦{service.originalPrice.toLocaleString()}
+          </span>
           <span className="font-bold">₦{service.price.toLocaleString()}</span>
           <Badge variant="destructive" className="text-xs">
             -{savingsPercentage}%
@@ -157,9 +172,14 @@ function PricingCalculator({ service, onPriceUpdate }: { service: any, onPriceUp
       {/* Add-ons */}
       {service.addOns.length > 0 && (
         <div className="space-y-2">
-          <p className="text-sm font-medium text-slate-700">Recommended Add-ons:</p>
+          <p className="text-sm font-medium text-slate-700">
+            Recommended Add-ons:
+          </p>
           {service.addOns.map((addon: any) => (
-            <div key={addon.name} className="flex items-center justify-between p-2 border rounded">
+            <div
+              key={addon.name}
+              className="flex items-center justify-between p-2 border rounded"
+            >
               <div className="flex items-center space-x-2">
                 <input
                   type="checkbox"
@@ -168,9 +188,13 @@ function PricingCalculator({ service, onPriceUpdate }: { service: any, onPriceUp
                   onChange={() => toggleAddOn(addon.name)}
                   className="rounded"
                 />
-                <label htmlFor={addon.name} className="text-sm">{addon.name}</label>
+                <label htmlFor={addon.name} className="text-sm">
+                  {addon.name}
+                </label>
               </div>
-              <span className="text-sm font-medium">+₦{addon.price.toLocaleString()}</span>
+              <span className="text-sm font-medium">
+                +₦{addon.price.toLocaleString()}
+              </span>
             </div>
           ))}
         </div>
@@ -200,7 +224,8 @@ function PricingCalculator({ service, onPriceUpdate }: { service: any, onPriceUp
 
       {installmentPlan && (
         <p className="text-xs text-slate-600">
-          First payment: ₦{Math.ceil(totalPrice / 3).toLocaleString()} • Remaining: 2 monthly payments
+          First payment: ₦{Math.ceil(totalPrice / 3).toLocaleString()} •
+          Remaining: 2 monthly payments
         </p>
       )}
     </div>
@@ -210,7 +235,8 @@ function PricingCalculator({ service, onPriceUpdate }: { service: any, onPriceUp
 function ROICalculator({ service }: { service: any }) {
   const [monthlyRevenue, setMonthlyRevenue] = useState(500000);
 
-  const projectedIncrease = service.id === 'ecommerce' ? 40 : service.id === 'webapp' ? 35 : 25;
+  const projectedIncrease =
+    service.id === "ecommerce" ? 40 : service.id === "webapp" ? 35 : 25;
   const monthlyIncrease = (monthlyRevenue * projectedIncrease) / 100;
   const roiMonths = Math.ceil(service.price / monthlyIncrease);
 
@@ -227,7 +253,9 @@ function ROICalculator({ service }: { service: any }) {
         </div>
         <div className="flex justify-between">
           <span>Monthly revenue boost:</span>
-          <span className="font-medium">₦{monthlyIncrease.toLocaleString()}</span>
+          <span className="font-medium">
+            ₦{monthlyIncrease.toLocaleString()}
+          </span>
         </div>
         <div className="flex justify-between text-green-700 font-bold">
           <span>ROI breakeven:</span>
@@ -239,20 +267,28 @@ function ROICalculator({ service }: { service: any }) {
 }
 
 export default function ServicePackages() {
-  const [selectedIndustry, setSelectedIndustry] = useState('');
-  const [priceUpdates, setPriceUpdates] = useState<{ [key: string]: number }>({});
+  const [selectedIndustry, setSelectedIndustry] = useState("");
+  const [priceUpdates, setPriceUpdates] = useState<{ [key: string]: number }>(
+    {},
+  );
 
-  const handlePriceUpdate = (serviceId: string, price: number) => {
-    setPriceUpdates(prev => ({ ...prev, [serviceId]: price }));
-  };
+  // Wrap handlePriceUpdate in useCallback to prevent infinite loops
+  const handlePriceUpdate = useCallback((serviceId: string, price: number) => {
+    setPriceUpdates((prev) => ({ ...prev, [serviceId]: price }));
+  }, []);
 
   const getRecommendedServices = () => {
     if (!selectedIndustry) return services;
-    const recommended = industryRecommendations[selectedIndustry as keyof typeof industryRecommendations] || [];
-    return services.map(service => ({
-      ...service,
-      recommended: recommended.includes(service.id)
-    })).sort((a, b) => (b.recommended ? 1 : 0) - (a.recommended ? 1 : 0));
+    const recommended =
+      industryRecommendations[
+        selectedIndustry as keyof typeof industryRecommendations
+      ] || [];
+    return services
+      .map((service) => ({
+        ...service,
+        recommended: recommended.includes(service.id),
+      }))
+      .sort((a, b) => (b.recommended ? 1 : 0) - (a.recommended ? 1 : 0));
   };
 
   const recommendedServices = getRecommendedServices();
@@ -263,7 +299,7 @@ export default function ServicePackages() {
       <div className="text-center">
         <h3 className="text-lg font-semibold mb-4">What's your industry?</h3>
         <div className="flex flex-wrap justify-center gap-2">
-          {Object.keys(industryRecommendations).map(industry => (
+          {Object.keys(industryRecommendations).map((industry) => (
             <Button
               key={industry}
               variant={selectedIndustry === industry ? "default" : "outline"}
@@ -277,7 +313,8 @@ export default function ServicePackages() {
         </div>
         {selectedIndustry && (
           <p className="text-sm text-blue-600 mt-2">
-            ✨ Showing personalized recommendations for {selectedIndustry} businesses
+            ✨ Showing personalized recommendations for {selectedIndustry}{" "}
+            businesses
           </p>
         )}
       </div>
@@ -285,7 +322,12 @@ export default function ServicePackages() {
       {/* Services Grid */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
         {recommendedServices.map((service) => (
-          <Card key={service.id} className={`relative ${service.recommended ? 'ring-2 ring-blue-500' : ''}`}>
+          <Card
+            key={service.id}
+            className={`relative ${
+              service.recommended ? "ring-2 ring-blue-500" : ""
+            }`}
+          >
             {service.recommended && (
               <Badge className="absolute -top-2 left-4 bg-blue-600">
                 <Star className="h-3 w-3 mr-1" />
@@ -320,8 +362,8 @@ export default function ServicePackages() {
 
             <CardContent className="space-y-4">
               {/* Pricing Calculator */}
-              <PricingCalculator 
-                service={service} 
+              <PricingCalculator
+                service={service}
                 onPriceUpdate={(price) => handlePriceUpdate(service.id, price)}
               />
 
@@ -336,7 +378,9 @@ export default function ServicePackages() {
                     </div>
                   ))}
                   {service.features.length > 4 && (
-                    <p className="text-xs text-slate-500">+{service.features.length - 4} more features</p>
+                    <p className="text-xs text-slate-500">
+                      +{service.features.length - 4} more features
+                    </p>
                   )}
                 </div>
               </div>
@@ -355,10 +399,12 @@ export default function ServicePackages() {
               )}
 
               {/* CTA Button */}
-              <Button 
-                className="w-full" 
+              <Button
+                className="w-full"
                 size="lg"
-                onClick={() => window.location.href = `/services/${service.id}`}
+                onClick={() =>
+                  (window.location.href = `/services/${service.id}`)
+                }
               >
                 Get Started
                 <ArrowRight className="ml-2 h-4 w-4" />
