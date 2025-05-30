@@ -134,6 +134,11 @@ export default function Landing() {
       const randomNotification = liveNotifications[Math.floor(Math.random() * liveNotifications.length)];
       setCurrentNotification(randomNotification);
       setShowNotification(true);
+      
+      // Auto-close notification after 4 seconds
+      setTimeout(() => {
+        setShowNotification(false);
+      }, 4000);
     };
 
     // Show first notification after 5 seconds

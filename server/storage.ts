@@ -516,7 +516,7 @@ export class DatabaseStorage implements IStorage {
 // User functions
   async upsertUser(userData: any) {
     const existingUser = await db.select().from(users).where(eq(users.id, userData.id)).limit(1);
-    
+
     if (existingUser.length > 0) {
       const result = await db.update(users)
         .set(userData)
@@ -688,4 +688,3 @@ export class DatabaseStorage implements IStorage {
     return { success: true };
   }
 };
-  
