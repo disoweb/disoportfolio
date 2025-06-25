@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import ProjectCard from "@/components/ProjectCard";
 import MessagesList from "@/components/MessagesList";
+import { useLocation } from "wouter";
 import { 
   ChartGantt, 
   CheckCircle, 
@@ -20,6 +21,7 @@ import {
 
 export default function ClientDashboard() {
   const { user } = useAuth();
+  const [, setLocation] = useLocation();
 
   const { data: projects, isLoading: projectsLoading } = useQuery({
     queryKey: ["/api/projects"],
@@ -133,7 +135,7 @@ export default function ClientDashboard() {
                     <p className="text-slate-600 mb-4">
                       Start your first project by browsing our service packages.
                     </p>
-                    <Button>Browse Services</Button>
+                    <Button onClick={() => setLocation("/services")}>Browse Services</Button>
                   </div>
                 )}
               </CardContent>
@@ -173,19 +175,44 @@ export default function ClientDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  <Button variant="outline" className="w-full justify-start">
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start"
+                    onClick={() => {
+                      // File upload functionality - for now, show alert
+                      alert("File upload feature coming soon! This will allow you to share files with your project team.");
+                    }}
+                  >
                     <Upload className="h-4 w-4 mr-3" />
                     Upload Files
                   </Button>
-                  <Button variant="outline" className="w-full justify-start">
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start"
+                    onClick={() => {
+                      // Message functionality - for now, show alert
+                      alert("Messaging feature coming soon! This will allow you to communicate directly with your project team.");
+                    }}
+                  >
                     <MessageSquare className="h-4 w-4 mr-3" />
                     Send Message
                   </Button>
-                  <Button variant="outline" className="w-full justify-start">
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start"
+                    onClick={() => setLocation("/contact")}
+                  >
                     <LifeBuoy className="h-4 w-4 mr-3" />
                     Request Support
                   </Button>
-                  <Button variant="outline" className="w-full justify-start">
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start"
+                    onClick={() => {
+                      // Billing functionality - for now, show alert
+                      alert("Billing feature coming soon! This will show your payment history and invoices.");
+                    }}
+                  >
                     <CreditCard className="h-4 w-4 mr-3" />
                     View Billing
                   </Button>

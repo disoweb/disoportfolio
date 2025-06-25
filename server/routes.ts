@@ -359,6 +359,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add missing /api/client/stats endpoint
+  app.get('/api/client/stats', async (req, res) => {
+    try {
+      // Return mock stats for now - can be enhanced later
+      const stats = {
+        activeProjects: 0,
+        completedProjects: 0,
+        totalSpent: 0,
+        newMessages: 0
+      };
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching client stats:", error);
+      res.status(500).json({ message: "Failed to fetch stats" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

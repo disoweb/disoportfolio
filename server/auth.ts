@@ -207,7 +207,7 @@ export async function setupAuth(app: Express) {
     console.log('Serializing user:', user?.id);
     if (!user || !user.id) {
       console.error('Serialization failed: User object or ID is missing');
-      return done(null, false);
+      return done(new Error('User serialization failed'), false);
     }
     done(null, user.id);
   });
@@ -277,16 +277,22 @@ export async function setupAuth(app: Express) {
         return res.status(401).json({ message: info?.message || "Login failed" });
       }
 
-      req.login(user, (err) => {
-        if (err) {
-          console.error("Login error:", err);
-          return res.status(500).json({ message: "Login failed" });
-        }
-        
-        const sanitizedUser = { ...user };
-        delete sanitizedUser.password;
-        res.json({ user: sanitizedUser });
-      });
+      // Manually set session instead of using req.login to avoid passport issues
+      if (req.session) {
+        req.session.passport = { user: user.id };
+        req.session.save((saveErr) => {
+          if (saveErr) {
+            console.error("Session save error:", saveErr);
+            return res.status(500).json({ message: "Login failed" });
+          }
+          
+          const sanitizedUser = { ...user };
+          delete sanitizedUser.password;
+          res.json({ user: sanitizedUser });
+        });
+      } else {
+        res.status(500).json({ message: "Session not available" });
+      }
     })(req, res, next);
   });
 
@@ -297,14 +303,18 @@ export async function setupAuth(app: Express) {
     });
   });
 
-  app.get("/api/auth/user", (req, res) => {
+  app.get("/api/auth/user", async (req, res) => {
     try {
-      if (!req.isAuthenticated() || !req.user) {
-        return res.json(null);
+      // Check session directly for user
+      if (req.session && req.session.passport && req.session.passport.user) {
+        const user = await storage.getUser(req.session.passport.user);
+        if (user) {
+          const sanitizedUser = { ...user };
+          delete sanitizedUser.password;
+          return res.json(sanitizedUser);
+        }
       }
-      const sanitizedUser = { ...req.user };
-      delete sanitizedUser.password;
-      res.json(sanitizedUser);
+      res.json(null);
     } catch (error) {
       console.error('Get user error:', error);
       res.status(500).json({ message: 'Failed to get user' });
@@ -385,8 +395,20 @@ export async function setupAuth(app: Express) {
 }
 
 export const isAuthenticated = (req: any, res: any, next: any) => {
-  if (!req.isAuthenticated()) {
+  // Check session directly due to passport serialization issues
+  if (req.session && req.session.passport && req.session.passport.user) {
+    // Manually attach user to request if needed
+    if (!req.user) {
+      storage.getUser(req.session.passport.user).then(user => {
+        req.user = user;
+        next();
+      }).catch(() => {
+        return res.status(401).json({ message: "Authentication required" });
+      });
+    } else {
+      next();
+    }
+  } else {
     return res.status(401).json({ message: "Authentication required" });
   }
-  next();
 };
