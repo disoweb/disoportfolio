@@ -73,6 +73,12 @@ export default function ClientDashboard() {
     queryKey: ["/api/orders"],
   });
 
+  // Calculate total spent from paid orders
+  const totalSpent = React.useMemo(() => {
+    if (!orders) return 0;
+    return orders.filter((o: any) => o.status === 'paid').reduce((sum: number, o: any) => sum + (o.totalPrice || 0), 0);
+  }, [orders]);
+
   const { data: stats } = useQuery({
     queryKey: ["/api/client/stats"],
   });
@@ -137,7 +143,7 @@ export default function ClientDashboard() {
                 <div className="ml-4">
                   <p className="text-sm text-slate-600">Total Spent</p>
                   <p className="text-2xl font-bold text-slate-900">
-                    ₦{orders?.filter(o => o.status === 'paid').reduce((sum, o) => sum + (o.totalPrice || 0), 0).toLocaleString() || '0'}
+                    ₦{totalSpent.toLocaleString()}
                   </p>
                 </div>
               </div>
@@ -327,7 +333,7 @@ export default function ClientDashboard() {
                   <div className="flex justify-between">
                     <span className="text-slate-600">Total Spent</span>
                     <span className="font-semibold text-slate-900">
-                      ₦{orders?.filter(o => o.status === 'paid').reduce((sum, o) => sum + (o.totalPrice || 0), 0).toLocaleString() || '0'}
+                      ₦{totalSpent.toLocaleString()}
                     </span>
                   </div>
                   <div className="flex justify-between">

@@ -95,16 +95,23 @@ export default function ProjectTimer({ project }: ProjectTimerProps) {
             <Progress value={project.progressPercentage} className="h-2" />
           </div>
 
-          {/* Time Progress */}
+          {/* Time Progress with red indicator */}
           <div>
             <div className="flex justify-between text-sm text-slate-600 mb-2">
               <span>Time Progress</span>
               <span>{Math.round(timeProgress)}%</span>
             </div>
-            <Progress 
-              value={timeProgress} 
-              className={`h-2 ${timeRemaining.isOverdue ? 'bg-red-100' : ''}`}
-            />
+            <div className="relative">
+              <Progress 
+                value={timeProgress} 
+                className={`h-3 ${timeRemaining.isOverdue ? 'bg-red-100' : ''}`}
+              />
+              {/* Red line indicator for current position */}
+              <div 
+                className="absolute top-0 h-3 w-1 bg-red-500 rounded-sm" 
+                style={{ left: `${Math.min(timeProgress, 100)}%`, transform: 'translateX(-50%)' }}
+              />
+            </div>
           </div>
 
           {/* Timeline */}
