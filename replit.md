@@ -33,7 +33,8 @@ DiSO Webs is a comprehensive web development agency platform that combines a mod
 - Multi-provider authentication (Local, Google, Twitter, Replit)
 - Role-based access control (client, admin, pm)
 - Session persistence with PostgreSQL backing
-- Password hashing using Node.js crypto with scrypt
+- Secure password hashing using bcrypt with salt rounds 12
+- Dedicated admin login system at /admin route
 
 ### Service Management
 - Service packages with different tiers (Launch, Growth, Elite)
@@ -125,4 +126,4 @@ Changelog:
 - June 25, 2025. Implemented project timer system with automatic activation on payment and real-time countdown tracking
 - June 25, 2025. Fixed authentication system issues and restored full login functionality with secure session management
 - June 25, 2025. Enhanced admin dashboard with comprehensive project management features including progress tracking, stage management, overdue detection, and team action controls
-- June 25, 2025. Created dedicated admin login page at /admin with secure authentication system for admin@diso.com credentials
+- June 25, 2025. Created dedicated admin login page at /admin with secure bcrypt authentication system for admin@diso.com credentials

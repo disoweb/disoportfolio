@@ -4,8 +4,7 @@ import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { Strategy as TwitterStrategy } from "passport-twitter";
 import { Express } from "express";
 import session from "express-session";
-import { scrypt, randomBytes, timingSafeEqual } from "crypto";
-import { promisify } from "util";
+import bcrypt from "bcrypt";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
 import connectPg from "connect-pg-simple";
@@ -16,22 +15,17 @@ declare global {
   }
 }
 
-const scryptAsync = promisify(scrypt);
-
-async function hashPassword(password: string) {
-  const salt = randomBytes(16).toString("hex");
-  const buf = (await scryptAsync(password, salt, 64)) as Buffer;
-  return `${buf.toString("hex")}.${salt}`;
+async function hashPassword(password: string): Promise<string> {
+  const saltRounds = 12;
+  return await bcrypt.hash(password, saltRounds);
 }
 
-async function comparePasswords(supplied: string, stored: string) {
-  if (!stored || !stored.includes('.')) {
+async function comparePasswords(supplied: string, stored: string): Promise<boolean> {
+  try {
+    return await bcrypt.compare(supplied, stored);
+  } catch (error) {
     return false;
   }
-  const [hashed, salt] = stored.split(".");
-  const hashedBuf = Buffer.from(hashed, "hex");
-  const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
-  return hashedBuf.length === suppliedBuf.length && timingSafeEqual(hashedBuf, suppliedBuf);
 }
 
 export async function setupAuth(app: Express) {
@@ -103,8 +97,8 @@ export async function setupAuth(app: Express) {
             return done(null, false, { message: 'Invalid email or password' });
           }
 
-          // Simple password comparison
-          const isValid = password === user.password;
+          // Use bcrypt for all password comparisons
+          const isValid = await comparePasswords(password, user.password);
           
           if (!isValid) {
             return done(null, false, { message: 'Invalid email or password' });
