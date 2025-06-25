@@ -6,6 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Progress } from "@/components/ui/progress";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { 
   DollarSign, 
   ShoppingCart, 
@@ -14,12 +21,32 @@ import {
   ChartGantt,
   Plus,
   MessageSquare,
-  Settings
+  Settings,
+  Edit,
+  Clock,
+  AlertTriangle,
+  CheckCircle,
+  Play,
+  Pause,
+  MoreHorizontal,
+  Filter,
+  Calendar,
+  FileText,
+  User
 } from "lucide-react";
 
 export default function AdminDashboard() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("overview");
+  const [selectedProject, setSelectedProject] = useState<any>(null);
+  const [projectFilter, setProjectFilter] = useState("all");
+  const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
+  const [updateForm, setUpdateForm] = useState({
+    stage: "",
+    progress: "",
+    notes: "",
+    status: ""
+  });
 
   const { data: analytics, isLoading } = useQuery({
     queryKey: ["/api/analytics"],
@@ -268,62 +295,86 @@ export default function AdminDashboard() {
           </TabsContent>
 
           <TabsContent value="projects">
-            <Card>
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                  <CardTitle>Project Management</CardTitle>
+            <div className="space-y-6">
+              {/* Project Management Header */}
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-900">Project Management</h2>
+                  <p className="text-slate-600">Manage project progress, timelines, and team assignments</p>
+                </div>
+                <div className="flex space-x-3">
+                  <Select value={projectFilter} onValueChange={setProjectFilter}>
+                    <SelectTrigger className="w-[180px]">
+                      <Filter className="h-4 w-4 mr-2" />
+                      <SelectValue placeholder="Filter projects" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Projects</SelectItem>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="paused">Paused</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="overdue">Overdue</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <Button>
                     <Plus className="h-4 w-4 mr-2" />
                     Create Project
                   </Button>
                 </div>
-              </CardHeader>
-              <CardContent>
-                {projects && projects.length > 0 ? (
-                  <div className="space-y-4">
-                    {projects.map((project: any) => (
-                      <div key={project.id} className="border rounded-lg p-6">
-                        <div className="flex justify-between items-start mb-4">
-                          <div>
-                            <h3 className="text-lg font-semibold text-slate-900">
-                              {project.projectName || 'Untitled Project'}
-                            </h3>
-                            <p className="text-slate-600">
-                              Client: {project.user?.firstName} {project.user?.lastName}
-                            </p>
-                          </div>
-                          <div className="flex space-x-2">
-                            <Button variant="outline" size="sm">
-                              Update Status
-                            </Button>
-                            <Button variant="outline" size="sm">
-                              Message Client
-                            </Button>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center space-x-6 text-sm text-slate-600">
-                          <span>
-                            Stage: <span className="font-medium text-blue-600">{project.currentStage}</span>
-                          </span>
-                          <span>
-                            Due: {project.dueDate ? new Date(project.dueDate).toLocaleDateString() : 'TBD'}
-                          </span>
-                          <Badge variant={project.status === 'active' ? 'default' : 'secondary'}>
-                            {project.status}
-                          </Badge>
-                        </div>
-                      </div>
+              </div>
+
+              {/* Projects Grid */}
+              {projects && projects.length > 0 ? (
+                <div className="grid gap-6">
+                  {projects
+                    .filter((project: any) => {
+                      if (projectFilter === "all") return true;
+                      if (projectFilter === "overdue") {
+                        const dueDate = new Date(project.dueDate);
+                        return dueDate < new Date() && project.status !== 'completed';
+                      }
+                      return project.status === projectFilter;
+                    })
+                    .map((project: any) => (
+                      <ProjectCard 
+                        key={project.id} 
+                        project={project} 
+                        onUpdate={(project) => {
+                          setSelectedProject(project);
+                          setUpdateForm({
+                            stage: project.currentStage || "",
+                            progress: project.progressPercentage?.toString() || "0",
+                            notes: project.notes || "",
+                            status: project.status || ""
+                          });
+                          setIsUpdateDialogOpen(true);
+                        }}
+                      />
                     ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <ChartGantt className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                    <p className="text-slate-600">No projects found</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                </div>
+              ) : (
+                <Card>
+                  <CardContent className="flex flex-col items-center justify-center py-16">
+                    <ChartGantt className="h-16 w-16 text-slate-400 mb-4" />
+                    <h3 className="text-xl font-semibold text-slate-900 mb-2">No Projects Found</h3>
+                    <p className="text-slate-600 mb-6">Get started by creating your first project</p>
+                    <Button>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create First Project
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Project Update Dialog */}
+              <ProjectUpdateDialog 
+                project={selectedProject}
+                isOpen={isUpdateDialogOpen}
+                onClose={() => setIsUpdateDialogOpen(false)}
+                updateForm={updateForm}
+                setUpdateForm={setUpdateForm}
+              />
+            </div>
           </TabsContent>
 
           <TabsContent value="clients">
@@ -426,5 +477,277 @@ export default function AdminDashboard() {
         </Tabs>
       </div>
     </div>
+  );
+}
+
+// Project Card Component
+function ProjectCard({ project, onUpdate }: { project: any; onUpdate: (project: any) => void }) {
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'active': return 'bg-green-500';
+      case 'paused': return 'bg-yellow-500';
+      case 'completed': return 'bg-blue-500';
+      default: return 'bg-slate-500';
+    }
+  };
+
+  const getStageColor = (stage: string) => {
+    switch (stage?.toLowerCase()) {
+      case 'discovery': return 'text-blue-600 bg-blue-50';
+      case 'design': return 'text-purple-600 bg-purple-50';
+      case 'development': return 'text-orange-600 bg-orange-50';
+      case 'testing': return 'text-yellow-600 bg-yellow-50';
+      case 'launch': return 'text-green-600 bg-green-50';
+      default: return 'text-slate-600 bg-slate-50';
+    }
+  };
+
+  const calculateTimeProgress = () => {
+    if (!project.startDate || !project.dueDate) return 0;
+    const start = new Date(project.startDate).getTime();
+    const end = new Date(project.dueDate).getTime();
+    const now = new Date().getTime();
+    const progress = ((now - start) / (end - start)) * 100;
+    return Math.min(Math.max(progress, 0), 100);
+  };
+
+  const isOverdue = () => {
+    if (!project.dueDate || project.status === 'completed') return false;
+    return new Date(project.dueDate) < new Date();
+  };
+
+  const timeProgress = calculateTimeProgress();
+
+  return (
+    <Card className="hover:shadow-lg transition-shadow border-l-4 border-l-blue-500">
+      <CardContent className="p-6">
+        <div className="flex justify-between items-start mb-4">
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-2">
+              <h3 className="text-xl font-semibold text-slate-900">
+                {project.projectName || 'Untitled Project'}
+              </h3>
+              <div className={`w-3 h-3 rounded-full ${getStatusColor(project.status)}`} />
+              {isOverdue() && (
+                <AlertTriangle className="h-5 w-5 text-red-500" title="Overdue" />
+              )}
+            </div>
+            <div className="flex items-center gap-4 text-sm text-slate-600 mb-3">
+              <div className="flex items-center gap-1">
+                <User className="h-4 w-4" />
+                <span>Client: {project.user?.firstName} {project.user?.lastName}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Calendar className="h-4 w-4" />
+                <span>Due: {project.dueDate ? new Date(project.dueDate).toLocaleDateString() : 'TBD'}</span>
+              </div>
+            </div>
+            <Badge className={`${getStageColor(project.currentStage)} border-none`}>
+              {project.currentStage || 'Not Started'}
+            </Badge>
+          </div>
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => onUpdate(project)}>
+                <Edit className="h-4 w-4 mr-2" />
+                Update Progress
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <MessageSquare className="h-4 w-4 mr-2" />
+                Message Client
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <FileText className="h-4 w-4 mr-2" />
+                View Details
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        {/* Progress Indicators */}
+        <div className="space-y-4">
+          {/* Project Progress */}
+          <div>
+            <div className="flex justify-between text-sm text-slate-600 mb-2">
+              <span>Project Progress</span>
+              <span>{project.progressPercentage || 0}%</span>
+            </div>
+            <Progress value={project.progressPercentage || 0} className="h-2" />
+          </div>
+
+          {/* Time Progress */}
+          <div>
+            <div className="flex justify-between text-sm text-slate-600 mb-2">
+              <span>Time Progress</span>
+              <span>{Math.round(timeProgress)}%</span>
+            </div>
+            <div className="relative">
+              <Progress 
+                value={timeProgress} 
+                className={`h-2 ${isOverdue() ? 'bg-red-100' : ''}`}
+              />
+              {/* Red line indicator */}
+              <div 
+                className="absolute top-0 h-2 w-0.5 bg-red-500 rounded-sm" 
+                style={{ left: `${Math.min(timeProgress, 100)}%`, transform: 'translateX(-50%)' }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="flex justify-between items-center mt-4 pt-4 border-t">
+          <div className="flex items-center gap-2 text-sm text-slate-600">
+            <Clock className="h-4 w-4" />
+            <span>
+              {project.timelineWeeks ? `${project.timelineWeeks} weeks` : 'No timeline set'}
+            </span>
+          </div>
+          <div className="flex space-x-2">
+            <Button variant="outline" size="sm" onClick={() => onUpdate(project)}>
+              <Edit className="h-4 w-4 mr-1" />
+              Update
+            </Button>
+            {project.status === 'active' ? (
+              <Button variant="outline" size="sm">
+                <Pause className="h-4 w-4 mr-1" />
+                Pause
+              </Button>
+            ) : (
+              <Button variant="outline" size="sm">
+                <Play className="h-4 w-4 mr-1" />
+                Resume
+              </Button>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Project Update Dialog Component
+function ProjectUpdateDialog({ 
+  project, 
+  isOpen, 
+  onClose, 
+  updateForm, 
+  setUpdateForm 
+}: { 
+  project: any; 
+  isOpen: boolean; 
+  onClose: () => void;
+  updateForm: any;
+  setUpdateForm: (form: any) => void;
+}) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!project) return;
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(`/api/admin/projects/${project.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          currentStage: updateForm.stage,
+          progressPercentage: parseInt(updateForm.progress),
+          notes: updateForm.notes,
+          status: updateForm.status
+        })
+      });
+
+      if (response.ok) {
+        onClose();
+        // Refresh projects data
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error('Error updating project:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (!project) return null;
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Update Project Progress</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label htmlFor="stage">Current Stage</Label>
+            <Select value={updateForm.stage} onValueChange={(value) => setUpdateForm({...updateForm, stage: value})}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select stage" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Discovery">Discovery</SelectItem>
+                <SelectItem value="Design">Design</SelectItem>
+                <SelectItem value="Development">Development</SelectItem>
+                <SelectItem value="Testing">Testing</SelectItem>
+                <SelectItem value="Launch">Launch</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="progress">Progress Percentage</Label>
+            <Input
+              type="number"
+              min="0"
+              max="100"
+              value={updateForm.progress}
+              onChange={(e) => setUpdateForm({...updateForm, progress: e.target.value})}
+              placeholder="0-100"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="status">Project Status</Label>
+            <Select value={updateForm.status} onValueChange={(value) => setUpdateForm({...updateForm, status: value})}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="paused">Paused</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="notes">Progress Notes</Label>
+            <Textarea
+              value={updateForm.notes}
+              onChange={(e) => setUpdateForm({...updateForm, notes: e.target.value})}
+              placeholder="Add notes about current progress..."
+              rows={3}
+            />
+          </div>
+
+          <div className="flex justify-end space-x-2 pt-4">
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? 'Updating...' : 'Update Project'}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
