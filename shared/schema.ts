@@ -70,7 +70,7 @@ export const orders = pgTable("orders", {
   userId: varchar("user_id").references(() => users.id).notNull(),
   serviceId: uuid("service_id").references(() => services.id),
   customRequest: text("custom_request"),
-  totalPrice: decimal("total_price").notNull(),
+  totalPrice: varchar("total_price").notNull(), // Changed to varchar for easier handling
   status: orderStatusEnum("status").default("pending"),
   paymentId: uuid("payment_id"),
   createdAt: timestamp("created_at").defaultNow(),

@@ -79,8 +79,8 @@ export default function CheckoutForm({ service, onSuccess }: CheckoutFormProps) 
   const createOrderMutation = useMutation({
     mutationFn: async (data: CheckoutForm & { serviceId: string; totalPrice: number }) => {
       const response = await apiRequest("POST", "/api/orders", {
-        serviceId: data.serviceId,
-        totalPrice: data.totalPrice,
+        serviceId: null, // Will be handled by backend for custom services
+        totalPrice: data.totalPrice.toString(),
         customRequest: `Service: ${service.name}\n${data.projectDescription}\n\nTimeline: ${data.timeline}\nContact: ${data.fullName} (${data.email})${data.phone ? `, ${data.phone}` : ""}${data.company ? `\nCompany: ${data.company}` : ""}`,
       });
       return response.json();
