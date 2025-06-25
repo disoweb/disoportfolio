@@ -37,7 +37,10 @@ export default function AdminLogin() {
             title: "Welcome Admin",
             description: "Successfully logged in to admin dashboard",
           });
-          setLocation("/admin-dashboard");
+          // Use programmatic navigation for better SPA behavior
+          setTimeout(() => {
+            setLocation("/admin-dashboard");
+          }, 500);
         } else {
           toast({
             title: "Access Denied", 
