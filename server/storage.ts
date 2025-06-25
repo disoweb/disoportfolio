@@ -35,6 +35,7 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: UpsertUser): Promise<User>;
   upsertUser(user: UpsertUser): Promise<User>;
+  updateUserPassword(userId: string, hashedPassword: string): Promise<void>;
 
   getActiveServices(): Promise<Service[]>;
   createService(service: InsertService): Promise<Service>;

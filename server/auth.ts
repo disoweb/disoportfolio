@@ -103,8 +103,20 @@ export async function setupAuth(app: Express) {
             return done(null, false, { message: 'Invalid email or password' });
           }
 
-          // Simple password check for development
-          const isValid = password === user.password;
+          // Check both hashed and plain text passwords
+          let isValid = false;
+          if (user.password.includes('.') && user.password.split('.').length === 2) {
+            // Hashed password
+            isValid = await comparePasswords(password, user.password);
+          } else {
+            // Plain text password - hash it and update
+            isValid = password === user.password;
+            if (isValid) {
+              // Update to hashed password
+              const hashedPassword = await hashPassword(password);
+              await storage.updateUserPassword(user.id, hashedPassword);
+            }
+          }
           
           if (!isValid) {
             console.log('Invalid password for email:', email);
