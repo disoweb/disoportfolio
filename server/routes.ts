@@ -18,7 +18,7 @@ import { eq } from "drizzle-orm";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware - always use standard auth
-  setupAuth(app);
+  await setupAuth(app);
 
   // No need for separate auth routes as they're handled in setupAuth
 
