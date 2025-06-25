@@ -103,11 +103,10 @@ export async function setupAuth(app: Express) {
             return done(null, false, { message: 'Invalid email or password' });
           }
 
-          // Simple password comparison for now
+          // Simple password comparison
           const isValid = password === user.password;
           
           if (!isValid) {
-            console.log('Invalid password for email:', email);
             return done(null, false, { message: 'Invalid email or password' });
           }
 
