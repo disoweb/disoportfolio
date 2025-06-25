@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useLocation } from "wouter";
+import { useAuth } from "@/hooks/useAuth";
 import {
   CheckCircle,
   ArrowRight,
@@ -622,9 +624,13 @@ export default function ServicePackages() {
                     className="w-full bg-blue-600 hover:bg-blue-700 text-white transition-all duration-150 ease-in-out transform hover:scale-105"
                     size="lg"
                     onClick={() => {
-                      console.log(
-                        `Get Started with ${service.name}`,
-                      ); /* Replace with actual navigation */
+                      if (!user) {
+                        // Redirect to login if not authenticated
+                        setLocation("/auth");
+                      } else {
+                        // Navigate to service details or checkout
+                        setLocation(`/service/${service.id}`);
+                      }
                     }}
                   >
                     Get Started

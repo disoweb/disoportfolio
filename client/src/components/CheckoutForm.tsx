@@ -33,8 +33,13 @@ interface ServicePackage {
 }
 
 interface CheckoutFormProps {
-  selectedPackage: ServicePackage;
-  onClose: () => void;
+  service: {
+    id: string;
+    name: string;
+    price: string;
+    description: string;
+  };
+  onSuccess: () => void;
 }
 
 const timelines = [
@@ -45,8 +50,8 @@ const timelines = [
   { value: "asap", label: "ASAP (Rush - +25%)" },
 ];
 
-export default function CheckoutForm({ selectedPackage, onClose }: CheckoutFormProps) {
-  const { user, isAuthenticated } = useAuth();
+export default function CheckoutForm({ service, onSuccess }: CheckoutFormProps) {
+  const { user } = useAuth();
   const { toast } = useToast();
   
   const {
@@ -65,15 +70,18 @@ export default function CheckoutForm({ selectedPackage, onClose }: CheckoutFormP
 
   const timeline = watch("timeline");
   const isRush = timeline === "asap";
-  const rushFee = isRush ? selectedPackage.price * 0.25 : 0;
-  const totalPrice = selectedPackage.price + rushFee;
+  
+  // Parse price from string format like "₦150,000"
+  const basePrice = parseFloat(service.price.replace(/[₦,]/g, '')) || 0;
+  const rushFee = isRush ? basePrice * 0.25 : 0;
+  const totalPrice = basePrice + rushFee;
 
   const createOrderMutation = useMutation({
     mutationFn: async (data: CheckoutForm & { serviceId: string; totalPrice: number }) => {
       const response = await apiRequest("POST", "/api/orders", {
         serviceId: data.serviceId,
         totalPrice: data.totalPrice,
-        customRequest: `${data.projectDescription}\n\nTimeline: ${data.timeline}\nContact: ${data.fullName} (${data.email})${data.phone ? `, ${data.phone}` : ""}${data.company ? `\nCompany: ${data.company}` : ""}`,
+        customRequest: `Service: ${service.name}\n${data.projectDescription}\n\nTimeline: ${data.timeline}\nContact: ${data.fullName} (${data.email})${data.phone ? `, ${data.phone}` : ""}${data.company ? `\nCompany: ${data.company}` : ""}`,
       });
       return response.json();
     },
@@ -121,20 +129,9 @@ export default function CheckoutForm({ selectedPackage, onClose }: CheckoutFormP
   };
 
   const onSubmit = (data: CheckoutForm) => {
-    if (!isAuthenticated) {
-      toast({
-        title: "Authentication required",
-        description: "Please log in to place an order.",
-        variant: "destructive",
-      });
-      // Redirect to login
-      window.location.href = "/api/login";
-      return;
-    }
-
     createOrderMutation.mutate({
       ...data,
-      serviceId: selectedPackage.id,
+      serviceId: service.id,
       totalPrice,
     });
   };
@@ -146,13 +143,13 @@ export default function CheckoutForm({ selectedPackage, onClose }: CheckoutFormP
           <div>
             <CardTitle className="text-2xl font-bold">Complete Your Order</CardTitle>
             <p className="text-slate-600">
-              Selected Package: <span className="font-semibold text-blue-600">{selectedPackage.name}</span>
+              Selected Package: <span className="font-semibold text-blue-600">{service.name}</span>
             </p>
           </div>
           <Button
             variant="ghost"
             size="sm"
-            onClick={onClose}
+            onClick={onSuccess}
             className="h-8 w-8 p-0"
           >
             <X className="h-4 w-4" />
@@ -263,19 +260,19 @@ export default function CheckoutForm({ selectedPackage, onClose }: CheckoutFormP
             <h3 className="text-lg font-semibold text-slate-900 mb-4">Order Summary</h3>
             <div className="space-y-3">
               <div className="flex justify-between items-center">
-                <span>{selectedPackage.name} Package</span>
-                <span>${selectedPackage.price.toLocaleString()}</span>
+                <span>{service.name} Package</span>
+                <span>{service.price}</span>
               </div>
               {isRush && (
                 <div className="flex justify-between items-center text-amber-600">
                   <span>Rush Fee (25%)</span>
-                  <span>+${rushFee.toLocaleString()}</span>
+                  <span>+₦{rushFee.toLocaleString()}</span>
                 </div>
               )}
               <Separator />
               <div className="flex justify-between items-center font-bold text-lg">
                 <span>Total</span>
-                <span className="text-blue-600">${totalPrice.toLocaleString()}</span>
+                <span className="text-blue-600">₦{totalPrice.toLocaleString()}</span>
               </div>
             </div>
           </div>

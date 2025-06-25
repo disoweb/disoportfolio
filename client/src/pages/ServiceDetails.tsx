@@ -1,13 +1,16 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { useLocation } from "wouter";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
+import CheckoutForm from "@/components/CheckoutForm";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { CheckCircle, Clock, DollarSign, Users, ArrowLeft, Star, MessageCircle, Phone } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { useAuth } from "@/hooks/useAuth";
 
 const serviceData = {
   "basic-website": {
@@ -163,6 +166,8 @@ const serviceData = {
 
 export default function ServiceDetails() {
   const [location, setLocation] = useLocation();
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const { user } = useAuth();
   const serviceId = location.split('/service/')[1];
   const service = serviceData[serviceId as keyof typeof serviceData];
 
@@ -216,14 +221,41 @@ export default function ServiceDetails() {
             </div>
             
             <div className="mt-6 lg:mt-0 space-y-3">
-              <Button 
-                size="lg" 
-                className="w-full lg:w-auto bg-blue-600 hover:bg-blue-700"
-                onClick={() => setLocation('/contact')}
-              >
-                <MessageCircle className="mr-2 h-4 w-4" />
-                Get Started
-              </Button>
+              <Dialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
+                <DialogTrigger asChild>
+                  <Button 
+                    size="lg" 
+                    className="w-full lg:w-auto bg-blue-600 hover:bg-blue-700"
+                    onClick={() => {
+                      if (!user) {
+                        setLocation('/auth');
+                      } else {
+                        setIsCheckoutOpen(true);
+                      }
+                    }}
+                  >
+                    <MessageCircle className="mr-2 h-4 w-4" />
+                    Get Started
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Order {service.title}</DialogTitle>
+                  </DialogHeader>
+                  <CheckoutForm 
+                    service={{
+                      id: serviceId,
+                      name: service.title,
+                      price: service.price,
+                      description: service.description
+                    }}
+                    onSuccess={() => {
+                      setIsCheckoutOpen(false);
+                      setLocation('/dashboard');
+                    }}
+                  />
+                </DialogContent>
+              </Dialog>
               <Button 
                 variant="outline" 
                 size="lg" 
@@ -321,7 +353,16 @@ export default function ServiceDetails() {
                   <div className="font-semibold text-gray-900">Support</div>
                   <div className="text-gray-600">Included</div>
                 </div>
-                <Button className="w-full" onClick={() => setLocation('/contact')}>
+                <Button 
+                  className="w-full" 
+                  onClick={() => {
+                    if (!user) {
+                      setLocation('/auth');
+                    } else {
+                      setIsCheckoutOpen(true);
+                    }
+                  }}
+                >
                   Get Started Today
                 </Button>
               </CardContent>
