@@ -40,8 +40,10 @@ export default function ClientDashboard() {
       });
       // Clear the URL parameter and hash
       window.history.replaceState({}, '', '/dashboard');
-      // Refresh data to show new orders
-      window.location.reload();
+      // Force refresh queries to show new orders
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
     } else if (paymentStatus === 'failed' && hash === '#dashboard') {
       toast({
         title: "Payment Failed",
@@ -63,11 +65,15 @@ export default function ClientDashboard() {
     queryKey: ["/api/projects"],
   });
 
+  const { data: orders, isLoading: ordersLoading } = useQuery({
+    queryKey: ["/api/orders"],
+  });
+
   const { data: stats } = useQuery({
     queryKey: ["/api/client/stats"],
   });
 
-  if (projectsLoading) {
+  if (projectsLoading || ordersLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
@@ -151,11 +157,53 @@ export default function ClientDashboard() {
 
         {/* Main Content Grid */}
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* Projects Section */}
-          <div className="lg:col-span-2">
-            <Card className="mb-8">
+          {/* Orders and Projects Section */}
+          <div className="lg:col-span-2 space-y-8">
+            {/* Orders Section */}
+            <Card>
               <CardHeader>
-                <CardTitle className="text-xl font-bold text-slate-900">Current Projects</CardTitle>
+                <CardTitle className="text-xl font-bold text-slate-900">Service Orders</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {orders && orders.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {orders.map((order: any) => (
+                      <div key={order.id} className="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                        <div className="flex justify-between items-start mb-3">
+                          <h4 className="font-semibold text-slate-900">Service Order</h4>
+                          <Badge variant={order.status === 'paid' ? 'default' : order.status === 'pending' ? 'secondary' : 'outline'}>
+                            {order.status}
+                          </Badge>
+                        </div>
+                        <div className="space-y-2">
+                          <p className="text-sm text-slate-600">
+                            {order.customRequest?.split('\n')[0]?.replace('Service: ', '') || 'Custom Service'}
+                          </p>
+                          <p className="text-lg font-semibold text-green-600">
+                            ₦{(order.totalPrice || 0).toLocaleString()}
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            Ordered on {new Date(order.createdAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <CreditCard className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-slate-900 mb-2">No Orders Yet</h3>
+                    <p className="text-slate-600 mb-4">Place your first order to get started with our services.</p>
+                    <Button onClick={() => setLocation("/services")}>Browse Services</Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Projects Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-xl font-bold text-slate-900">Active Projects</CardTitle>
               </CardHeader>
               <CardContent>
                 {projects && projects.length > 0 ? (
@@ -167,11 +215,10 @@ export default function ClientDashboard() {
                 ) : (
                   <div className="text-center py-8">
                     <ChartGantt className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-slate-900 mb-2">No Projects Yet</h3>
+                    <h3 className="text-lg font-medium text-slate-900 mb-2">No Active Projects</h3>
                     <p className="text-slate-600 mb-4">
-                      Start your first project by browsing our service packages.
+                      Projects will be created automatically after successful order payment.
                     </p>
-                    <Button onClick={() => setLocation("/services")}>Browse Services</Button>
                   </div>
                 )}
               </CardContent>
