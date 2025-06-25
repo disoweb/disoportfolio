@@ -617,6 +617,34 @@ export class DatabaseStorage implements IStorage {
     // TODO: Create a separate quotes table for better data management
     console.log("Quote request submission:", data);
   }
+
+  async getWorkloadStatus(): Promise<any> {
+    try {
+      const projects = await this.getAllProjects();
+      const totalActiveProjects = projects.filter(p => p.status === 'active').length;
+      const capacity = 10; // Example capacity
+      const thisWeekProjects = projects.filter(p => {
+        const weekAgo = new Date();
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        return new Date(p.createdAt) >= weekAgo;
+      }).length;
+
+      return {
+        totalActiveProjects,
+        capacity,
+        thisWeekProjects,
+        estimatedDelivery: "2-3 weeks"
+      };
+    } catch (error) {
+      console.error('Error getting workload status:', error);
+      return {
+        totalActiveProjects: 0,
+        capacity: 10,
+        thisWeekProjects: 0,
+        estimatedDelivery: "Unknown"
+      };
+    }
+  }
 }
 
 // Export a singleton instance for easy import
