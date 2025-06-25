@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminNavigation from "@/components/AdminNavigation";
 import { useAuth } from "@/hooks/useAuth";
@@ -14,6 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { 
   Search, 
   Filter, 
@@ -31,7 +33,18 @@ import {
   RotateCcw,
   MessageSquare,
   FileText,
-  Settings
+  Settings,
+  MoreVertical,
+  TrendingUp,
+  TrendingDown,
+  Target,
+  Zap,
+  Users,
+  Activity,
+  ChevronRight,
+  ExternalLink,
+  Mail,
+  Phone
 } from "lucide-react";
 
 interface Project {
@@ -123,20 +136,45 @@ export default function AdminProjects() {
     return matchesSearch && matchesStatus;
   });
 
-  // Get status badge variant
+  // Get enhanced status badge
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "active":
-        return <Badge className="bg-green-100 text-green-800">Active</Badge>;
-      case "completed":
-        return <Badge className="bg-blue-100 text-blue-800">Completed</Badge>;
-      case "paused":
-        return <Badge className="bg-yellow-100 text-yellow-800">Paused</Badge>;
-      case "not_started":
-        return <Badge className="bg-gray-100 text-gray-800">Not Started</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
+    const badgeConfig = {
+      active: { 
+        className: "bg-gradient-to-r from-green-500 to-green-600 text-white border-0 shadow-sm", 
+        icon: Play,
+        label: "Active"
+      },
+      completed: { 
+        className: "bg-gradient-to-r from-blue-500 to-blue-600 text-white border-0 shadow-sm", 
+        icon: CheckCircle,
+        label: "Completed"
+      },
+      paused: { 
+        className: "bg-gradient-to-r from-yellow-500 to-yellow-600 text-white border-0 shadow-sm", 
+        icon: Pause,
+        label: "Paused"
+      },
+      not_started: { 
+        className: "bg-gradient-to-r from-slate-500 to-slate-600 text-white border-0 shadow-sm", 
+        icon: Clock,
+        label: "Not Started"
+      }
+    };
+    
+    const config = badgeConfig[status as keyof typeof badgeConfig] || {
+      className: "bg-slate-100 text-slate-700 border border-slate-200",
+      icon: AlertTriangle,
+      label: status
+    };
+    
+    const Icon = config.icon;
+    
+    return (
+      <Badge className={`${config.className} text-xs font-medium px-2 py-1 flex items-center gap-1`}>
+        <Icon className="h-3 w-3" />
+        {config.label}
+      </Badge>
+    );
   };
 
   // Get progress color
@@ -192,110 +230,94 @@ export default function AdminProjects() {
 
   if (authLoading || isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
         <AdminNavigation />
-        <div className="flex items-center justify-center h-96">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <ProjectsLoadingSkeleton />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       <AdminNavigation />
       
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Project Management</h1>
-            <p className="text-gray-600">Manage all client projects and track progress</p>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+        {/* Modern Header */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8">
+          <div className="space-y-1">
+            <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
+              Project Management
+            </h1>
+            <p className="text-slate-600 text-sm lg:text-base">
+              Manage all client projects and track progress in real-time
+            </p>
           </div>
-          <Button className="bg-blue-600 hover:bg-blue-700">
-            <Plus className="h-4 w-4 mr-2" />
-            New Project
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button variant="outline" size="sm" className="hidden sm:flex">
+              <Activity className="h-4 w-4 mr-2" />
+              Analytics
+            </Button>
+            <Button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg shadow-blue-500/25">
+              <Plus className="h-4 w-4 mr-2" />
+              New Project
+            </Button>
+          </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                  <FileText className="h-4 w-4 text-blue-600" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Total Projects</p>
-                  <p className="text-2xl font-bold text-gray-900">{projectStats.total}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                  <Play className="h-4 w-4 text-green-600" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Active</p>
-                  <p className="text-2xl font-bold text-gray-900">{projectStats.active}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                  <CheckCircle className="h-4 w-4 text-blue-600" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Completed</p>
-                  <p className="text-2xl font-bold text-gray-900">{projectStats.completed}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
-                  <AlertTriangle className="h-4 w-4 text-red-600" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Overdue</p>
-                  <p className="text-2xl font-bold text-gray-900">{projectStats.overdue}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Enhanced Stats Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8">
+          <StatsCard
+            title="Total Projects"
+            value={projectStats.total}
+            icon={FileText}
+            trend={{ value: 12, isPositive: true }}
+            color="blue"
+          />
+          <StatsCard
+            title="Active"
+            value={projectStats.active}
+            icon={Zap}
+            trend={{ value: 8, isPositive: true }}
+            color="green"
+          />
+          <StatsCard
+            title="Completed"
+            value={projectStats.completed}
+            icon={CheckCircle}
+            trend={{ value: 5, isPositive: true }}
+            color="purple"
+          />
+          <StatsCard
+            title="Overdue"
+            value={projectStats.overdue}
+            icon={AlertTriangle}
+            trend={{ value: 2, isPositive: false }}
+            color="red"
+          />
         </div>
 
-        {/* Filters */}
-        <Card className="mb-6">
-          <CardContent className="p-6">
-            <div className="flex flex-col sm:flex-row gap-4">
+        {/* Enhanced Filters */}
+        <Card className="mb-6 border-0 shadow-lg shadow-slate-200/50 bg-white/80 backdrop-blur-sm">
+          <CardContent className="p-4 lg:p-6">
+            <div className="flex flex-col lg:flex-row gap-4">
               <div className="flex-1">
                 <div className="relative">
-                  <Search className="h-4 w-4 absolute left-3 top-3 text-gray-400" />
+                  <Search className="h-4 w-4 absolute left-3 top-3.5 text-slate-400" />
                   <Input
-                    placeholder="Search projects, clients..."
-                    className="pl-10"
+                    placeholder="Search projects, clients, or keywords..."
+                    className="pl-10 border-slate-200 bg-slate-50/50 focus:bg-white transition-colors"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
               </div>
-              <div className="w-full sm:w-48">
+              <div className="flex gap-3">
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Filter by status" />
+                  <SelectTrigger className="w-full lg:w-40 border-slate-200">
+                    <Filter className="h-4 w-4 mr-2 text-slate-500" />
+                    <SelectValue placeholder="Status" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Status</SelectItem>
@@ -305,101 +327,30 @@ export default function AdminProjects() {
                     <SelectItem value="not_started">Not Started</SelectItem>
                   </SelectContent>
                 </Select>
+                <Button variant="outline" size="sm" className="hidden lg:flex border-slate-200">
+                  <Settings className="h-4 w-4" />
+                </Button>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Projects List */}
-        <div className="grid gap-6">
+        {/* Modern Projects Grid */}
+        <div className="grid gap-4 lg:gap-6">
           {filteredProjects.map((project) => (
-            <Card key={project.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center space-x-3">
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      {project.projectName}
-                    </h3>
-                    {getStatusBadge(project.status)}
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button variant="outline" size="sm">
-                          <Eye className="h-4 w-4 mr-2" />
-                          View
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-4xl">
-                        <DialogHeader>
-                          <DialogTitle>Project Details: {project.projectName}</DialogTitle>
-                        </DialogHeader>
-                        <ProjectDetailsView project={project} />
-                      </DialogContent>
-                    </Dialog>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleUpdateProject(project)}
-                    >
-                      <Edit className="h-4 w-4 mr-2" />
-                      Update
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-                  <div className="flex items-center text-sm text-gray-600">
-                    <User className="h-4 w-4 mr-2" />
-                    <span>
-                      {project.order?.user?.firstName} {project.order?.user?.lastName}
-                    </span>
-                  </div>
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Calendar className="h-4 w-4 mr-2" />
-                    <span>Due: {new Date(project.dueDate).toLocaleDateString()}</span>
-                  </div>
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Clock className="h-4 w-4 mr-2" />
-                    <span>{project.timelineWeeks} weeks</span>
-                  </div>
-                  <div className="flex items-center text-sm text-gray-600">
-                    <DollarSign className="h-4 w-4 mr-2" />
-                    <span>₦{project.order?.service?.price?.toLocaleString() || 'N/A'}</span>
-                  </div>
-                </div>
-
-                <div className="mb-2">
-                  <div className="flex justify-between text-sm text-gray-600 mb-1">
-                    <span>Progress</span>
-                    <span>{project.progressPercentage}%</span>
-                  </div>
-                  <Progress value={project.progressPercentage} className="h-2" />
-                </div>
-
-                {new Date(project.dueDate) < new Date() && project.status !== "completed" && (
-                  <div className="flex items-center text-red-600 text-sm mt-2">
-                    <AlertTriangle className="h-4 w-4 mr-1" />
-                    <span>Overdue</span>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <ProjectCard 
+              key={project.id} 
+              project={project} 
+              onUpdate={handleUpdateProject}
+            />
           ))}
         </div>
 
         {filteredProjects.length === 0 && (
-          <Card>
-            <CardContent className="p-12 text-center">
-              <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No projects found</h3>
-              <p className="text-gray-600">
-                {searchTerm || statusFilter !== "all" 
-                  ? "No projects match your current filters."
-                  : "Get started by creating your first project."}
-              </p>
-            </CardContent>
-          </Card>
+          <EmptyState 
+            searchTerm={searchTerm} 
+            statusFilter={statusFilter} 
+          />
         )}
       </div>
 
@@ -481,86 +432,386 @@ export default function AdminProjects() {
   );
 }
 
-// Project Details Component
-function ProjectDetailsView({ project }: { project: Project }) {
+// Modern Component Definitions
+function StatsCard({ title, value, icon: Icon, trend, color }: {
+  title: string;
+  value: number;
+  icon: any;
+  trend: { value: number; isPositive: boolean };
+  color: string;
+}) {
+  const colorClasses = {
+    blue: 'from-blue-500 to-blue-600 text-blue-600 bg-blue-50',
+    green: 'from-green-500 to-green-600 text-green-600 bg-green-50',
+    purple: 'from-purple-500 to-purple-600 text-purple-600 bg-purple-50',
+    red: 'from-red-500 to-red-600 text-red-600 bg-red-50'
+  };
+  
   return (
-    <Tabs defaultValue="overview" className="w-full">
-      <TabsList className="grid w-full grid-cols-3">
-        <TabsTrigger value="overview">Overview</TabsTrigger>
-        <TabsTrigger value="timeline">Timeline</TabsTrigger>
-        <TabsTrigger value="communication">Communication</TabsTrigger>
-      </TabsList>
-      
-      <TabsContent value="overview" className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <h4 className="font-medium text-gray-900 mb-2">Project Information</h4>
-            <div className="space-y-2 text-sm">
-              <div>
-                <span className="text-gray-600">Status:</span>
-                <span className="ml-2 font-medium">{project.status}</span>
+    <Card className="border-0 shadow-lg shadow-slate-200/50 bg-white/80 backdrop-blur-sm hover:shadow-xl transition-all duration-300">
+      <CardContent className="p-4 lg:p-6">
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <p className="text-xs lg:text-sm font-medium text-slate-600 uppercase tracking-wide">
+              {title}
+            </p>
+            <p className="text-2xl lg:text-3xl font-bold text-slate-900">
+              {value}
+            </p>
+            <div className="flex items-center space-x-1">
+              {trend.isPositive ? (
+                <TrendingUp className="h-3 w-3 text-green-500" />
+              ) : (
+                <TrendingDown className="h-3 w-3 text-red-500" />
+              )}
+              <span className={`text-xs font-medium ${trend.isPositive ? 'text-green-600' : 'text-red-600'}`}>
+                {trend.value}%
+              </span>
+            </div>
+          </div>
+          <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${colorClasses[color as keyof typeof colorClasses].split(' ')[0]} ${colorClasses[color as keyof typeof colorClasses].split(' ')[1]} flex items-center justify-center shadow-lg`}>
+            <Icon className="h-6 w-6 text-white" />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ProjectCard({ project, onUpdate }: { project: Project; onUpdate: (project: Project) => void }) {
+  const isOverdue = new Date(project.dueDate) < new Date() && project.status !== "completed";
+  
+  return (
+    <Card className="border-0 shadow-lg shadow-slate-200/50 bg-white/80 backdrop-blur-sm hover:shadow-xl transition-all duration-300 group">
+      <CardContent className="p-4 lg:p-6">
+        {/* Header */}
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-3 mb-2">
+              <h3 className="text-lg lg:text-xl font-semibold text-slate-900 truncate">
+                {project.projectName}
+              </h3>
+              <div className="flex items-center gap-2">
+                {getStatusBadge(project.status)}
+                {isOverdue && (
+                  <Badge variant="destructive" className="text-xs">
+                    <AlertTriangle className="h-3 w-3 mr-1" />
+                    Overdue
+                  </Badge>
+                )}
               </div>
-              <div>
-                <span className="text-gray-600">Progress:</span>
-                <span className="ml-2 font-medium">{project.progressPercentage}%</span>
-              </div>
-              <div>
-                <span className="text-gray-600">Timeline:</span>
-                <span className="ml-2 font-medium">{project.timelineWeeks} weeks</span>
-              </div>
-              <div>
-                <span className="text-gray-600">Started:</span>
-                <span className="ml-2 font-medium">
-                  {new Date(project.startDate).toLocaleDateString()}
+            </div>
+            <div className="flex items-center gap-4 text-sm text-slate-600">
+              <div className="flex items-center gap-1">
+                <User className="h-4 w-4" />
+                <span className="hidden sm:inline">
+                  {project.user?.firstName} {project.user?.lastName}
+                </span>
+                <span className="sm:hidden">
+                  {project.user?.firstName}
                 </span>
               </div>
-              <div>
-                <span className="text-gray-600">Due Date:</span>
-                <span className="ml-2 font-medium">
-                  {new Date(project.dueDate).toLocaleDateString()}
-                </span>
+              <div className="flex items-center gap-1">
+                <Calendar className="h-4 w-4" />
+                <span>Due {new Date(project.dueDate).toLocaleDateString()}</span>
               </div>
             </div>
           </div>
           
-          <div>
-            <h4 className="font-medium text-gray-900 mb-2">Client Information</h4>
-            <div className="space-y-2 text-sm">
-              <div>
-                <span className="text-gray-600">Name:</span>
-                <span className="ml-2 font-medium">
-                  {project.order?.user?.firstName} {project.order?.user?.lastName}
-                </span>
-              </div>
-              <div>
-                <span className="text-gray-600">Email:</span>
-                <span className="ml-2 font-medium">{project.order?.user?.email}</span>
-              </div>
-              <div>
-                <span className="text-gray-600">Service:</span>
-                <span className="ml-2 font-medium">{project.order?.service?.name}</span>
-              </div>
-              <div>
-                <span className="text-gray-600">Value:</span>
-                <span className="ml-2 font-medium">
-                  ₦{project.order?.service?.price?.toLocaleString()}
-                </span>
-              </div>
-            </div>
+          <div className="flex items-center gap-2 ml-4">
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  <Eye className="h-4 w-4" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    {project.projectName}
+                  </DialogTitle>
+                </DialogHeader>
+                <ProjectDetailsView project={project} />
+              </DialogContent>
+            </Dialog>
+            
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => onUpdate(project)}>
+              <Edit className="h-4 w-4" />
+            </Button>
+            
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+              <MoreVertical className="h-4 w-4" />
+            </Button>
           </div>
         </div>
-      </TabsContent>
+
+        {/* Progress */}
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-slate-700">Progress</span>
+            <span className="text-sm font-bold text-slate-900">{project.progressPercentage || 0}%</span>
+          </div>
+          <div className="relative">
+            <Progress 
+              value={project.progressPercentage || 0} 
+              className="h-2 bg-slate-100"
+            />
+            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 opacity-20" 
+                 style={{ width: `${project.progressPercentage || 0}%` }} />
+          </div>
+        </div>
+
+        {/* Client Info */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Avatar className="h-8 w-8">
+              <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-xs">
+                {project.user?.firstName?.[0]}{project.user?.lastName?.[0]}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-slate-900 truncate">
+                {project.user?.firstName} {project.user?.lastName}
+              </p>
+              <p className="text-xs text-slate-500 truncate">
+                {project.user?.email}
+              </p>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-2 text-sm text-slate-600">
+            <DollarSign className="h-4 w-4" />
+            <span className="font-medium">
+              ₦{project.order?.service?.price?.toLocaleString() || 'N/A'}
+            </span>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ProjectsLoadingSkeleton() {
+  return (
+    <div className="space-y-8">
+      {/* Header Skeleton */}
+      <div className="flex justify-between items-center">
+        <div className="space-y-2">
+          <Skeleton className="h-8 w-64" />
+          <Skeleton className="h-4 w-48" />
+        </div>
+        <Skeleton className="h-10 w-32" />
+      </div>
       
-      <TabsContent value="timeline">
-        <div className="text-center py-8 text-gray-500">
-          Timeline view coming soon...
+      {/* Stats Skeleton */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Card key={i} className="border-0 shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-8 w-12" />
+                  <Skeleton className="h-3 w-16" />
+                </div>
+                <Skeleton className="h-12 w-12 rounded-xl" />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+      
+      {/* Filters Skeleton */}
+      <Card className="border-0 shadow-lg">
+        <CardContent className="p-6">
+          <div className="flex gap-4">
+            <Skeleton className="h-10 flex-1" />
+            <Skeleton className="h-10 w-40" />
+            <Skeleton className="h-10 w-10" />
+          </div>
+        </CardContent>
+      </Card>
+      
+      {/* Projects Skeleton */}
+      <div className="space-y-6">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Card key={i} className="border-0 shadow-lg">
+            <CardContent className="p-6">
+              <div className="space-y-4">
+                <div className="flex justify-between items-start">
+                  <div className="space-y-2">
+                    <Skeleton className="h-6 w-48" />
+                    <Skeleton className="h-4 w-32" />
+                  </div>
+                  <div className="flex gap-2">
+                    <Skeleton className="h-8 w-8" />
+                    <Skeleton className="h-8 w-8" />
+                  </div>
+                </div>
+                <Skeleton className="h-2 w-full" />
+                <div className="flex justify-between">
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="h-8 w-8 rounded-full" />
+                    <div className="space-y-1">
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-3 w-32" />
+                    </div>
+                  </div>
+                  <Skeleton className="h-4 w-20" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function EmptyState({ searchTerm, statusFilter }: { searchTerm: string; statusFilter: string }) {
+  return (
+    <Card className="border-0 shadow-lg shadow-slate-200/50 bg-white/80 backdrop-blur-sm">
+      <CardContent className="p-12 text-center">
+        <div className="w-16 h-16 bg-gradient-to-br from-slate-100 to-slate-200 rounded-2xl flex items-center justify-center mx-auto mb-6">
+          <FileText className="h-8 w-8 text-slate-400" />
+        </div>
+        <h3 className="text-xl font-semibold text-slate-900 mb-2">No projects found</h3>
+        <p className="text-slate-600 mb-6 max-w-md mx-auto">
+          {searchTerm || statusFilter !== "all" 
+            ? "No projects match your current filters. Try adjusting your search criteria."
+            : "Get started by creating your first project and begin tracking progress."}
+        </p>
+        <Button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800">
+          <Plus className="h-4 w-4 mr-2" />
+          Create Project
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ProjectDetailsView({ project }: { project: Project }) {
+  return (
+    <Tabs defaultValue="overview" className="w-full">
+      <TabsList className="grid w-full grid-cols-3 bg-slate-100">
+        <TabsTrigger value="overview" className="data-[state=active]:bg-white">Overview</TabsTrigger>
+        <TabsTrigger value="timeline" className="data-[state=active]:bg-white">Timeline</TabsTrigger>
+        <TabsTrigger value="communication" className="data-[state=active]:bg-white">Communication</TabsTrigger>
+      </TabsList>
+      
+      <TabsContent value="overview" className="space-y-6 mt-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card className="border-slate-200">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Target className="h-5 w-5 text-blue-600" />
+                Project Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <span className="text-sm text-slate-600">Status</span>
+                  <div className="mt-1">{getStatusBadge(project.status)}</div>
+                </div>
+                <div>
+                  <span className="text-sm text-slate-600">Progress</span>
+                  <p className="text-lg font-semibold text-slate-900">{project.progressPercentage || 0}%</p>
+                </div>
+                <div>
+                  <span className="text-sm text-slate-600">Timeline</span>
+                  <p className="font-medium text-slate-900">{project.timelineWeeks || 'N/A'} weeks</p>
+                </div>
+                <div>
+                  <span className="text-sm text-slate-600">Stage</span>
+                  <p className="font-medium text-slate-900">{project.currentStage || 'Discovery'}</p>
+                </div>
+              </div>
+              <div className="pt-2 border-t border-slate-200">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <span className="text-sm text-slate-600">Started</span>
+                    <p className="font-medium text-slate-900">
+                      {new Date(project.startDate).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-sm text-slate-600">Due Date</span>
+                    <p className="font-medium text-slate-900">
+                      {new Date(project.dueDate).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="border-slate-200">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Users className="h-5 w-5 text-green-600" />
+                Client Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-3">
+                <Avatar className="h-12 w-12">
+                  <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white">
+                    {project.user?.firstName?.[0]}{project.user?.lastName?.[0]}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="font-semibold text-slate-900">
+                    {project.user?.firstName} {project.user?.lastName}
+                  </p>
+                  <div className="flex items-center gap-1 text-sm text-slate-600">
+                    <Mail className="h-3 w-3" />
+                    <span>{project.user?.email}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="pt-2 border-t border-slate-200">
+                <div className="space-y-3">
+                  <div>
+                    <span className="text-sm text-slate-600">Service</span>
+                    <p className="font-medium text-slate-900">{project.order?.service?.name || 'Custom Project'}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm text-slate-600">Project Value</span>
+                    <p className="text-lg font-bold text-green-600">
+                      ₦{project.order?.service?.price?.toLocaleString() || 'TBD'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </TabsContent>
       
-      <TabsContent value="communication">
-        <div className="text-center py-8 text-gray-500">
-          Communication history coming soon...
-        </div>
+      <TabsContent value="timeline" className="mt-6">
+        <Card className="border-slate-200">
+          <CardContent className="p-12 text-center">
+            <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-blue-200 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <Activity className="h-8 w-8 text-blue-600" />
+            </div>
+            <h3 className="text-lg font-semibold text-slate-900 mb-2">Timeline View</h3>
+            <p className="text-slate-600">Project timeline and milestone tracking coming soon...</p>
+          </CardContent>
+        </Card>
+      </TabsContent>
+      
+      <TabsContent value="communication" className="mt-6">
+        <Card className="border-slate-200">
+          <CardContent className="p-12 text-center">
+            <div className="w-16 h-16 bg-gradient-to-br from-green-100 to-green-200 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <MessageSquare className="h-8 w-8 text-green-600" />
+            </div>
+            <h3 className="text-lg font-semibold text-slate-900 mb-2">Communication Hub</h3>
+            <p className="text-slate-600">Client communication history and messaging tools coming soon...</p>
+          </CardContent>
+        </Card>
       </TabsContent>
     </Tabs>
   );
