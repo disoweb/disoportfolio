@@ -369,6 +369,9 @@ export default function ServicePackages() {
   const [selectedAddOns, setSelectedAddOns] = useState<
     Record<string, string[]>
   >({});
+  
+  const [, setLocation] = useLocation();
+  const { user } = useAuth();
 
   const handlePriceUpdateCallback = useCallback(
     (serviceId: string, price: number) => {
