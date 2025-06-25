@@ -119,4 +119,6 @@ Preferred communication style: Simple, everyday language.
 ## Changelog
 
 Changelog:
-- June 25, 2025. Initial setup
+- June 25, 2025. Initial setup and migration
+- June 25, 2025. Fixed payment callback system and order display functionality
+- June 25, 2025. Added clickable order cards with details view and WhatsApp support integration

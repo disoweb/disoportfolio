@@ -168,9 +168,30 @@ export default function ClientDashboard() {
                 {orders && orders.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {orders.map((order: any) => (
-                      <div key={order.id} className="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                      <div 
+                        key={order.id} 
+                        className="border border-slate-200 rounded-lg p-4 hover:shadow-lg hover:border-blue-300 transition-all cursor-pointer group"
+                        onClick={() => {
+                          // Create a detailed view modal or navigate to order details
+                          const orderDetails = `
+Order ID: ${order.id}
+Service: ${order.customRequest?.split('\n')[0]?.replace('Service: ', '') || 'Custom Service'}
+Amount: ₦${(order.totalPrice || 0).toLocaleString()}
+Status: ${order.status}
+Date: ${new Date(order.createdAt).toLocaleDateString()}
+
+Full Request:
+${order.customRequest || 'No additional details'}
+                          `.trim();
+                          
+                          // Show order details
+                          if (confirm(`Order Details:\n\n${orderDetails}\n\nWould you like to contact support about this order?`)) {
+                            window.open('https://wa.me/2348035653465?text=Hi, I need help with my order: ' + order.id, '_blank');
+                          }
+                        }}
+                      >
                         <div className="flex justify-between items-start mb-3">
-                          <h4 className="font-semibold text-slate-900">Service Order</h4>
+                          <h4 className="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors">Service Order</h4>
                           <Badge variant={order.status === 'paid' ? 'default' : order.status === 'pending' ? 'secondary' : 'outline'}>
                             {order.status}
                           </Badge>
@@ -184,6 +205,9 @@ export default function ClientDashboard() {
                           </p>
                           <p className="text-xs text-slate-500">
                             Ordered on {new Date(order.createdAt).toLocaleDateString()}
+                          </p>
+                          <p className="text-xs text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity mt-2">
+                            Click to view details and contact support
                           </p>
                         </div>
                       </div>
