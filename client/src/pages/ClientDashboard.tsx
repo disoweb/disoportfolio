@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import ProjectCard from "@/components/ProjectCard";
 import MessagesList from "@/components/MessagesList";
 import OrderDetailsModal from "@/components/OrderDetailsModal";
+import ProjectTimer from "@/components/ProjectTimer";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -220,9 +221,9 @@ export default function ClientDashboard() {
               </CardHeader>
               <CardContent>
                 {projects && projects.length > 0 ? (
-                  <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {projects.map((project: any) => (
-                      <ProjectCard key={project.id} project={project} />
+                      <ProjectTimer key={project.id} project={project} />
                     ))}
                   </div>
                 ) : (

@@ -390,6 +390,72 @@ export class DatabaseStorage implements IStorage {
       .set({ status: "paid" as any })
       .where(eq(orders.id, orderId));
 
+    // Create and activate project for paid orders
+    const orderResult = await db
+      .select()
+      .from(orders)
+      .where(eq(orders.id, orderId))
+      .limit(1);
+
+    if (orderResult.length > 0) {
+      const order = orderResult[0];
+      
+      // Extract timeline from custom request
+      const timelineMatch = order.customRequest?.match(/Timeline: ([^\n]+)/);
+      let timelineWeeks = 4; // default
+      
+      if (timelineMatch) {
+        const timelineText = timelineMatch[1].toLowerCase();
+        if (timelineText.includes('1-2') || timelineText.includes('1-2weeks')) {
+          timelineWeeks = 2;
+        } else if (timelineText.includes('2-4') || timelineText.includes('2-4weeks')) {
+          timelineWeeks = 4;
+        } else if (timelineText.includes('1month') || timelineText.includes('1-2months')) {
+          timelineWeeks = 8;
+        } else if (timelineText.includes('3months') || timelineText.includes('2-3months')) {
+          timelineWeeks = 12;
+        }
+      }
+
+      const serviceName = order.customRequest?.split('\n')[0]?.replace('Service: ', '') || 'Custom Project';
+      const startDate = new Date();
+      const estimatedEndDate = new Date();
+      estimatedEndDate.setDate(startDate.getDate() + (timelineWeeks * 7));
+
+      // Check if project already exists
+      const existingProject = await db
+        .select()
+        .from(projects)
+        .where(eq(projects.orderId, orderId))
+        .limit(1);
+
+      if (existingProject.length === 0) {
+        await db.insert(projects).values({
+          orderId: order.id,
+          userId: order.userId,
+          projectName: serviceName,
+          description: order.customRequest || 'Project created from service order',
+          status: 'active' as any,
+          startDate,
+          estimatedEndDate,
+          timelineWeeks,
+          progressPercentage: 0,
+        });
+      } else {
+        // Update existing project to active status
+        await db
+          .update(projects)
+          .set({
+            status: 'active' as any,
+            startDate,
+            estimatedEndDate,
+            timelineWeeks,
+            updatedAt: new Date(),
+          })
+          .where(eq(projects.id, existingProject[0].id));
+      }
+    }
+
     // Create project if it doesn't exist
     const [order] = await db
       .select()
