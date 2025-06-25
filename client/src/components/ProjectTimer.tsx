@@ -10,7 +10,7 @@ interface ProjectTimerProps {
     projectName: string;
     status: string;
     startDate: string;
-    estimatedEndDate: string;
+    dueDate: string;
     timelineWeeks: number;
     progressPercentage: number;
     createdAt: string;
@@ -28,7 +28,7 @@ export default function ProjectTimer({ project }: ProjectTimerProps) {
   React.useEffect(() => {
     const calculateTimeRemaining = () => {
       const now = new Date();
-      const endDate = new Date(project.estimatedEndDate);
+      const endDate = new Date(project.dueDate);
       const timeDiff = endDate.getTime() - now.getTime();
       
       if (timeDiff <= 0) {
@@ -47,7 +47,7 @@ export default function ProjectTimer({ project }: ProjectTimerProps) {
     const interval = setInterval(calculateTimeRemaining, 60000); // Update every minute
 
     return () => clearInterval(interval);
-  }, [project.estimatedEndDate]);
+  }, [project.dueDate]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -68,7 +68,7 @@ export default function ProjectTimer({ project }: ProjectTimerProps) {
   };
 
   const startDate = new Date(project.startDate);
-  const endDate = new Date(project.estimatedEndDate);
+  const endDate = new Date(project.dueDate);
   const totalDuration = endDate.getTime() - startDate.getTime();
   const elapsed = new Date().getTime() - startDate.getTime();
   const timeProgress = Math.min(Math.max((elapsed / totalDuration) * 100, 0), 100);

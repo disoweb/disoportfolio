@@ -122,3 +122,4 @@ Changelog:
 - June 25, 2025. Initial setup and migration
 - June 25, 2025. Fixed payment callback system and order display functionality
 - June 25, 2025. Added clickable order cards with details view and WhatsApp support integration
+- June 25, 2025. Implemented project timer system with automatic activation on payment and real-time countdown tracking
