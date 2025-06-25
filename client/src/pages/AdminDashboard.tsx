@@ -1,6 +1,7 @@
+import React, { useState, useEffect } from "react";
 import Navigation from "@/components/Navigation";
 import { useAuth } from "@/hooks/useAuth";
-import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,7 +37,42 @@ import {
 } from "lucide-react";
 
 export default function AdminDashboard() {
-  const { user } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
+  const { toast } = useToast();
+
+  // Redirect to admin login if not authenticated or not admin
+  useEffect(() => {
+    if (!isLoading && (!isAuthenticated || !user || user.role !== 'admin')) {
+      toast({
+        title: "Access Denied",
+        description: "Admin credentials required",
+        variant: "destructive",
+      });
+      setTimeout(() => {
+        window.location.href = "/admin";
+      }, 1000);
+    }
+  }, [isAuthenticated, isLoading, user, toast]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated || !user || user.role !== 'admin') {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-red-600 mb-4">Access Denied</h1>
+          <p className="text-gray-600 mb-4">Admin credentials required</p>
+          <p className="text-sm text-gray-500">Redirecting to login...</p>
+        </div>
+      </div>
+    );
+  }
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedProject, setSelectedProject] = useState<any>(null);
   const [projectFilter, setProjectFilter] = useState("all");
@@ -48,23 +84,23 @@ export default function AdminDashboard() {
     status: ""
   });
 
-  const { data: analytics, isLoading } = useQuery({
+  const { data: analytics = {}, isLoading: analyticsLoading } = useQuery({
     queryKey: ["/api/analytics"],
   });
 
-  const { data: orders } = useQuery({
+  const { data: orders = [] } = useQuery({
     queryKey: ["/api/orders"],
   });
 
-  const { data: projects } = useQuery({
+  const { data: projects = [] } = useQuery({
     queryKey: ["/api/projects"],
   });
 
-  const { data: workload } = useQuery({
+  const { data: workload = {} } = useQuery({
     queryKey: ["/api/admin/workload"],
   });
 
-  if (isLoading) {
+  if (analyticsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>

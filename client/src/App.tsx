@@ -38,31 +38,19 @@ function Router() {
 
   return (
     <Switch>
-      {!isAuthenticated ? (
-        <>
-          <Route path="/" component={Landing} />
-          <Route path="/auth" component={AuthPage} />
-          <Route path="/admin" component={AdminLogin} />
-          <Route path="/services" component={Services} />
-          <Route path="/service/:id" component={ServiceDetails} />
-          <Route path="/projects" component={Projects} />
-          <Route path="/project/:id" component={ProjectDetails} />
-          <Route path="/about" component={About} />
-          <Route path="/contact" component={Contact} />
-        </>
-      ) : (
-        <>
-          <Route path="/" component={Home} />
-          <Route path="/dashboard" component={ClientDashboard} />
-          <Route path="/admin-dashboard" component={AdminDashboard} />
-          <Route path="/services" component={Services} />
-          <Route path="/service/:id" component={ServiceDetails} />
-          <Route path="/projects" component={Projects} />
-          <Route path="/project/:id" component={ProjectDetails} />
-          <Route path="/about" component={About} />
-          <Route path="/contact" component={Contact} />
-        </>
-      )}
+      <>
+        <Route path="/" component={!isAuthenticated ? Landing : Home} />
+        <Route path="/auth" component={AuthPage} />
+        <Route path="/admin" component={AdminLogin} />
+        <Route path="/admin-dashboard" component={AdminDashboard} />
+        <Route path="/dashboard" component={ClientDashboard} />
+        <Route path="/services" component={Services} />
+        <Route path="/service/:id" component={ServiceDetails} />
+        <Route path="/projects" component={Projects} />
+        <Route path="/project/:id" component={ProjectDetails} />
+        <Route path="/about" component={About} />
+        <Route path="/contact" component={Contact} />
+      </>
       <Route component={NotFound} />
     </Switch>
   );
