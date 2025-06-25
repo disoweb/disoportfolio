@@ -263,31 +263,32 @@ export default function AdminProjects() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       <AdminNavigation />
       
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
         {/* Modern Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8">
-          <div className="space-y-1">
-            <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
+          <div className="space-y-1 min-w-0 flex-1">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
               Project Management
             </h1>
             <p className="text-slate-600 text-sm lg:text-base">
-              Manage all client projects and track progress in real-time
+              Manage all client projects and track progress
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
             <Button variant="outline" size="sm" className="hidden sm:flex">
               <Activity className="h-4 w-4 mr-2" />
               Analytics
             </Button>
-            <Button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg shadow-blue-500/25">
-              <Plus className="h-4 w-4 mr-2" />
-              New Project
+            <Button size="sm" className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg shadow-blue-500/25">
+              <Plus className="h-4 w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">New Project</span>
+              <span className="sm:hidden">New</span>
             </Button>
           </div>
         </div>
 
         {/* Enhanced Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
           <StatsCard
             title="Total Projects"
             value={projectStats.total}
@@ -321,22 +322,22 @@ export default function AdminProjects() {
         {/* Enhanced Filters */}
         <Card className="mb-6 border-0 shadow-lg shadow-slate-200/50 bg-white/80 backdrop-blur-sm">
           <CardContent className="p-4 lg:p-6">
-            <div className="flex flex-col lg:flex-row gap-4">
-              <div className="flex-1">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex-1 min-w-0">
                 <div className="relative">
                   <Search className="h-4 w-4 absolute left-3 top-3.5 text-slate-400" />
                   <Input
-                    placeholder="Search projects, clients, or keywords..."
-                    className="pl-10 border-slate-200 bg-slate-50/50 focus:bg-white transition-colors"
+                    placeholder="Search projects..."
+                    className="pl-10 border-slate-200 bg-slate-50/50 focus:bg-white transition-colors w-full"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
               </div>
-              <div className="flex gap-3">
+              <div className="flex gap-2 sm:gap-3 flex-shrink-0">
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-full lg:w-40 border-slate-200">
-                    <Filter className="h-4 w-4 mr-2 text-slate-500" />
+                  <SelectTrigger className="w-32 sm:w-40 border-slate-200">
+                    <Filter className="h-4 w-4 mr-1 sm:mr-2 text-slate-500" />
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -347,7 +348,7 @@ export default function AdminProjects() {
                     <SelectItem value="not_started">Not Started</SelectItem>
                   </SelectContent>
                 </Select>
-                <Button variant="outline" size="sm" className="hidden lg:flex border-slate-200">
+                <Button variant="outline" size="sm" className="hidden sm:flex border-slate-200 px-2">
                   <Settings className="h-4 w-4" />
                 </Button>
               </div>
@@ -376,18 +377,20 @@ export default function AdminProjects() {
 
       {/* Update Project Dialog */}
       <Dialog open={isUpdateDialogOpen} onOpenChange={setIsUpdateDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-auto">
           <DialogHeader>
-            <DialogTitle>Update Project: {selectedProject?.projectName}</DialogTitle>
+            <DialogTitle className="text-base sm:text-lg">
+              <span className="truncate">Update: {selectedProject?.projectName}</span>
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="status">Status</Label>
+                <Label htmlFor="status" className="text-sm">Status</Label>
                 <Select value={updateForm.status} onValueChange={(value) => 
                   setUpdateForm(prev => ({ ...prev, status: value }))
                 }>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -399,7 +402,7 @@ export default function AdminProjects() {
                 </Select>
               </div>
               <div>
-                <Label htmlFor="progress">Progress (%)</Label>
+                <Label htmlFor="progress" className="text-sm">Progress (%)</Label>
                 <Input
                   type="number"
                   min="0"
@@ -409,11 +412,12 @@ export default function AdminProjects() {
                     ...prev, 
                     progressPercentage: e.target.value 
                   }))}
+                  className="w-full"
                 />
               </div>
             </div>
             <div>
-              <Label htmlFor="dueDate">Due Date</Label>
+              <Label htmlFor="dueDate" className="text-sm">Due Date</Label>
               <Input
                 type="date"
                 value={updateForm.dueDate}
@@ -421,10 +425,11 @@ export default function AdminProjects() {
                   ...prev, 
                   dueDate: e.target.value 
                 }))}
+                className="w-full"
               />
             </div>
             <div>
-              <Label htmlFor="notes">Update Notes</Label>
+              <Label htmlFor="notes" className="text-sm">Update Notes</Label>
               <Textarea
                 placeholder="Add notes about this update..."
                 value={updateForm.notes}
@@ -432,16 +437,18 @@ export default function AdminProjects() {
                   ...prev, 
                   notes: e.target.value 
                 }))}
+                className="w-full min-h-[80px]"
               />
             </div>
           </div>
-          <div className="flex justify-end space-x-2">
-            <Button variant="outline" onClick={() => setIsUpdateDialogOpen(false)}>
+          <div className="flex flex-col sm:flex-row gap-2 sm:justify-end sm:space-x-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setIsUpdateDialogOpen(false)} className="w-full sm:w-auto">
               Cancel
             </Button>
             <Button 
               onClick={submitUpdate}
               disabled={updateProjectMutation.isPending}
+              className="w-full sm:w-auto"
             >
               {updateProjectMutation.isPending ? "Updating..." : "Update Project"}
             </Button>
@@ -469,13 +476,13 @@ function StatsCard({ title, value, icon: Icon, trend, color }: {
   
   return (
     <Card className="border-0 shadow-lg shadow-slate-200/50 bg-white/80 backdrop-blur-sm hover:shadow-xl transition-all duration-300">
-      <CardContent className="p-4 lg:p-6">
+      <CardContent className="p-3 sm:p-4 lg:p-6">
         <div className="flex items-center justify-between">
-          <div className="space-y-2">
-            <p className="text-xs lg:text-sm font-medium text-slate-600 uppercase tracking-wide">
+          <div className="space-y-1 sm:space-y-2 min-w-0 flex-1">
+            <p className="text-xs font-medium text-slate-600 uppercase tracking-wide truncate">
               {title}
             </p>
-            <p className="text-2xl lg:text-3xl font-bold text-slate-900">
+            <p className="text-lg sm:text-2xl lg:text-3xl font-bold text-slate-900">
               {value}
             </p>
             <div className="flex items-center space-x-1">
@@ -489,8 +496,8 @@ function StatsCard({ title, value, icon: Icon, trend, color }: {
               </span>
             </div>
           </div>
-          <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${colorClasses[color as keyof typeof colorClasses].split(' ')[0]} ${colorClasses[color as keyof typeof colorClasses].split(' ')[1]} flex items-center justify-center shadow-lg`}>
-            <Icon className="h-6 w-6 text-white" />
+          <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br ${colorClasses[color as keyof typeof colorClasses].split(' ')[0]} ${colorClasses[color as keyof typeof colorClasses].split(' ')[1]} flex items-center justify-center shadow-lg flex-shrink-0 ml-2`}>
+            <Icon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
           </div>
         </div>
       </CardContent>
@@ -505,64 +512,62 @@ function ProjectCard({ project, onUpdate }: { project: Project; onUpdate: (proje
     <Card className="border-0 shadow-lg shadow-slate-200/50 bg-white/80 backdrop-blur-sm hover:shadow-xl transition-all duration-300 group">
       <CardContent className="p-4 lg:p-6">
         {/* Header */}
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-3 mb-2">
-              <h3 className="text-lg lg:text-xl font-semibold text-slate-900 truncate">
-                {project.projectName}
-              </h3>
-              <div className="flex items-center gap-2">
-                {getStatusBadge(project.status)}
-                {isOverdue && (
-                  <Badge variant="destructive" className="text-xs">
-                    <AlertTriangle className="h-3 w-3 mr-1" />
-                    Overdue
-                  </Badge>
-                )}
-              </div>
-            </div>
-            <div className="flex items-center gap-4 text-sm text-slate-600">
-              <div className="flex items-center gap-1">
-                <User className="h-4 w-4" />
-                <span className="hidden sm:inline">
-                  {project.user?.firstName} {project.user?.lastName}
-                </span>
-                <span className="sm:hidden">
-                  {project.user?.firstName}
-                </span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Calendar className="h-4 w-4" />
-                <span>Due {new Date(project.dueDate).toLocaleDateString()}</span>
-              </div>
+        <div className="space-y-3 mb-4">
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="text-base sm:text-lg font-semibold text-slate-900 flex-1 min-w-0 truncate">
+              {project.projectName}
+            </h3>
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-auto">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2 text-sm sm:text-base">
+                      <FileText className="h-4 w-4 sm:h-5 sm:w-5" />
+                      <span className="truncate">{project.projectName}</span>
+                    </DialogTitle>
+                  </DialogHeader>
+                  <ProjectDetailsView project={project} />
+                </DialogContent>
+              </Dialog>
+              
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => onUpdate(project)}>
+                <Edit className="h-4 w-4" />
+              </Button>
+              
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
             </div>
           </div>
           
-          <div className="flex items-center gap-2 ml-4">
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                  <Eye className="h-4 w-4" />
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
-                <DialogHeader>
-                  <DialogTitle className="flex items-center gap-2">
-                    <FileText className="h-5 w-5" />
-                    {project.projectName}
-                  </DialogTitle>
-                </DialogHeader>
-                <ProjectDetailsView project={project} />
-              </DialogContent>
-            </Dialog>
-            
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => onUpdate(project)}>
-              <Edit className="h-4 w-4" />
-            </Button>
-            
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-              <MoreVertical className="h-4 w-4" />
-            </Button>
+          {/* Status badges row for mobile */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {getStatusBadge(project.status)}
+            {isOverdue && (
+              <Badge variant="destructive" className="text-xs">
+                <AlertTriangle className="h-3 w-3 mr-1" />
+                Overdue
+              </Badge>
+            )}
+          </div>
+          
+          {/* Client and date info for mobile */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-slate-600">
+            <div className="flex items-center gap-1">
+              <User className="h-4 w-4" />
+              <span className="truncate">
+                {project.user?.firstName} {project.user?.lastName}
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Calendar className="h-4 w-4" />
+              <span>Due {new Date(project.dueDate).toLocaleDateString()}</span>
+            </div>
           </div>
         </div>
 
@@ -583,14 +588,14 @@ function ProjectCard({ project, onUpdate }: { project: Project; onUpdate: (proje
         </div>
 
         {/* Client Info */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Avatar className="h-8 w-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <Avatar className="h-8 w-8 flex-shrink-0">
               <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-xs">
                 {project.user?.firstName?.[0]}{project.user?.lastName?.[0]}
               </AvatarFallback>
             </Avatar>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-slate-900 truncate">
                 {project.user?.firstName} {project.user?.lastName}
               </p>
@@ -600,7 +605,7 @@ function ProjectCard({ project, onUpdate }: { project: Project; onUpdate: (proje
             </div>
           </div>
           
-          <div className="flex items-center gap-2 text-sm text-slate-600">
+          <div className="flex items-center gap-2 text-sm text-slate-600 flex-shrink-0">
             <DollarSign className="h-4 w-4" />
             <span className="font-medium">
               ₦{project.order?.service?.price?.toLocaleString() || 'N/A'}
