@@ -22,7 +22,7 @@ export const userRoleEnum = pgEnum("user_role", ["client", "admin", "pm"]);
 export const serviceCategoryEnum = pgEnum("service_category", ["launch", "growth", "elite", "custom"]);
 export const orderStatusEnum = pgEnum("order_status", ["pending", "paid", "in_progress", "complete", "cancelled"]);
 export const projectStatusEnum = pgEnum("project_status", ["not_started", "active", "paused", "completed"]);
-export const paymentStatusEnum = pgEnum("payment_status", ["succeeded", "failed", "refunded"]);
+export const paymentStatusEnum = pgEnum("payment_status", ["pending", "succeeded", "failed", "refunded"]);
 export const supportStatusEnum = pgEnum("support_status", ["open", "in_progress", "resolved"]);
 
 // Session storage table.
