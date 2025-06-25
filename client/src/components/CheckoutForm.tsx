@@ -290,7 +290,7 @@ export default function CheckoutForm({ service, onSuccess }: CheckoutFormProps) 
             <Button
               type="button"
               variant="outline"
-              onClick={onClose}
+              onClick={onSuccess}
               className="flex-1"
             >
               Cancel
