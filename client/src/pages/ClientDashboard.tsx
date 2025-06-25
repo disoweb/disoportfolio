@@ -26,27 +26,30 @@ export default function ClientDashboard() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
-  // Check for payment status in URL parameters
+  // Check for payment status in URL parameters and hash
   React.useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
+    const hash = window.location.hash;
     const paymentStatus = urlParams.get('payment');
     
-    if (paymentStatus === 'success') {
+    if (paymentStatus === 'success' && hash === '#dashboard') {
       toast({
         title: "Payment Successful!",
         description: "Your order has been processed successfully. We'll start working on your project soon.",
         variant: "default",
       });
-      // Clear the URL parameter
+      // Clear the URL parameter and hash
       window.history.replaceState({}, '', '/dashboard');
-    } else if (paymentStatus === 'failed') {
+      // Refresh data to show new orders
+      window.location.reload();
+    } else if (paymentStatus === 'failed' && hash === '#dashboard') {
       toast({
         title: "Payment Failed",
         description: "Your payment was not successful. Please try again or contact support.",
         variant: "destructive",
       });
       window.history.replaceState({}, '', '/dashboard');
-    } else if (paymentStatus === 'error') {
+    } else if (paymentStatus === 'error' && hash === '#dashboard') {
       toast({
         title: "Payment Error",
         description: "There was an error processing your payment. Please contact support.",

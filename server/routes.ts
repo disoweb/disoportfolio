@@ -244,11 +244,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Test route to verify callback endpoint is working
+  app.get('/api/payments/test-callback', (req, res) => {
+    res.json({ message: 'Callback endpoint is working', timestamp: new Date().toISOString() });
+  });
+
   // Payment callback route (for redirect after payment)
   app.get('/api/payments/callback', async (req, res) => {
+    console.log('Payment callback received:', req.query);
+    
     try {
-      const { reference, trxref } = req.query;
-      const paymentReference = reference || trxref;
+      const { reference, trxref, status } = req.query;
+      const paymentReference = (reference || trxref) as string;
+      
+      console.log(`Processing callback for reference: ${paymentReference}, status: ${status}`);
       
       if (paymentReference) {
         // Verify payment with Paystack before confirming success
@@ -261,10 +270,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
           
           const verifyData = await verifyResponse.json();
+          console.log('Paystack verification response:', verifyData);
           
           if (verifyData.status && verifyData.data.status === 'success') {
             // Payment verified, update records
             const orderId = verifyData.data.metadata?.orderId;
+            console.log(`Payment successful for order: ${orderId}`);
+            
             if (orderId) {
               // Update payment status
               await db.update(payments).set({
@@ -272,27 +284,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 paidAt: new Date(),
               }).where(eq(payments.providerId, paymentReference));
               
-              // Update order status
+              // Update order status  
               await db.update(orders).set({
                 status: "paid" as any
               }).where(eq(orders.id, orderId));
               
               console.log(`Payment verified and updated for order: ${orderId}`);
             }
-            res.redirect('/dashboard?payment=success');
+            
+            // Redirect to dashboard with success
+            return res.redirect('/?payment=success#dashboard');
           } else {
-            res.redirect('/dashboard?payment=failed');
+            console.log('Payment verification failed:', verifyData);
+            return res.redirect('/?payment=failed#dashboard');
           }
         } catch (verifyError) {
           console.error("Error verifying payment:", verifyError);
-          res.redirect('/dashboard?payment=error');
+          return res.redirect('/?payment=error#dashboard');
         }
       } else {
-        res.redirect('/dashboard?payment=failed');
+        console.log('No payment reference provided in callback');
+        return res.redirect('/?payment=failed#dashboard');
       }
     } catch (error) {
       console.error("Error handling payment callback:", error);
-      res.redirect('/dashboard?payment=error');
+      return res.redirect('/?payment=error#dashboard');
     }
   });
 
