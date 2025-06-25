@@ -221,7 +221,7 @@ export default function AdminProjects() {
     setSelectedProject(project);
     setUpdateForm({
       status: project.status,
-      progressPercentage: project.progressPercentage.toString(),
+      progressPercentage: (project.progressPercentage || 0).toString(),
       notes: "",
       dueDate: project.dueDate.split('T')[0] // Format for date input
     });
