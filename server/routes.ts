@@ -443,6 +443,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Project update route for regular users and admins
+  app.patch("/api/projects/:id", isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user?.claims?.sub;
+      const userRole = req.user?.claims?.role;
+      
+      // Check if user has access to update this project
+      if (userRole !== 'admin') {
+        const hasAccess = await storage.userHasProjectAccess(userId, id);
+        if (!hasAccess) {
+          return res.status(403).json({ message: "Access denied" });
+        }
+      }
+      
+      const updatedProject = await storage.updateProject(id, req.body);
+      res.json(updatedProject);
+    } catch (error) {
+      console.error("Error updating project:", error);
+      res.status(500).json({ message: "Failed to update project" });
+    }
+  });
+
   // Analytics routes (admin only)
   app.get('/api/analytics', isAuthenticated, async (req: any, res) => {
     try {

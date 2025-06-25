@@ -17,6 +17,7 @@ import About from "./pages/About";
 import Contact from "./pages/Contact";
 import ClientDashboard from "@/pages/ClientDashboard";
 import AdminDashboard from "@/pages/AdminDashboard";
+import AdminProjects from "@/pages/AdminProjects";
 import AdminLogin from "@/pages/AdminLogin";
 import WhatsAppFloat from "@/components/WhatsAppFloat";
 
@@ -43,6 +44,7 @@ function Router() {
         <Route path="/auth" component={AuthPage} />
         <Route path="/admin" component={AdminLogin} />
         <Route path="/admin-dashboard" component={AdminDashboard} />
+        <Route path="/admin/projects" component={AdminProjects} />
         <Route path="/dashboard" component={ClientDashboard} />
         <Route path="/services" component={Services} />
         <Route path="/service/:id" component={ServiceDetails} />
