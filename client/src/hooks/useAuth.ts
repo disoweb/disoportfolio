@@ -8,6 +8,8 @@ export function useAuth() {
   const { data: user, isLoading } = useQuery({
     queryKey: ["/api/auth/user"],
     retry: false,
+    refetchOnWindowFocus: true,
+    staleTime: 0,
   });
 
   const logoutMutation = useMutation({

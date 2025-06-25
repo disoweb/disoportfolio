@@ -42,7 +42,7 @@ export default function AdminDashboard() {
 
   // Redirect to admin login if not authenticated or not admin
   useEffect(() => {
-    if (!isLoading && (!isAuthenticated || !user || user.role !== 'admin')) {
+    if (!isLoading && (!isAuthenticated || !user)) {
       toast({
         title: "Access Denied",
         description: "Admin credentials required",
@@ -50,6 +50,15 @@ export default function AdminDashboard() {
       });
       setTimeout(() => {
         window.location.href = "/admin";
+      }, 1000);
+    } else if (!isLoading && user && user.role !== 'admin') {
+      toast({
+        title: "Access Denied",
+        description: "Admin privileges required",
+        variant: "destructive",
+      });
+      setTimeout(() => {
+        window.location.href = "/";
       }, 1000);
     }
   }, [isAuthenticated, isLoading, user, toast]);
@@ -62,13 +71,25 @@ export default function AdminDashboard() {
     );
   }
 
-  if (!isAuthenticated || !user || user.role !== 'admin') {
+  if (!isAuthenticated || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-red-600 mb-4">Access Denied</h1>
           <p className="text-gray-600 mb-4">Admin credentials required</p>
           <p className="text-sm text-gray-500">Redirecting to login...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (user.role !== 'admin') {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-red-600 mb-4">Access Denied</h1>
+          <p className="text-gray-600 mb-4">Admin privileges required</p>
+          <p className="text-sm text-gray-500">Redirecting to home...</p>
         </div>
       </div>
     );
