@@ -47,6 +47,26 @@ import {
   Phone
 } from "lucide-react";
 
+// Helper function to get status badge
+function getStatusBadge(status: string) {
+  const statusConfig = {
+    not_started: { variant: "secondary", text: "Not Started", icon: Clock },
+    active: { variant: "default", text: "Active", icon: Play },
+    paused: { variant: "outline", text: "Paused", icon: Pause },
+    completed: { variant: "success", text: "Completed", icon: CheckCircle }
+  };
+
+  const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.not_started;
+  const IconComponent = config.icon;
+
+  return (
+    <Badge variant={config.variant as any} className="text-xs flex items-center gap-1">
+      <IconComponent className="h-3 w-3" />
+      {config.text}
+    </Badge>
+  );
+}
+
 interface Project {
   id: string;
   projectName: string;
