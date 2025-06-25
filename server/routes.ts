@@ -240,6 +240,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Payment callback route (for redirect after payment)
+  app.get('/api/payments/callback', async (req, res) => {
+    try {
+      const { reference, trxref } = req.query;
+      
+      if (reference || trxref) {
+        // Payment completed, redirect to dashboard with success message
+        res.redirect('/dashboard?payment=success');
+      } else {
+        // Payment failed or cancelled
+        res.redirect('/dashboard?payment=failed');
+      }
+    } catch (error) {
+      console.error("Error handling payment callback:", error);
+      res.redirect('/dashboard?payment=error');
+    }
+  });
+
   app.post('/api/payments/webhook', async (req, res) => {
     try {
       // Verify webhook signature from Paystack

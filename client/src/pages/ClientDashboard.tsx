@@ -1,3 +1,4 @@
+import React from "react";
 import Navigation from "@/components/Navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
@@ -8,6 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import ProjectCard from "@/components/ProjectCard";
 import MessagesList from "@/components/MessagesList";
 import { useLocation } from "wouter";
+import { useToast } from "@/hooks/use-toast";
 import { 
   ChartGantt, 
   CheckCircle, 
@@ -22,6 +24,37 @@ import {
 export default function ClientDashboard() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
+
+  // Check for payment status in URL parameters
+  React.useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const paymentStatus = urlParams.get('payment');
+    
+    if (paymentStatus === 'success') {
+      toast({
+        title: "Payment Successful!",
+        description: "Your order has been processed successfully. We'll start working on your project soon.",
+        variant: "default",
+      });
+      // Clear the URL parameter
+      window.history.replaceState({}, '', '/dashboard');
+    } else if (paymentStatus === 'failed') {
+      toast({
+        title: "Payment Failed",
+        description: "Your payment was not successful. Please try again or contact support.",
+        variant: "destructive",
+      });
+      window.history.replaceState({}, '', '/dashboard');
+    } else if (paymentStatus === 'error') {
+      toast({
+        title: "Payment Error",
+        description: "There was an error processing your payment. Please contact support.",
+        variant: "destructive",
+      });
+      window.history.replaceState({}, '', '/dashboard');
+    }
+  }, [toast]);
 
   const { data: projects, isLoading: projectsLoading } = useQuery({
     queryKey: ["/api/projects"],

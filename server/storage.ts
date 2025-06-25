@@ -320,7 +320,7 @@ export class DatabaseStorage implements IStorage {
           email: params.email,
           amount: params.amount * 100, // Convert to kobo
           reference,
-          callback_url: `${process.env.FRONTEND_URL || "http://localhost:5000"}/payment/callback`,
+          callback_url: `${process.env.FRONTEND_URL || "http://localhost:5000"}/api/payments/callback`,
           metadata: {
             orderId: params.orderId,
             userId: params.userId,
