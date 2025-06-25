@@ -8,9 +8,13 @@ import {
   insertProjectSchema, 
   insertMessageSchema,
   insertSupportRequestSchema,
-  insertPaymentSchema
+  insertPaymentSchema,
+  payments,
+  orders
 } from "@shared/schema";
 import { z } from "zod";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware - always use standard auth
@@ -244,12 +248,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/payments/callback', async (req, res) => {
     try {
       const { reference, trxref } = req.query;
+      const paymentReference = reference || trxref;
       
-      if (reference || trxref) {
-        // Payment completed, redirect to dashboard with success message
-        res.redirect('/dashboard?payment=success');
+      if (paymentReference) {
+        // Verify payment with Paystack before confirming success
+        try {
+          const paystackSecretKey = process.env.PAYSTACK_SECRET_KEY;
+          const verifyResponse = await fetch(`https://api.paystack.co/transaction/verify/${paymentReference}`, {
+            headers: {
+              Authorization: `Bearer ${paystackSecretKey}`,
+            },
+          });
+          
+          const verifyData = await verifyResponse.json();
+          
+          if (verifyData.status && verifyData.data.status === 'success') {
+            // Payment verified, update records
+            const orderId = verifyData.data.metadata?.orderId;
+            if (orderId) {
+              // Update payment status
+              await db.update(payments).set({
+                status: "succeeded" as any,
+                paidAt: new Date(),
+              }).where(eq(payments.providerId, paymentReference));
+              
+              // Update order status
+              await db.update(orders).set({
+                status: "paid" as any
+              }).where(eq(orders.id, orderId));
+              
+              console.log(`Payment verified and updated for order: ${orderId}`);
+            }
+            res.redirect('/dashboard?payment=success');
+          } else {
+            res.redirect('/dashboard?payment=failed');
+          }
+        } catch (verifyError) {
+          console.error("Error verifying payment:", verifyError);
+          res.redirect('/dashboard?payment=error');
+        }
       } else {
-        // Payment failed or cancelled
         res.redirect('/dashboard?payment=failed');
       }
     } catch (error) {

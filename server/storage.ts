@@ -321,6 +321,7 @@ export class DatabaseStorage implements IStorage {
           amount: params.amount * 100, // Convert to kobo
           reference,
           callback_url: `${process.env.FRONTEND_URL || "http://localhost:5000"}/api/payments/callback`,
+          currency: "NGN",
           metadata: {
             orderId: params.orderId,
             userId: params.userId,
@@ -340,7 +341,7 @@ export class DatabaseStorage implements IStorage {
       userId: params.userId,
       orderId: params.orderId,
       amount: params.amount.toString(),
-      currency: "USD",
+      currency: "NGN",
       provider: "paystack",
       providerId: reference,
       status: "pending" as any,
