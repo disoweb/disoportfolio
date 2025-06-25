@@ -373,6 +373,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin project management routes
+  app.get('/api/admin/projects', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.role !== 'admin') {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
+      const projects = await storage.getAllProjects();
+      res.json(projects);
+    } catch (error) {
+      console.error("Error fetching admin projects:", error);
+      res.status(500).json({ message: "Failed to fetch projects" });
+    }
+  });
+
+  app.patch('/api/admin/projects/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.role !== 'admin') {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
+      const { id } = req.params;
+      const updates = req.body;
+      
+      const updatedProject = await storage.updateProject(id, updates);
+      res.json(updatedProject);
+    } catch (error) {
+      console.error("Error updating project:", error);
+      res.status(500).json({ message: "Failed to update project" });
+    }
+  });
+
+  app.post('/api/admin/projects/:id/status', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.role !== 'admin') {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
+      const { id } = req.params;
+      const { status } = req.body;
+      
+      const updatedProject = await storage.updateProject(id, { status });
+      res.json(updatedProject);
+    } catch (error) {
+      console.error("Error updating project status:", error);
+      res.status(500).json({ message: "Failed to update project status" });
+    }
+  });
+
   // Analytics routes (admin only)
   app.get('/api/analytics', isAuthenticated, async (req: any, res) => {
     try {

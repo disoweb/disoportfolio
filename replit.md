@@ -124,3 +124,4 @@ Changelog:
 - June 25, 2025. Added clickable order cards with details view and WhatsApp support integration
 - June 25, 2025. Implemented project timer system with automatic activation on payment and real-time countdown tracking
 - June 25, 2025. Fixed authentication system issues and restored full login functionality with secure session management
+- June 25, 2025. Enhanced admin dashboard with comprehensive project management features including progress tracking, stage management, overdue detection, and team action controls

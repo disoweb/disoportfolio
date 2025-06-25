@@ -51,7 +51,8 @@ function Router() {
       ) : (
         <>
           <Route path="/" component={Home} />
-          <Route path="/dashboard" component={() => user?.role === 'admin' ? <AdminDashboard /> : <ClientDashboard />} />
+          <Route path="/dashboard" component={ClientDashboard} />
+          <Route path="/admin" component={AdminDashboard} />
           <Route path="/services" component={Services} />
           <Route path="/service/:id" component={ServiceDetails} />
           <Route path="/projects" component={Projects} />

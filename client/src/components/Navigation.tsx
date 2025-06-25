@@ -72,6 +72,14 @@ export default function Navigation() {
                         Dashboard
                       </Link>
                     </DropdownMenuItem>
+                    {user?.role === 'admin' && (
+                      <DropdownMenuItem asChild>
+                        <Link href="/admin" className="flex items-center">
+                          <User className="h-4 w-4 mr-2" />
+                          Admin
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem onClick={logout} disabled={isLoggingOut}>
                       <LogOut className="h-4 w-4 mr-2" />
                       {isLoggingOut ? "Logging out..." : "Logout"}

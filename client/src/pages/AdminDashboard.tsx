@@ -2,7 +2,7 @@ import Navigation from "@/components/Navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -529,7 +529,7 @@ function ProjectCard({ project, onUpdate }: { project: any; onUpdate: (project: 
               </h3>
               <div className={`w-3 h-3 rounded-full ${getStatusColor(project.status)}`} />
               {isOverdue() && (
-                <AlertTriangle className="h-5 w-5 text-red-500" title="Overdue" />
+                <AlertTriangle className="h-5 w-5 text-red-500" />
               )}
             </div>
             <div className="flex items-center gap-4 text-sm text-slate-600 mb-3">
