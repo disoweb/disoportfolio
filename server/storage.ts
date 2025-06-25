@@ -200,6 +200,8 @@ export class DatabaseStorage implements IStorage {
         dueDate: projects.dueDate,
         status: projects.status,
         createdAt: projects.createdAt,
+        timelineWeeks: projects.timelineWeeks,
+        progressPercentage: projects.progressPercentage,
         order: {
           service: {
             name: services.name,
@@ -446,9 +448,9 @@ export class DatabaseStorage implements IStorage {
           userId: order.userId,
           projectName: serviceName,
           description: order.customRequest || 'Project created from service order',
-          status: 'active' as any,
-          startDate,
-          estimatedEndDate,
+          status: 'active',
+          startDate: startDate.toISOString(),
+          dueDate: estimatedEndDate.toISOString(),
           timelineWeeks,
           progressPercentage: 0,
         });
@@ -457,9 +459,9 @@ export class DatabaseStorage implements IStorage {
         await db
           .update(projects)
           .set({
-            status: 'active' as any,
-            startDate,
-            estimatedEndDate,
+            status: 'active',
+            startDate: startDate.toISOString(),
+            dueDate: estimatedEndDate.toISOString(),
             timelineWeeks,
             updatedAt: new Date(),
           })
