@@ -67,37 +67,23 @@ export async function setupAuth(app: Express) {
   }
 
   const sessionSettings: session.SessionOptions = {
-    secret: process.env.SESSION_SECRET || 'dev-secret-key',
-    resave: true, // Change to true to fix session issues
-    saveUninitialized: true, // Ensure session is created
+    secret: process.env.SESSION_SECRET || 'dev-secret-key-for-replit-development',
+    resave: false,
+    saveUninitialized: true,
     store: sessionStore,
     cookie: {
-      secure: false, // Set to false for development
+      secure: false,
       httpOnly: true,
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       sameSite: 'lax'
     },
-    name: 'connect.sid' // Use default session name
+    name: 'connect.sid'
   };
 
   app.set("trust proxy", 1);
   app.use(session(sessionSettings));
   
-  // Ensure session is properly initialized for Passport
-  app.use((req, res, next) => {
-    if (!req.session) {
-      console.error('Session not initialized');
-      return res.status(500).json({ message: 'Session initialization failed' });
-    }
-    
-    // Initialize passport session structure if it doesn't exist
-    if (!req.session.passport) {
-      req.session.passport = {};
-    }
-    
-    next();
-  });
-  
+  // Initialize passport after session middleware
   app.use(passport.initialize());
   app.use(passport.session());
 
@@ -271,15 +257,12 @@ export async function setupAuth(app: Express) {
         return res.status(500).json({ message: "User creation failed" });
       }
 
-      req.login(user, (err) => {
-        if (err) {
-          console.error("Login error after registration:", err);
-          return res.status(500).json({ message: "Login failed after registration" });
-        }
-        
-        const sanitizedUser = { ...user };
-        delete sanitizedUser.password;
-        res.status(201).json({ user: sanitizedUser });
+      // Return user without automatic login to avoid session issues
+      const sanitizedUser = { ...user };
+      delete sanitizedUser.password;
+      res.status(201).json({ 
+        user: sanitizedUser,
+        message: "Registration successful. Please log in with your credentials."
       });
     } catch (error) {
       console.error("Registration error:", error);
