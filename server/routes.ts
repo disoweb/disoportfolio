@@ -131,16 +131,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Projects routes
   app.get('/api/projects', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
-      const user = await storage.getUser(userId);
-
-      let projects;
-      if (user?.role === 'admin') {
-        projects = await storage.getAllProjects();
-      } else {
-        projects = await storage.getUserProjects(userId);
+      // Try to get user ID from different possible sources
+      const userId = req.user?.id || req.user?.claims?.sub;
+      
+      if (!userId) {
+        console.error("No user ID found in request:", req.user);
+        return res.status(401).json({ message: "User ID not found" });
       }
-      res.json(projects);
+      
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        console.error("User not found for ID:", userId);
+        return res.status(401).json({ message: "User not found" });
+      }
+      
+      console.log("Projects request - User role:", user.role, "User ID:", userId);
+      
+      // If admin, return all projects with user and order details
+      if (user?.role === 'admin') {
+        const projects = await storage.getAllProjects();
+        console.log("Returning", projects.length, "projects for admin");
+        res.json(projects);
+      } else {
+        // Regular users only see their own projects
+        const projects = await storage.getUserProjects(userId);
+        console.log("Returning", projects.length, "projects for user", userId);
+        res.json(projects);
+      }
     } catch (error) {
       console.error("Error fetching projects:", error);
       res.status(500).json({ message: "Failed to fetch projects" });

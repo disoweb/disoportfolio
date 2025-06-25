@@ -39,12 +39,21 @@ interface Project {
   projectName: string;
   status: string;
   userId: string;
+  orderId?: string;
   startDate: string;
   dueDate: string;
-  timelineWeeks: number;
-  progressPercentage: number;
+  timelineWeeks?: number;
+  progressPercentage?: number;
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string;
+  currentStage?: string;
+  notes?: string;
+  user?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
   order?: {
     id: string;
     service?: {
@@ -60,7 +69,7 @@ interface Project {
 }
 
 export default function AdminProjects() {
-  const { user } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -78,6 +87,7 @@ export default function AdminProjects() {
   // Fetch all projects
   const { data: projects = [], isLoading } = useQuery<Project[]>({
     queryKey: ["/api/projects"],
+    enabled: isAuthenticated && user?.role === 'admin',
   });
 
   // Update project mutation
@@ -174,7 +184,13 @@ export default function AdminProjects() {
     });
   };
 
-  if (isLoading) {
+  // Redirect non-admin users
+  if (!authLoading && (!isAuthenticated || user?.role !== 'admin')) {
+    window.location.href = '/admin';
+    return null;
+  }
+
+  if (authLoading || isLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <AdminNavigation />
