@@ -68,6 +68,7 @@ export interface IStorage {
   createSupportRequest(request: InsertSupportRequest): Promise<SupportRequest>;
 
   getAnalytics(): Promise<any>;
+  getWorkloadStatus(): Promise<any>;
 
   handleContactForm(data: {
     name: string;
