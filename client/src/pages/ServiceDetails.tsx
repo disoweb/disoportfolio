@@ -225,7 +225,7 @@ export default function ServiceDetails() {
                 <DialogTrigger asChild>
                   <Button 
                     size="lg" 
-                    className="w-full lg:w-auto bg-blue-600 hover:bg-blue-700"
+                    className="w-full sm:flex-1 lg:w-auto bg-blue-600 hover:bg-blue-700 h-11 sm:h-12"
                     onClick={() => {
                       if (!user) {
                         setLocation('/auth');
@@ -235,12 +235,12 @@ export default function ServiceDetails() {
                     }}
                   >
                     <MessageCircle className="mr-2 h-4 w-4" />
-                    Get Started
+                    <span className="text-sm sm:text-base">Get Started</span>
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-2xl">
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto mx-4">
                   <DialogHeader>
-                    <DialogTitle>Order {service.title}</DialogTitle>
+                    <DialogTitle className="text-lg sm:text-xl">Order {service.title}</DialogTitle>
                   </DialogHeader>
                   <CheckoutForm 
                     service={{
@@ -259,11 +259,11 @@ export default function ServiceDetails() {
               <Button 
                 variant="outline" 
                 size="lg" 
-                className="w-full lg:w-auto"
+                className="w-full sm:flex-1 lg:w-auto h-11 sm:h-12"
                 onClick={() => setLocation('/contact')}
               >
                 <Phone className="mr-2 h-4 w-4" />
-                Request Quote
+                <span className="text-sm sm:text-base">Request Quote</span>
               </Button>
             </div>
           </div>
@@ -295,17 +295,17 @@ export default function ServiceDetails() {
             {/* Process */}
             <Card>
               <CardHeader>
-                <CardTitle>Our Process</CardTitle>
+                <CardTitle className="text-xl sm:text-2xl">Our Process</CardTitle>
                 <CardDescription>How we deliver your project</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   {service.process.map((step, index) => (
-                    <div key={index} className="flex items-start space-x-4">
-                      <div className="flex-shrink-0 w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-semibold text-sm">
+                    <div key={index} className="flex items-start space-x-3 sm:space-x-4">
+                      <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-semibold text-xs sm:text-sm">
                         {index + 1}
                       </div>
-                      <p className="text-gray-700 pt-1">{step}</p>
+                      <p className="text-sm sm:text-base text-gray-700 pt-1">{step}</p>
                     </div>
                   ))}
                 </div>
@@ -334,27 +334,27 @@ export default function ServiceDetails() {
           </div>
 
           {/* Sidebar */}
-          <div className="space-y-6">
+          <div className="space-y-6 order-first lg:order-last">
             {/* Quick Info */}
-            <Card>
+            <Card className="sticky top-4">
               <CardHeader>
-                <CardTitle>Quick Info</CardTitle>
+                <CardTitle className="text-lg sm:text-xl">Quick Info</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <div className="font-semibold text-gray-900">Price</div>
-                  <div className="text-2xl font-bold text-green-600">{service.price}</div>
+                  <div className="font-semibold text-gray-900 text-sm sm:text-base">Price</div>
+                  <div className="text-xl sm:text-2xl font-bold text-green-600">{service.price}</div>
                 </div>
                 <div>
-                  <div className="font-semibold text-gray-900">Timeline</div>
-                  <div className="text-gray-600">{service.duration}</div>
+                  <div className="font-semibold text-gray-900 text-sm sm:text-base">Timeline</div>
+                  <div className="text-gray-600 text-sm sm:text-base">{service.duration}</div>
                 </div>
                 <div>
-                  <div className="font-semibold text-gray-900">Support</div>
-                  <div className="text-gray-600">Included</div>
+                  <div className="font-semibold text-gray-900 text-sm sm:text-base">Support</div>
+                  <div className="text-gray-600 text-sm sm:text-base">Included</div>
                 </div>
                 <Button 
-                  className="w-full" 
+                  className="w-full h-11 sm:h-12 text-sm sm:text-base" 
                   onClick={() => {
                     if (!user) {
                       setLocation('/auth');
@@ -371,12 +371,12 @@ export default function ServiceDetails() {
             {/* Ideal For */}
             <Card>
               <CardHeader>
-                <CardTitle>Ideal For</CardTitle>
+                <CardTitle className="text-lg sm:text-xl">Ideal For</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2">
+                <div className="flex flex-wrap gap-2">
                   {service.ideal.map((item, index) => (
-                    <Badge key={index} variant="secondary" className="mr-2">
+                    <Badge key={index} variant="secondary" className="text-xs sm:text-sm">
                       {item}
                     </Badge>
                   ))}
@@ -387,14 +387,14 @@ export default function ServiceDetails() {
             {/* Deliverables */}
             <Card>
               <CardHeader>
-                <CardTitle>Deliverables</CardTitle>
+                <CardTitle className="text-lg sm:text-xl">Deliverables</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
                   {service.deliverables.map((item, index) => (
                     <div key={index} className="flex items-start space-x-2">
-                      <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                      <span className="text-sm text-gray-600">{item}</span>
+                      <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                      <span className="text-xs sm:text-sm text-gray-600">{item}</span>
                     </div>
                   ))}
                 </div>
