@@ -76,7 +76,10 @@ export default function ClientDashboard() {
   // Calculate total spent from paid orders
   const totalSpent = React.useMemo(() => {
     if (!orders) return 0;
-    return orders.filter((o: any) => o.status === 'paid').reduce((sum: number, o: any) => sum + (o.totalPrice || 0), 0);
+    return orders.filter((o: any) => o.status === 'paid').reduce((sum: number, o: any) => {
+      const price = typeof o.totalPrice === 'string' ? parseInt(o.totalPrice) : (o.totalPrice || 0);
+      return sum + price;
+    }, 0);
   }, [orders]);
 
   const { data: stats } = useQuery({
@@ -197,7 +200,7 @@ export default function ClientDashboard() {
                             {order.customRequest?.split('\n')[0]?.replace('Service: ', '') || 'Custom Service'}
                           </p>
                           <p className="text-lg font-semibold text-green-600">
-                            ₦{(order.totalPrice || 0).toLocaleString()}
+                            ₦{(typeof order.totalPrice === 'string' ? parseInt(order.totalPrice) : (order.totalPrice || 0)).toLocaleString()}
                           </p>
                           <p className="text-xs text-slate-500">
                             Ordered on {new Date(order.createdAt).toLocaleDateString()}
@@ -205,6 +208,26 @@ export default function ClientDashboard() {
                           <p className="text-xs text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity mt-2">
                             Click to view details and contact support
                           </p>
+                          
+                          {/* Countdown Timer Progress Bar for Paid Orders */}
+                          {order.status === 'paid' && (
+                            <div className="mt-3">
+                              <div className="flex justify-between text-xs text-slate-600 mb-1">
+                                <span>Project Timeline</span>
+                                <span>Week 1 of 4</span>
+                              </div>
+                              <div className="relative">
+                                <div className="w-full bg-slate-200 rounded-full h-2">
+                                  <div className="bg-blue-500 h-2 rounded-full" style={{ width: '25%' }}></div>
+                                </div>
+                                {/* Red line indicator */}
+                                <div 
+                                  className="absolute top-0 h-2 w-0.5 bg-red-500 rounded-sm" 
+                                  style={{ left: '25%', transform: 'translateX(-50%)' }}
+                                />
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))}
