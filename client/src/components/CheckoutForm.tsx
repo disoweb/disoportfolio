@@ -102,7 +102,7 @@ export default function CheckoutForm({ service, onSuccess }: CheckoutFormProps) 
     mutationFn: async ({ orderId, amount, email }: { orderId: string; amount: number; email: string }) => {
       const response = await apiRequest("POST", "/api/payments/initialize", {
         orderId,
-        amount: amount * 100, // Convert to kobo for Paystack
+        amount: amount, // Amount in Naira, backend will handle kobo conversion
         email,
       });
       return response.json();
