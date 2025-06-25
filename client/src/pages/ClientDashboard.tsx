@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import ProjectCard from "@/components/ProjectCard";
 import MessagesList from "@/components/MessagesList";
+import OrderDetailsModal from "@/components/OrderDetailsModal";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -25,6 +26,8 @@ export default function ClientDashboard() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const [selectedOrder, setSelectedOrder] = React.useState<any>(null);
+  const [isOrderModalOpen, setIsOrderModalOpen] = React.useState(false);
 
   // Check for payment status in URL parameters and hash
   React.useEffect(() => {
@@ -172,22 +175,8 @@ export default function ClientDashboard() {
                         key={order.id} 
                         className="border border-slate-200 rounded-lg p-4 hover:shadow-lg hover:border-blue-300 transition-all cursor-pointer group"
                         onClick={() => {
-                          // Create a detailed view modal or navigate to order details
-                          const orderDetails = `
-Order ID: ${order.id}
-Service: ${order.customRequest?.split('\n')[0]?.replace('Service: ', '') || 'Custom Service'}
-Amount: ₦${(order.totalPrice || 0).toLocaleString()}
-Status: ${order.status}
-Date: ${new Date(order.createdAt).toLocaleDateString()}
-
-Full Request:
-${order.customRequest || 'No additional details'}
-                          `.trim();
-                          
-                          // Show order details
-                          if (confirm(`Order Details:\n\n${orderDetails}\n\nWould you like to contact support about this order?`)) {
-                            window.open('https://wa.me/2348035653465?text=Hi, I need help with my order: ' + order.id, '_blank');
-                          }
+                          setSelectedOrder(order);
+                          setIsOrderModalOpen(true);
                         }}
                       >
                         <div className="flex justify-between items-start mb-3">
@@ -356,6 +345,16 @@ ${order.customRequest || 'No additional details'}
           </div>
         </div>
       </div>
+
+      {/* Order Details Modal */}
+      <OrderDetailsModal
+        order={selectedOrder}
+        isOpen={isOrderModalOpen}
+        onClose={() => {
+          setIsOrderModalOpen(false);
+          setSelectedOrder(null);
+        }}
+      />
     </div>
   );
 }
