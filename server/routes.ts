@@ -20,6 +20,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware - always use standard auth
   await setupAuth(app);
 
+  // Create admin user if it doesn't exist
+  try {
+    const adminEmail = 'admin@diso.com';
+    const existingAdmin = await storage.getUserByEmail(adminEmail);
+    if (!existingAdmin) {
+      await storage.createAdminUser(adminEmail, 'cea2b08fd0f11a23107ab63868650344b443e037ae8459b9d25e3244a631bd9085bab88b5cd1968d01e65253fd3ca764b576d25e1e34151879289066b1ef0e5c.17d61126bae3ba14d657423bd934201e');
+      console.log('Admin user created successfully');
+    }
+  } catch (error) {
+    console.error('Error creating admin user:', error);
+  }
+
   // No need for separate auth routes as they're handled in setupAuth
 
   // Services routes

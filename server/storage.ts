@@ -95,6 +95,27 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
+  async createAdminUser(email: string, hashedPassword: string): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values({
+        id: 'admin-user-001',
+        email,
+        role: 'admin',
+        firstName: 'Admin',
+        lastName: 'User',
+        provider: 'local'
+      })
+      .onConflictDoUpdate({
+        target: users.email,
+        set: {
+          role: 'admin'
+        }
+      })
+      .returning();
+    return user;
+  }
+
   async upsertUser(userData: UpsertUser): Promise<User> {
     const [user] = await db
       .insert(users)

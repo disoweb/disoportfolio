@@ -17,6 +17,7 @@ import About from "./pages/About";
 import Contact from "./pages/Contact";
 import ClientDashboard from "@/pages/ClientDashboard";
 import AdminDashboard from "@/pages/AdminDashboard";
+import AdminLogin from "@/pages/AdminLogin";
 import WhatsAppFloat from "@/components/WhatsAppFloat";
 
 function Router() {
@@ -41,6 +42,7 @@ function Router() {
         <>
           <Route path="/" component={Landing} />
           <Route path="/auth" component={AuthPage} />
+          <Route path="/admin" component={AdminLogin} />
           <Route path="/services" component={Services} />
           <Route path="/service/:id" component={ServiceDetails} />
           <Route path="/projects" component={Projects} />
@@ -52,7 +54,7 @@ function Router() {
         <>
           <Route path="/" component={Home} />
           <Route path="/dashboard" component={ClientDashboard} />
-          <Route path="/admin" component={AdminDashboard} />
+          <Route path="/admin-dashboard" component={AdminDashboard} />
           <Route path="/services" component={Services} />
           <Route path="/service/:id" component={ServiceDetails} />
           <Route path="/projects" component={Projects} />
