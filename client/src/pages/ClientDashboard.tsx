@@ -108,7 +108,7 @@ export default function ClientDashboard() {
                 </div>
                 <div className="ml-4">
                   <p className="text-sm text-slate-600">Active Projects</p>
-                  <p className="text-2xl font-bold text-slate-900">{stats?.activeProjects || 0}</p>
+                  <p className="text-2xl font-bold text-slate-900">{projects?.filter(p => p.status === 'active').length || 0}</p>
                 </div>
               </div>
             </CardContent>
@@ -122,7 +122,7 @@ export default function ClientDashboard() {
                 </div>
                 <div className="ml-4">
                   <p className="text-sm text-slate-600">Completed</p>
-                  <p className="text-2xl font-bold text-slate-900">{stats?.completedProjects || 0}</p>
+                  <p className="text-2xl font-bold text-slate-900">{projects?.filter(p => p.status === 'completed').length || 0}</p>
                 </div>
               </div>
             </CardContent>
@@ -137,7 +137,7 @@ export default function ClientDashboard() {
                 <div className="ml-4">
                   <p className="text-sm text-slate-600">Total Spent</p>
                   <p className="text-2xl font-bold text-slate-900">
-                    ${stats?.totalSpent?.toLocaleString() || '0'}
+                    ₦{orders?.filter(o => o.status === 'paid').reduce((sum, o) => sum + (o.totalPrice || 0), 0).toLocaleString() || '0'}
                   </p>
                 </div>
               </div>
@@ -327,12 +327,12 @@ export default function ClientDashboard() {
                   <div className="flex justify-between">
                     <span className="text-slate-600">Total Spent</span>
                     <span className="font-semibold text-slate-900">
-                      ${stats?.totalSpent?.toLocaleString() || '0'}
+                      ₦{orders?.filter(o => o.status === 'paid').reduce((sum, o) => sum + (o.totalPrice || 0), 0).toLocaleString() || '0'}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-600">Active Projects</span>
-                    <span className="font-semibold text-slate-900">{stats?.activeProjects || 0}</span>
+                    <span className="font-semibold text-slate-900">{projects?.filter(p => p.status === 'active').length || 0}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-600">Member Since</span>

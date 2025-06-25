@@ -187,35 +187,25 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Project operations
-  async getUserProjects(userId: string): Promise<Project[]> {
-    return await db
-      .select({
-        id: projects.id,
-        orderId: projects.orderId,
-        userId: projects.userId,
-        projectName: projects.projectName,
-        currentStage: projects.currentStage,
-        notes: projects.notes,
-        startDate: projects.startDate,
-        dueDate: projects.dueDate,
-        status: projects.status,
-        createdAt: projects.createdAt,
-        timelineWeeks: projects.timelineWeeks,
-        progressPercentage: projects.progressPercentage,
-        order: {
-          service: {
-            name: services.name,
-          },
-        },
-      })
-      .from(projects)
-      .leftJoin(orders, eq(projects.orderId, orders.id))
-      .leftJoin(services, eq(orders.serviceId, services.id))
-      .where(eq(projects.userId, userId))
-      .orderBy(desc(projects.createdAt));
+  async getUserProjects(userId: string): Promise<any[]> {
+    try {
+      const results = await db
+        .select()
+        .from(projects)
+        .where(eq(projects.userId, userId))
+        .orderBy(desc(projects.createdAt));
+      
+      return results.map(project => ({
+        ...project,
+        order: { service: { name: null } }
+      }));
+    } catch (error) {
+      console.error("Error fetching user projects:", error);
+      throw error;
+    }
   }
 
-  async getAllProjects(): Promise<Project[]> {
+  async getAllProjects(): Promise<any[]> {
     return await db
       .select({
         id: projects.id,
