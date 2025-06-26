@@ -30,22 +30,40 @@ export default function Checkout() {
     // Scroll to top when component mounts
     window.scrollTo(0, 0);
     
-    console.log('Checkout page debug:', { serviceId, price, addons, servicesLength: services.length });
+    console.log('=== CHECKOUT DEBUG ===');
+    console.log('URL params:', { serviceId, price, addons });
+    console.log('Services loaded:', services.length > 0);
+    console.log('All services:', services);
     
     if (serviceId && services.length > 0) {
       const service = (services as any[]).find((s: any) => s.id === serviceId);
+      console.log('Looking for service ID:', serviceId);
+      console.log('Available service IDs:', (services as any[]).map(s => ({ id: s.id, name: s.name })));
       console.log('Found service:', service);
+      
       if (service) {
+        console.log('Service found! Setting data:', { 
+          name: service.name, 
+          price: service.price,
+          urlPrice: price 
+        });
         setServiceData(service);
         setTotalPrice(price ? parseInt(price) : service.price);
       } else {
-        console.log('Service not found. Available services:', (services as any[]).map(s => s.id));
+        console.error('SERVICE NOT FOUND!');
+        console.log('Exact ID comparison:');
+        (services as any[]).forEach(s => {
+          console.log(`"${s.id}" === "${serviceId}": ${s.id === serviceId}`);
+        });
       }
+    } else {
+      console.log('Waiting for:', { serviceId: !!serviceId, servicesLoaded: services.length > 0 });
     }
     
     if (addons) {
       setSelectedAddOns(addons.split(',').filter(addon => addon.length > 0));
     }
+    console.log('=== END DEBUG ===');
   }, [serviceId, services, price, addons]);
 
   if (!serviceId) {
