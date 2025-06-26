@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import ServicePackages from "@/components/ServicePackages";
@@ -154,6 +154,41 @@ export function LiveNotification({
   );
 }
 
+// Animated Counter Component
+interface AnimatedCounterProps {
+  end: number;
+  duration?: number;
+  suffix?: string;
+  isVisible: boolean;
+}
+
+function AnimatedCounter({ end, duration = 2000, suffix = "", isVisible }: AnimatedCounterProps) {
+  const [count, setCount] = useState(0);
+  const [hasAnimated, setHasAnimated] = useState(false);
+
+  useEffect(() => {
+    if (isVisible && !hasAnimated) {
+      setHasAnimated(true);
+      let startTime: number;
+      
+      const animateCount = (timestamp: number) => {
+        if (!startTime) startTime = timestamp;
+        const progress = Math.min((timestamp - startTime) / duration, 1);
+        
+        setCount(Math.floor(progress * end));
+        
+        if (progress < 1) {
+          requestAnimationFrame(animateCount);
+        }
+      };
+      
+      requestAnimationFrame(animateCount);
+    }
+  }, [isVisible, end, duration, hasAnimated]);
+
+  return <span>{count}{suffix}</span>;
+}
+
 function UrgencyBanner() {
   const [currentMessage, setCurrentMessage] = useState(0);
 
@@ -228,6 +263,9 @@ export default function Landing() {
   const [showNotification, setShowNotification] = useState(false);
   const [currentNotification, setCurrentNotification] = useState("");
   const [socialProofIndex, setSocialProofIndex] = useState(0);
+  const [metricsVisible, setMetricsVisible] = useState(false);
+  const [counters, setCounters] = useState({ projects: 0, satisfaction: 0, clients: 0 });
+  const metricsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const showRandomNotification = () => {
@@ -267,6 +305,48 @@ export default function Landing() {
     }, 6000);
     return () => clearInterval(interval);
   }, []);
+
+  // Intersection Observer for metrics animation
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !metricsVisible) {
+          setMetricsVisible(true);
+          
+          // Animate counters
+          const animateCounter = (target: number, key: 'projects' | 'satisfaction' | 'clients') => {
+            let current = 0;
+            const increment = target / 60; // 60 frames for smooth animation
+            const timer = setInterval(() => {
+              current += increment;
+              if (current >= target) {
+                setCounters(prev => ({ ...prev, [key]: target }));
+                clearInterval(timer);
+              } else {
+                setCounters(prev => ({ ...prev, [key]: Math.floor(current) }));
+              }
+            }, 33); // ~30fps
+          };
+
+          // Start animations with slight delays
+          setTimeout(() => animateCounter(500, 'projects'), 100);
+          setTimeout(() => animateCounter(98, 'satisfaction'), 300);
+          setTimeout(() => animateCounter(150, 'clients'), 500);
+        }
+      },
+      { threshold: 0.3 }
+    );
+
+    if (metricsRef.current) {
+      observer.observe(metricsRef.current);
+    }
+
+    return () => {
+      if (metricsRef.current) {
+        observer.unobserve(metricsRef.current);
+      }
+    };
+  }, [metricsVisible]);
 
   const handleNotificationClose = () => {
     setShowNotification(false);
@@ -346,19 +426,23 @@ export default function Landing() {
             </div>
 
             {/* Success Metrics */}
-            <div className="mt-8">
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-12">
+            <div ref={metricsRef} className="mt-8">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 sm:gap-12 max-w-4xl mx-auto">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">500+</div>
+                  <div className="text-2xl font-bold text-blue-600">{counters.projects}+</div>
                   <div className="text-sm text-slate-600">Projects Delivered</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">98%</div>
+                  <div className="text-2xl font-bold text-green-600">{counters.satisfaction}%</div>
                   <div className="text-sm text-slate-600">Client Satisfaction</div>
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-purple-600">24/7</div>
                   <div className="text-sm text-slate-600">Support Available</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-orange-600">{counters.clients}+</div>
+                  <div className="text-sm text-slate-600">Happy Clients</div>
                 </div>
               </div>
             </div>
