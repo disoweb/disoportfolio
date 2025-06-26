@@ -428,9 +428,9 @@ export default function ServicePackages() {
   }, [selectedIndustry]);
 
   return (
-    <div className="space-y-2 md:space-y-8 p-4 md:p-6 lg:p-8 max-w-7xl mx-auto">
-      <div className="text-center bg-slate-50 p-3 md:p-6 rounded-xl shadow">
-        <h3 className="text-xl md:text-2xl font-semibold mb-2 md:mb-4 text-slate-800">
+    <div className="space-y-1 md:space-y-8 p-2 md:p-6 lg:p-8 max-w-7xl mx-auto">
+      <div className="text-center bg-slate-50 p-2 md:p-6 rounded-xl shadow">
+        <h3 className="text-xl md:text-2xl font-semibold mb-1 md:mb-4 text-slate-800">
           What's your industry?
         </h3>
         <div className="flex flex-wrap justify-center gap-2">
