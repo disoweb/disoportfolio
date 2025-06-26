@@ -252,26 +252,26 @@ export default function AdminDashboard() {
               <div>
                 <h3 className="text-lg font-semibold mb-4">Revenue Transactions</h3>
                 <div className="space-y-2">
-                  {orders?.data && Array.isArray(orders.data) && orders.data
+                  {orders && Array.isArray(orders) && orders
                     .filter((order: any) => order.status === 'paid')
                     .map((order: any) => (
                     <div key={order.id} className="flex items-center justify-between p-4 border rounded-lg">
                       <div className="flex items-center gap-3">
                         <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                         <div>
-                          <div className="font-medium">{order.service?.name || 'Service'}</div>
+                          <div className="font-medium">{order.service?.name || order.customRequest?.split('\n')[0] || 'Service'}</div>
                           <div className="text-sm text-slate-600">
                             {new Date(order.createdAt).toLocaleDateString()} • {order.user?.firstName} {order.user?.lastName}
                           </div>
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="font-semibold text-green-600">₦{parseInt(order.amount).toLocaleString()}</div>
+                        <div className="font-semibold text-green-600">₦{parseInt(order.totalPrice || order.amount).toLocaleString()}</div>
                         <div className="text-sm text-slate-600">Paid</div>
                       </div>
                     </div>
                   ))}
-                  {(!orders?.data || !Array.isArray(orders.data) || orders.data.filter((order: any) => order.status === 'paid').length === 0) && (
+                  {(!orders || !Array.isArray(orders) || orders.filter((order: any) => order.status === 'paid').length === 0) && (
                     <div className="text-center py-8 text-slate-500">
                       No revenue transactions found
                     </div>
@@ -294,8 +294,8 @@ export default function AdminDashboard() {
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 {['pending', 'paid', 'in_progress', 'complete'].map((status) => {
-                  const statusOrders = orders?.data && Array.isArray(orders.data) 
-                    ? orders.data.filter((order: any) => order.status === status) 
+                  const statusOrders = orders && Array.isArray(orders) 
+                    ? orders.filter((order: any) => order.status === status) 
                     : [];
                   return (
                     <Card key={status}>
@@ -311,7 +311,7 @@ export default function AdminDashboard() {
               <div>
                 <h3 className="text-lg font-semibold mb-4">Recent Orders</h3>
                 <div className="space-y-2">
-                  {orders?.data && Array.isArray(orders.data) && orders.data
+                  {orders && Array.isArray(orders) && orders
                     .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
                     .map((order: any) => (
                     <div key={order.id} className="flex items-center justify-between p-4 border rounded-lg">
@@ -320,19 +320,19 @@ export default function AdminDashboard() {
                           {order.status}
                         </Badge>
                         <div>
-                          <div className="font-medium">{order.service?.name || 'Service'}</div>
+                          <div className="font-medium">{order.service?.name || order.customRequest?.split('\n')[0] || 'Service'}</div>
                           <div className="text-sm text-slate-600">
                             {order.user?.firstName} {order.user?.lastName} • {new Date(order.createdAt).toLocaleDateString()}
                           </div>
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="font-semibold">₦{parseInt(order.amount).toLocaleString()}</div>
-                        <div className="text-sm text-slate-600">{order.service?.category || 'Standard'}</div>
+                        <div className="font-semibold">₦{parseInt(order.totalPrice || order.amount).toLocaleString()}</div>
+                        <div className="text-sm text-slate-600">{order.service?.category || 'Custom'}</div>
                       </div>
                     </div>
                   ))}
-                  {(!orders?.data || !Array.isArray(orders.data) || orders.data.length === 0) && (
+                  {(!orders || !Array.isArray(orders) || orders.length === 0) && (
                     <div className="text-center py-8 text-slate-500">
                       No orders found
                     </div>
@@ -364,8 +364,8 @@ export default function AdminDashboard() {
                   <CardContent className="p-4">
                     <div className="text-sm text-slate-600">Active Projects</div>
                     <div className="text-2xl font-bold">
-                      {projects?.data && Array.isArray(projects.data) 
-                        ? projects.data.filter((p: any) => p.status === 'active').length 
+                      {projects && Array.isArray(projects) 
+                        ? projects.filter((p: any) => p.status === 'active').length 
                         : 0}
                     </div>
                   </CardContent>
@@ -383,14 +383,14 @@ export default function AdminDashboard() {
               <div>
                 <h3 className="text-lg font-semibold mb-4">Client List</h3>
                 <div className="space-y-2">
-                  {orders?.data && Array.isArray(orders.data) && 
-                    Array.from(new Map(orders.data.map((order: any) => [order.user?.email, order])).values())
+                  {orders && Array.isArray(orders) && 
+                    Array.from(new Map(orders.map((order: any) => [order.user?.email, order])).values())
                     .sort((a: any, b: any) => {
-                      const aHasActiveProject = projects?.data && Array.isArray(projects.data) 
-                        ? projects.data.some((p: any) => p.userId === a.userId && p.status === 'active')
+                      const aHasActiveProject = projects && Array.isArray(projects) 
+                        ? projects.some((p: any) => p.userId === a.userId && p.status === 'active')
                         : false;
-                      const bHasActiveProject = projects?.data && Array.isArray(projects.data)
-                        ? projects.data.some((p: any) => p.userId === b.userId && p.status === 'active')
+                      const bHasActiveProject = projects && Array.isArray(projects)
+                        ? projects.some((p: any) => p.userId === b.userId && p.status === 'active')
                         : false;
                       
                       if (aHasActiveProject && !bHasActiveProject) return -1;
@@ -398,8 +398,8 @@ export default function AdminDashboard() {
                       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
                     })
                     .map((order: any) => {
-                      const clientProjects = projects?.data && Array.isArray(projects.data)
-                        ? projects.data.filter((p: any) => p.userId === order.userId)
+                      const clientProjects = projects && Array.isArray(projects)
+                        ? projects.filter((p: any) => p.userId === order.userId)
                         : [];
                       const activeProject = clientProjects.find((p: any) => p.status === 'active');
                       
@@ -434,7 +434,7 @@ export default function AdminDashboard() {
                         </div>
                       );
                     })}
-                  {(!orders?.data || !Array.isArray(orders.data) || orders.data.length === 0) && (
+                  {(!orders || !Array.isArray(orders) || orders.length === 0) && (
                     <div className="text-center py-8 text-slate-500">
                       No clients found
                     </div>
@@ -457,8 +457,8 @@ export default function AdminDashboard() {
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 {['active', 'not_started', 'paused', 'completed'].map((status) => {
-                  const statusProjects = projects?.data && Array.isArray(projects.data)
-                    ? projects.data.filter((project: any) => project.status === status)
+                  const statusProjects = projects && Array.isArray(projects)
+                    ? projects.filter((project: any) => project.status === status)
                     : [];
                   return (
                     <Card key={status}>
@@ -474,7 +474,7 @@ export default function AdminDashboard() {
               <div>
                 <h3 className="text-lg font-semibold mb-4">Active Projects (Sorted by Priority)</h3>
                 <div className="space-y-2">
-                  {projects?.data && Array.isArray(projects.data) && projects.data
+                  {projects && Array.isArray(projects) && projects
                     .filter((project: any) => project.status === 'active')
                     .sort((a: any, b: any) => {
                       // Sort by due date (most urgent first), then by progress (least progress first)
@@ -513,18 +513,18 @@ export default function AdminDashboard() {
                         </div>
                       );
                     })}
-                  {(!projects?.data || !Array.isArray(projects.data) || projects.data.filter((p: any) => p.status === 'active').length === 0) && (
+                  {(!projects || !Array.isArray(projects) || projects.filter((p: any) => p.status === 'active').length === 0) && (
                     <div className="text-center py-8 text-slate-500">
                       No active projects found
                     </div>
                   )}
                 </div>
 
-                {projects?.data && Array.isArray(projects.data) && projects.data.filter((p: any) => p.status !== 'active').length > 0 && (
+                {projects && Array.isArray(projects) && projects.filter((p: any) => p.status !== 'active').length > 0 && (
                   <div className="mt-6">
                     <h3 className="text-lg font-semibold mb-4">Other Projects</h3>
                     <div className="space-y-2">
-                      {projects.data
+                      {projects
                         .filter((project: any) => project.status !== 'active')
                         .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
                         .map((project: any) => (
