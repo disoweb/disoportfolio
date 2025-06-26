@@ -45,6 +45,8 @@ export default function ClientDashboard() {
   const [hasSetDefaultFilter, setHasSetDefaultFilter] = React.useState(false);
   const [currentPage, setCurrentPage] = React.useState(1);
   const [itemsPerPage] = React.useState(6); // 6 orders per page for optimal mobile display
+  const [projectCurrentPage, setProjectCurrentPage] = React.useState(1);
+  const [projectItemsPerPage] = React.useState(4); // 4 projects per page for optimal mobile display
 
 
 
@@ -212,6 +214,15 @@ export default function ClientDashboard() {
   React.useEffect(() => {
     setCurrentPage(1);
   }, [orderFilter]);
+
+  // Projects pagination logic
+  const projectTotalPages = Math.ceil((Array.isArray(projects) ? projects.length : 0) / projectItemsPerPage);
+  const projectStartIndex = (projectCurrentPage - 1) * projectItemsPerPage;
+  const projectEndIndex = projectStartIndex + projectItemsPerPage;
+  const paginatedProjects = React.useMemo(() => {
+    if (!Array.isArray(projects)) return [];
+    return projects.slice(projectStartIndex, projectEndIndex);
+  }, [projects, projectStartIndex, projectEndIndex]);
 
   // Calculate filter counts
   const filterCounts = React.useMemo(() => {
@@ -636,11 +647,122 @@ export default function ClientDashboard() {
               </CardHeader>
               <CardContent>
                 {Array.isArray(projects) && projects.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {projects.map((project: any) => (
-                      <ProjectTimer key={project.id} project={project} />
-                    ))}
-                  </div>
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {paginatedProjects.map((project: any) => (
+                        <ProjectTimer key={project.id} project={project} />
+                      ))}
+                    </div>
+
+                    {/* Projects Pagination Controls */}
+                    {projectTotalPages > 1 && (
+                      <div className="mt-6 pt-4 border-t border-slate-200">
+                        {/* Mobile-first compact layout */}
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="text-xs text-slate-600 hidden sm:block">
+                            {projectStartIndex + 1}-{Math.min(projectEndIndex, projects.length)} of {projects.length}
+                          </div>
+                          
+                          <div className="flex items-center justify-center gap-1 mx-auto sm:mx-0">
+                            {/* Previous Page */}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setProjectCurrentPage(Math.max(1, projectCurrentPage - 1))}
+                              disabled={projectCurrentPage === 1}
+                              className="h-6 w-6 p-0 sm:h-8 sm:w-8"
+                            >
+                              <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4" />
+                            </Button>
+                            
+                            {/* Page Numbers - Mobile optimized */}
+                            {(() => {
+                              const pageNumbers = [];
+                              const maxVisiblePages = 3; // Keep it minimal for mobile
+                              let startPage = Math.max(1, projectCurrentPage - Math.floor(maxVisiblePages / 2));
+                              let endPage = Math.min(projectTotalPages, startPage + maxVisiblePages - 1);
+                              
+                              if (endPage - startPage < maxVisiblePages - 1) {
+                                startPage = Math.max(1, endPage - maxVisiblePages + 1);
+                              }
+                              
+                              // Show ellipsis if there are more pages before
+                              if (startPage > 1) {
+                                pageNumbers.push(
+                                  <Button
+                                    key={1}
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setProjectCurrentPage(1)}
+                                    className="h-6 w-6 p-0 text-xs sm:h-8 sm:w-8 sm:text-sm"
+                                  >
+                                    1
+                                  </Button>
+                                );
+                                if (startPage > 2) {
+                                  pageNumbers.push(
+                                    <span key="ellipsis-start" className="px-1 text-slate-500 text-xs">
+                                      ...
+                                    </span>
+                                  );
+                                }
+                              }
+                              
+                              // Show page numbers
+                              for (let i = startPage; i <= endPage; i++) {
+                                pageNumbers.push(
+                                  <Button
+                                    key={i}
+                                    variant={i === projectCurrentPage ? "default" : "outline"}
+                                    size="sm"
+                                    onClick={() => setProjectCurrentPage(i)}
+                                    className="h-6 w-6 p-0 text-xs sm:h-8 sm:w-8 sm:text-sm"
+                                  >
+                                    {i}
+                                  </Button>
+                                );
+                              }
+                              
+                              // Show ellipsis if there are more pages after
+                              if (endPage < projectTotalPages) {
+                                if (endPage < projectTotalPages - 1) {
+                                  pageNumbers.push(
+                                    <span key="ellipsis-end" className="px-1 text-slate-500 text-xs">
+                                      ...
+                                    </span>
+                                  );
+                                }
+                                pageNumbers.push(
+                                  <Button
+                                    key={projectTotalPages}
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setProjectCurrentPage(projectTotalPages)}
+                                    className="h-6 w-6 p-0 text-xs sm:h-8 sm:w-8 sm:text-sm"
+                                  >
+                                    {projectTotalPages}
+                                  </Button>
+                                );
+                              }
+                              
+                              return pageNumbers;
+                            })()}
+                            
+                            {/* Next Page */}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setProjectCurrentPage(Math.min(projectTotalPages, projectCurrentPage + 1))}
+                              disabled={projectCurrentPage === projectTotalPages}
+                              className="h-6 w-6 p-0 sm:h-8 sm:w-8"
+                            >
+                              <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 ) : (
                   <div className="text-center py-8">
                     <ChartGantt className="h-12 w-12 text-slate-400 mx-auto mb-4" />
