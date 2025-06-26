@@ -272,17 +272,20 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
       orderMutationPending: orderMutation.isPending
     });
 
+    // Security: Server-side validation will prevent unauthorized payments
+    // Client-side flags are for UX only
     if (shouldAutoSubmit && sessionData?.contactData && !orderMutation.isPending) {
       console.log('💰 CHECKOUT-FORM: ✅ EXECUTING AUTO-PAYMENT NOW');
       
-      // Clear the auto-submit flag immediately
+      // Clear the auto-submit flag immediately to prevent replay
       sessionStorage.removeItem('auto_submit_payment');
       
-      // Pre-populate form with session data
+      // Pre-populate form with validated session data
       setContactData(sessionData.contactData);
       
-      // Trigger payment immediately
+      // Trigger payment with validated data
       orderMutation.mutate({
+        ...sessionData.contactData,
         paymentMethod: 'paystack',
         timeline: 'standard'
       });

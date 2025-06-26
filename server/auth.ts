@@ -293,9 +293,25 @@ export async function setupAuth(app: Express) {
       }
 
       // Store user ID in custom session for reliable authentication
-      req.session.userId = user.id;
-      req.session.authCompleted = true;
-      req.session.authTimestamp = Date.now();
+      // Using type assertion for session extension - proper session typing would be ideal
+      const extendedSession = req.session as any;
+      
+      // Regenerate session ID to prevent session fixation attacks
+      req.session.regenerate((err) => {
+        if (err) {
+          console.error('Session regeneration failed:', err);
+          // Continue with existing session if regeneration fails
+          extendedSession.userId = user.id;
+          extendedSession.authCompleted = true;
+          extendedSession.authTimestamp = Date.now();
+        } else {
+          // Set data on new session
+          const newExtendedSession = req.session as any;
+          newExtendedSession.userId = user.id;
+          newExtendedSession.authCompleted = true;
+          newExtendedSession.authTimestamp = Date.now();
+        }
+      });
       
       console.log('🚀 REGISTER: Saving session for user:', user.id);
       

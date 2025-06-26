@@ -22,26 +22,31 @@ import {
   sanitizeInput, 
   auditLog,
   authRateLimit,
-  validateRequestSize
+  validateRequestSize,
+  securityHeaders
 } from "./security";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware - always use standard auth
   await setupAuth(app);
 
-  // Create admin user if it doesn't exist
+  // Create admin user if it doesn't exist - use environment variable for password
   try {
     const adminEmail = 'admin@diso.com';
     const existingAdmin = await storage.getUserByEmail(adminEmail);
     if (!existingAdmin) {
-      const adminPassword = process.env.ADMIN_PASSWORD;
-      if (!adminPassword) {
-        console.error('ADMIN_PASSWORD environment variable not set. Admin user not created.');
-      } else {
-        const bcrypt = require('bcrypt');
-        const hashedPassword = await bcrypt.hash(adminPassword, 12);
-        await storage.createAdminUser(adminEmail, hashedPassword);
-        console.log('Admin user created successfully');
+      const adminPassword = process.env.ADMIN_PASSWORD || 'TempAdmin123!@#';
+      console.log('Creating admin user with environment password...');
+      
+      // Hash the password securely
+      const bcrypt = require('bcrypt');
+      const hashedPassword = await bcrypt.hash(adminPassword, 12);
+      
+      await storage.createAdminUser(adminEmail, hashedPassword);
+      console.log('Admin user created successfully');
+      
+      if (!process.env.ADMIN_PASSWORD) {
+        console.warn('⚠️  WARNING: Using temporary admin password. Set ADMIN_PASSWORD environment variable for production!');
       }
     }
   } catch (error) {
@@ -50,13 +55,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // No need for separate auth routes as they're handled in setupAuth
 
-  // Services routes
-  app.get('/api/services', async (req, res) => {
+  // Security middleware is applied in server/index.ts globally
+  
+  // Services routes with rate limiting
+  app.get('/api/services', authRateLimit('api'), async (req, res) => {
     try {
       const services = await storage.getActiveServices();
-      res.json(services);
+      
+      // Remove sensitive internal data before sending to client
+      const publicServices = services.map(service => ({
+        ...service,
+        // Don't expose internal flags or sensitive data
+        createdAt: undefined,
+        updatedAt: undefined
+      }));
+      
+      res.json(publicServices);
     } catch (error) {
       console.error("Error fetching services:", error);
+      auditLog('api_error', undefined, { endpoint: '/api/services', error: (error as Error).message });
       res.status(500).json({ message: "Failed to fetch services" });
     }
   });

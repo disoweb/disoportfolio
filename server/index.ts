@@ -6,7 +6,8 @@ import {
   securityHeaders, 
   validateContentType, 
   auditLog, 
-  clearSessionSecurely 
+  clearSessionSecurely,
+  validateRequestSize 
 } from "./security";
 
 const app = express();
