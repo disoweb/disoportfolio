@@ -33,13 +33,17 @@ export default function ClientDashboard() {
   const { toast } = useToast();
   const [selectedOrder, setSelectedOrder] = React.useState<any>(null);
   const [isOrderModalOpen, setIsOrderModalOpen] = React.useState(false);
+  const [processingOrderId, setProcessingOrderId] = React.useState<string | null>(null);
+  const [cancellingOrderId, setCancellingOrderId] = React.useState<string | null>(null);
 
   // Cancel order mutation
   const cancelOrderMutation = useMutation({
     mutationFn: async (orderId: string) => {
+      setCancellingOrderId(orderId);
       return await apiRequest('DELETE', `/api/orders/${orderId}`);
     },
     onSuccess: () => {
+      setCancellingOrderId(null);
       toast({
         title: "Order Cancelled",
         description: "Your order has been successfully cancelled.",
@@ -48,6 +52,7 @@ export default function ClientDashboard() {
       queryClient.invalidateQueries({ queryKey: ['/api/client/stats'] });
     },
     onError: (error: Error) => {
+      setCancellingOrderId(null);
       toast({
         title: "Cancellation Failed",
         description: error.message || "Failed to cancel order. Please try again.",
@@ -59,9 +64,11 @@ export default function ClientDashboard() {
   // Reactivate payment mutation
   const reactivatePaymentMutation = useMutation({
     mutationFn: async (orderId: string) => {
+      setProcessingOrderId(orderId);
       return await apiRequest('POST', `/api/orders/${orderId}/reactivate-payment`);
     },
     onSuccess: (response: any) => {
+      setProcessingOrderId(null);
       if (response?.paymentUrl) {
         // Redirect to Paystack payment page
         window.location.href = response.paymentUrl;
@@ -74,6 +81,7 @@ export default function ClientDashboard() {
       }
     },
     onError: (error: Error) => {
+      setProcessingOrderId(null);
       toast({
         title: "Payment Reactivation Failed",
         description: error.message || "Failed to reactivate payment. Please try again.",
@@ -335,9 +343,9 @@ export default function ClientDashboard() {
                                   e.stopPropagation();
                                   handleReactivatePayment(order.id);
                                 }}
-                                disabled={reactivatePaymentMutation.isPending}
+                                disabled={processingOrderId === order.id}
                               >
-                                {reactivatePaymentMutation.isPending ? (
+                                {processingOrderId === order.id ? (
                                   <RefreshCw className="h-3 w-3 animate-spin mr-1" />
                                 ) : (
                                   <CreditCard className="h-3 w-3 mr-1" />
@@ -353,9 +361,9 @@ export default function ClientDashboard() {
                                   const amount = typeof order.totalPrice === 'string' ? parseInt(order.totalPrice) : (order.totalPrice || 0);
                                   handleCancelOrder(order.id, amount);
                                 }}
-                                disabled={cancelOrderMutation.isPending}
+                                disabled={cancellingOrderId === order.id}
                               >
-                                {cancelOrderMutation.isPending ? (
+                                {cancellingOrderId === order.id ? (
                                   <RefreshCw className="h-3 w-3 animate-spin" />
                                 ) : (
                                   <X className="h-3 w-3" />
