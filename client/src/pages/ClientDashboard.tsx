@@ -26,7 +26,11 @@ import {
   Calendar,
   X,
   RefreshCw,
-  Filter
+  Filter,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight
 } from "lucide-react";
 
 export default function ClientDashboard() {
@@ -39,6 +43,8 @@ export default function ClientDashboard() {
   const [cancellingOrderId, setCancellingOrderId] = React.useState<string | null>(null);
   const [orderFilter, setOrderFilter] = React.useState<'all' | 'pending' | 'paid' | 'cancelled'>('all');
   const [hasSetDefaultFilter, setHasSetDefaultFilter] = React.useState(false);
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const [itemsPerPage] = React.useState(6); // 6 orders per page for optimal mobile display
 
 
 
@@ -193,6 +199,19 @@ export default function ClientDashboard() {
       }
     });
   }, [orders, orderFilter]);
+
+  // Pagination logic
+  const totalPages = Math.ceil((filteredOrders?.length || 0) / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedOrders = React.useMemo(() => {
+    return filteredOrders.slice(startIndex, endIndex);
+  }, [filteredOrders, startIndex, endIndex]);
+
+  // Reset to page 1 when filter changes
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [orderFilter]);
 
   // Calculate filter counts
   const filterCounts = React.useMemo(() => {
@@ -351,8 +370,9 @@ export default function ClientDashboard() {
 
                   <TabsContent value={orderFilter} className="mt-0">
                     {filteredOrders && filteredOrders.length > 0 ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {filteredOrders.map((order: any) => (
+                      <>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {paginatedOrders.map((order: any) => (
                           <div 
                             key={order.id} 
                             className="border border-slate-200 rounded-lg p-4 hover:shadow-lg hover:border-blue-300 transition-all cursor-pointer group"
@@ -476,7 +496,90 @@ export default function ClientDashboard() {
                             </div>
                           </div>
                         ))}
-                      </div>
+                        </div>
+
+                        {/* Pagination Controls */}
+                        {totalPages > 1 && (
+                          <div className="flex items-center justify-between mt-6 pt-4 border-t border-slate-200">
+                            <div className="text-sm text-slate-600">
+                              Showing {startIndex + 1}-{Math.min(endIndex, filteredOrders.length)} of {filteredOrders.length} orders
+                            </div>
+                            
+                            <div className="flex items-center gap-1">
+                              {/* First Page */}
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCurrentPage(1)}
+                                disabled={currentPage === 1}
+                                className="h-8 w-8 p-0"
+                              >
+                                <ChevronsLeft className="h-4 w-4" />
+                              </Button>
+                              
+                              {/* Previous Page */}
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                                disabled={currentPage === 1}
+                                className="h-8 w-8 p-0"
+                              >
+                                <ChevronLeft className="h-4 w-4" />
+                              </Button>
+                              
+                              {/* Page Numbers */}
+                              {(() => {
+                                const pageNumbers = [];
+                                const maxVisiblePages = 5;
+                                let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+                                let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+                                
+                                if (endPage - startPage < maxVisiblePages - 1) {
+                                  startPage = Math.max(1, endPage - maxVisiblePages + 1);
+                                }
+                                
+                                for (let i = startPage; i <= endPage; i++) {
+                                  pageNumbers.push(
+                                    <Button
+                                      key={i}
+                                      variant={currentPage === i ? "default" : "outline"}
+                                      size="sm"
+                                      onClick={() => setCurrentPage(i)}
+                                      className="h-8 w-8 p-0 text-xs"
+                                    >
+                                      {i}
+                                    </Button>
+                                  );
+                                }
+                                return pageNumbers;
+                              })()}
+                              
+                              {/* Next Page */}
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                                disabled={currentPage === totalPages}
+                                className="h-8 w-8 p-0"
+                              >
+                                <ChevronRight className="h-4 w-4" />
+                              </Button>
+                              
+                              {/* Last Page */}
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCurrentPage(totalPages)}
+                                disabled={currentPage === totalPages}
+                                className="h-8 w-8 p-0"
+                              >
+                                <ChevronsRight className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </>
                     ) : (
                       <div className="text-center py-8">
                         <CreditCard className="h-12 w-12 text-slate-400 mx-auto mb-4" />
@@ -495,7 +598,7 @@ export default function ClientDashboard() {
                         )}
                       </div>
                     )}
-                    </TabsContent>
+                  </TabsContent>
                   </Tabs>
                 </CardContent>
               </Card>
