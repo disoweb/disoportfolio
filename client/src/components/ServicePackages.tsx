@@ -81,7 +81,7 @@ const initialServices: Omit<Service, "recommended">[] = [
   },
   {
     id: "ecommerce",
-    name: "E-commerce Website",
+    name: "E-commerce App",
     description: "Complete online store solution",
     price: 450000,
     originalPrice: 600000,
@@ -406,7 +406,7 @@ export default function ServicePackages() {
       return baseServicesWithDynamicRecommended
         .map((s) => ({
           ...s,
-          recommended: s.category === "business" || s.category === "enterprise",
+          recommended: s.id === "webapp",
         }))
         .sort((a, b) => (b.recommended ? 1 : 0) - (a.recommended ? 1 : 0));
     }
@@ -613,7 +613,7 @@ export default function ServicePackages() {
                       }
                     }}
                   >
-                    Get Started
+                    Choose Package
                     <ArrowRight className="ml-1 h-3 w-3" />
                   </Button>
 
