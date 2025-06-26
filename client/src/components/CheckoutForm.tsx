@@ -244,143 +244,56 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
     },
   });
 
-  // Handle pending checkout completion after authentication
+  // SINGLE consolidated auto-payment logic
   useEffect(() => {
-    // Prevent auto-submit if already processing
-    if (user && !orderMutation.isPending) {
-      const pendingCheckout = sessionStorage.getItem('pendingCheckout');
-      
-      if (pendingCheckout) {
-        try {
-          const checkoutData = JSON.parse(pendingCheckout);
-          
-          // Remove pending checkout to prevent duplicate processing
-          sessionStorage.removeItem('pendingCheckout');
-          
-          // Restore the checkout state for manual submission
-          if (checkoutData.contactData) {
-            setContactData(checkoutData.contactData);
-            setCurrentStep(2); // Go directly to payment step
-            
-            // Auto-populate email from authenticated user if missing
-            const updatedContactData = { ...checkoutData.contactData };
-            if (!updatedContactData.email && user.email) {
-              updatedContactData.email = user.email;
-              setContactData(updatedContactData);
-            }
-            
-            // Show success message that form data was restored
-            toast({
-              title: "Welcome back!",
-              description: "Your checkout information has been restored. Please review and submit your payment.",
-              variant: "default",
-            });
-          }
-        } catch (error) {
-          console.error('Error processing pending checkout:', error);
-          sessionStorage.removeItem('pendingCheckout');
-          setShowPaymentLoader(false);
-          sessionStorage.removeItem('payment_in_progress');
-        }
-      }
-    }
-  }, [user, orderMutation.isPending, setLocation, toast]);
-
-  // Check for post-authentication auto-payment  
-  useEffect(() => {
-    const autoSubmitPayment = sessionStorage.getItem('auto_submit_payment');
-    console.log('💰 CHECKOUT-FORM: Auto-payment useEffect triggered');
-    console.log('💰 CHECKOUT-FORM: Conditions check:', {
-      autoSubmitPayment,
-      isPostAuthRedirect,
-      hasSessionData: !!sessionData,
-      hasContactData: !!sessionData?.contactData,
-      hasUser: !!user,
-      stepParam: new URLSearchParams(window.location.search).get('step'),
-      orderMutationExists: !!orderMutation,
-      userDetails: user ? { id: user.id, email: user.email } : null
-    });
-
-    // Wait for sessionData to be available before making auto-payment decision
-    if (!sessionData) {
-      console.log('💰 CHECKOUT-FORM: Waiting for sessionData to load');
+    console.log('💰 CHECKOUT-FORM: Main auto-payment useEffect triggered');
+    
+    if (!user || !sessionData) {
+      console.log('💰 CHECKOUT-FORM: Waiting for user and sessionData:', {
+        hasUser: !!user,
+        hasSessionData: !!sessionData
+      });
       return;
     }
 
-    // Add delay to ensure authentication state is fully loaded
-    setTimeout(() => {
-      console.log('💰 CHECKOUT-FORM: Delayed auth check:', {
-        user: !!user,
-        userDetails: user ? { id: user.id, email: user.email } : null,
-        sessionData: !!sessionData,
-        contactData: !!sessionData?.contactData
-      });
-    }, 500);
-    
-    // Check if we should auto-submit payment (either flag is set OR we have all required data for authenticated user)
+    const autoSubmitPayment = sessionStorage.getItem('auto_submit_payment');
     const stepParam = new URLSearchParams(window.location.search).get('step');
     
-    // Check if user is authenticated by making a direct API call
-    const checkAuthAndSubmit = async () => {
-      try {
-        const authResponse = await fetch('/api/auth/user', { credentials: 'include' });
-        const currentUser = await authResponse.json();
-        
-        console.log('💰 CHECKOUT-FORM: Direct auth check result:', {
-          authResponse: authResponse.status,
-          currentUser: currentUser ? { id: currentUser.id, email: currentUser.email } : null
-        });
-        
-        const shouldAutoSubmit = autoSubmitPayment === 'true' || 
-          (stepParam === 'payment' && sessionData?.contactData && currentUser);
-        
-        console.log('💰 CHECKOUT-FORM: Auto-submit decision logic:', {
-          autoSubmitPayment,
-          stepParam,
-          hasSessionData: !!sessionData,
-          hasContactData: !!sessionData?.contactData,
-          hasUser: !!user,
-          hasCurrentUser: !!currentUser,
-          shouldAutoSubmit,
-          conditions: {
-            flagSet: autoSubmitPayment === 'true',
-            stepIsPayment: stepParam === 'payment',
-            hasContact: !!sessionData?.contactData,
-            authenticated: !!currentUser
-          }
-        });
-        
-        if (shouldAutoSubmit && currentUser && sessionData?.contactData) {
-          console.log('💰 CHECKOUT-FORM: ✅ ALL CONDITIONS MET - Auto-submitting payment');
-          
-          // Clear the auto-submit flag to prevent multiple submissions
-          sessionStorage.removeItem('auto_submit_payment');
-          
-          // Pre-populate form with session data
-          setContactData(sessionData.contactData);
-          
-          // Trigger auto-payment immediately
-          console.log('💰 CHECKOUT-FORM: Triggering orderMutation with contact data:', sessionData.contactData);
-          orderMutation.mutate({
-            paymentMethod: 'paystack',
-            timeline: 'standard'
-          });
-          
-          return;
-        } else {
-          console.log('💰 CHECKOUT-FORM: ❌ Auto-submit conditions NOT met:', {
-            reason: !shouldAutoSubmit ? 'shouldAutoSubmit=false' : 
-                    !currentUser ? 'no currentUser' : 
-                    !sessionData?.contactData ? 'no contactData' : 'unknown'
-          });
-        }
-      } catch (error) {
-        console.error('💰 CHECKOUT-FORM: Direct auth check failed:', error);
-      }
-    };
+    // Check if we should auto-submit payment
+    const shouldAutoSubmit = autoSubmitPayment === 'true' || 
+      (stepParam === 'payment' && sessionData?.contactData);
     
-    checkAuthAndSubmit();
-  }, [isPostAuthRedirect, sessionData, user, service.id, totalPrice, selectedAddOns]);
+    console.log('💰 CHECKOUT-FORM: Auto-payment decision:', {
+      autoSubmitPayment,
+      stepParam,
+      hasContactData: !!sessionData?.contactData,
+      shouldAutoSubmit,
+      userEmail: user.email,
+      orderMutationPending: orderMutation.isPending
+    });
+
+    if (shouldAutoSubmit && sessionData?.contactData && !orderMutation.isPending) {
+      console.log('💰 CHECKOUT-FORM: ✅ EXECUTING AUTO-PAYMENT NOW');
+      
+      // Clear the auto-submit flag immediately
+      sessionStorage.removeItem('auto_submit_payment');
+      
+      // Pre-populate form with session data
+      setContactData(sessionData.contactData);
+      
+      // Trigger payment immediately
+      orderMutation.mutate({
+        paymentMethod: 'paystack',
+        timeline: 'standard'
+      });
+    } else {
+      console.log('💰 CHECKOUT-FORM: ❌ Auto-submit conditions NOT met:', {
+        reason: !shouldAutoSubmit ? 'shouldAutoSubmit=false' : 
+                !sessionData?.contactData ? 'no contactData' : 
+                orderMutation.isPending ? 'mutation pending' : 'unknown'
+      });
+    }
+  }, [user, sessionData, orderMutation]);
 
 
 
