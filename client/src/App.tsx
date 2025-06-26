@@ -130,7 +130,7 @@ function Router() {
         <Route path="/auth" component={AuthPage} />
         <Route path="/admin" component={AdminLogin} />
         <Route path="/admin-dashboard" component={AdminDashboard} />
-        <Route path="/admin/projects" component={AdminProjectsDebug} />
+        <Route path="/admin/projects" component={AdminProjectsFixed} />
         <Route path="/admin/services" component={AdminServices} />
         <Route path="/dashboard" component={ClientDashboard} />
         <Route path="/active-projects" component={ActiveProjects} />

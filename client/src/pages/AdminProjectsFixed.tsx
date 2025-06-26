@@ -221,13 +221,18 @@ export default function AdminProjectsFixed() {
     });
   };
 
-  // Redirect non-admin users
-  if (!authLoading && (!isAuthenticated || user?.role !== 'admin')) {
+  // Redirect non-admin users (but wait for auth to fully load)
+  if (!authLoading && !isAuthenticated) {
     window.location.href = '/admin';
     return null;
   }
 
-  if (authLoading || isLoading) {
+  if (!authLoading && isAuthenticated && user?.role !== 'admin') {
+    window.location.href = '/admin';
+    return null;
+  }
+
+  if (authLoading || isLoading || !user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
         <AdminNavigation />
