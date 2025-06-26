@@ -372,67 +372,7 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
     checkAuthAndSubmit();
   }, [isPostAuthRedirect, sessionData, user, orderMutation, service.id, totalPrice, selectedAddOns, onPaymentSubmit]);
 
-  // Legacy auto-payment logic (keeping for compatibility)
-  useEffect(() => {
-    const autoSubmitPayment = sessionStorage.getItem('auto_submit_payment');
-    const stepParam = new URLSearchParams(window.location.search).get('step');
-    
-    if (!sessionData) {
-      console.log('💰 CHECKOUT-FORM: Waiting for sessionData to load');
-      return;
-    }
 
-    const shouldAutoSubmit = autoSubmitPayment === 'true' || 
-      (stepParam === 'payment' && sessionData?.contactData && user);
-
-    if (shouldAutoSubmit) {
-      console.log('💰 CHECKOUT-FORM: Should auto-submit payment - conditions met');
-      
-      if (!sessionData?.contactData) {
-        console.log('❌ CHECKOUT-FORM: No contact data in sessionData');
-        return;
-      }
-      
-      if (!user) {
-        console.log('❌ CHECKOUT-FORM: No user authenticated');
-        return;
-      }
-      
-      console.log('✅ CHECKOUT-FORM: All conditions met - Auto-submitting payment');
-      console.log('💰 CHECKOUT-FORM: Contact data:', sessionData.contactData);
-      console.log('💰 CHECKOUT-FORM: Session data:', {
-        serviceId: sessionData.serviceId,
-        totalPrice: sessionData.totalPrice,
-        selectedAddOns: sessionData.selectedAddOns
-      });
-      
-      setContactData(sessionData.contactData);
-      setShowPaymentLoader(true);
-      sessionStorage.setItem('payment_in_progress', 'true');
-      sessionStorage.removeItem('auto_submit_payment');
-      
-      // Auto-submit payment directly without showing the form
-      const paymentData = {
-        paymentMethod: "paystack" as const,
-        timeline: "standard",
-        overrideSelectedAddOns: sessionData.selectedAddOns,
-        overrideTotalAmount: sessionData.totalPrice
-      };
-      
-      console.log('💰 CHECKOUT-FORM: Preparing payment submission with data:', paymentData);
-      
-      setTimeout(() => {
-        console.log('💰 CHECKOUT-FORM: Calling orderMutation.mutate');
-        orderMutation.mutate(paymentData);
-      }, 1000);
-    } else {
-      console.log('💰 CHECKOUT-FORM: Not auto-submitting:', {
-        autoSubmitPayment,
-        shouldAutoSubmit,
-        reason: !shouldAutoSubmit ? 'Conditions not met' : 'Unknown'
-      });
-    }
-  }, [sessionData, user, onPaymentSubmit]);
 
   const onContactSubmit = (data: ContactForm) => {
     // Store contact data persistently
