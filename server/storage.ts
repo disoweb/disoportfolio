@@ -399,10 +399,13 @@ export class DatabaseStorage implements IStorage {
         .where(eq(projects.userId, userId))
         .orderBy(desc(projects.createdAt));
       
-      return results.map(project => ({
-        ...project,
-        order: { service: { name: null } }
-      }));
+      return results.map(project => {
+        console.log(`Server returning project: ${project.projectName}, dueDate: ${project.dueDate}`);
+        return {
+          ...project,
+          order: { service: { name: null } }
+        };
+      });
     } catch (error) {
       throw new Error(`Failed to fetch user projects: ${(error as Error).message}`);
     }
