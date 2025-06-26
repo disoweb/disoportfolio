@@ -81,7 +81,7 @@ const initialServices: Omit<Service, "recommended">[] = [
   },
   {
     id: "ecommerce",
-    name: "E-commerce Website",
+    name: "E-commerce App",
     description: "Complete online store solution",
     price: 450000,
     originalPrice: 600000,
@@ -175,6 +175,27 @@ const industryRecommendations: Record<string, string[]> = {
   education: ["webapp", "landing"],
   restaurant: ["ecommerce", "landing"],
 };
+
+// Utility function to calculate delivery date based on duration
+function calculateDeliveryDate(duration: string): string {
+  const today = new Date();
+  let weeks = 0;
+  
+  // Parse duration string to extract maximum weeks
+  const match = duration.match(/(\d+)(?:-(\d+))?\s*weeks?/i);
+  if (match) {
+    weeks = match[2] ? parseInt(match[2]) : parseInt(match[1]); // Use max if range, single if not
+  }
+  
+  const deliveryDate = new Date(today);
+  deliveryDate.setDate(today.getDate() + (weeks * 7));
+  
+  return deliveryDate.toLocaleDateString("en-US", { 
+    month: "short", 
+    day: "numeric", 
+    year: "numeric" 
+  });
+}
 
 interface PricingCalculatorProps {
   service: Service;
@@ -493,11 +514,7 @@ export default function ServicePackages() {
                   </div>
                   <div className="flex items-center">
                     <Calendar className="h-3 w-3 mr-1" />
-                    By{" "}
-                    {new Date(service.deliveryDate).toLocaleDateString(
-                      "en-US",
-                      { month: "short", day: "numeric", year: "numeric" },
-                    )}
+                    By {calculateDeliveryDate(service.duration)}
                   </div>
                 </div>
               </CardHeader>
@@ -613,7 +630,7 @@ export default function ServicePackages() {
                       }
                     }}
                   >
-                    Get Started
+                    Buy This Package
                     <ArrowRight className="ml-1 h-3 w-3" />
                   </Button>
 
