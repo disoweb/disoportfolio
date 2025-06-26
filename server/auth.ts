@@ -292,14 +292,41 @@ export async function setupAuth(app: Express) {
         return res.status(500).json({ message: "User creation failed" });
       }
 
-      // Return user without automatic login to avoid session issues
-      const sanitizedUser = { ...user };
-      delete (sanitizedUser as any).password;
+      // Store user ID in custom session for reliable authentication
+      req.session.userId = user.id;
+      req.session.authCompleted = true;
+      req.session.authTimestamp = Date.now();
       
-      auditLog('register_success', user.id, { email: sanitizedEmail.substring(0, 5) + '***', clientIP });
-      res.status(201).json({ 
-        user: sanitizedUser,
-        message: "Registration successful. Please log in with your credentials."
+      console.log('🚀 REGISTER: Saving session for user:', user.id);
+      
+      // Save session explicitly before responding
+      req.session.save((saveErr: any) => {
+        if (saveErr) {
+          console.error('🚀 REGISTER: Session save error after registration:', saveErr);
+        } else {
+          console.log('🚀 REGISTER: Session saved successfully');
+        }
+        
+        // Log in the user automatically with passport
+        req.login(user, (err: any) => {
+          if (err) {
+            console.error('🚀 REGISTER: Auto-login error after registration:', err);
+            // Even if passport login fails, we have custom session
+          } else {
+            console.log('🚀 REGISTER: Passport login successful');
+          }
+          
+          auditLog('register_success', user.id, { email: sanitizedEmail.substring(0, 5) + '***', clientIP });
+          
+          const sanitizedUser = { ...user };
+          delete (sanitizedUser as any).password;
+          
+          console.log('🚀 REGISTER: Returning user data:', sanitizedUser.id);
+          res.status(201).json({ 
+            user: sanitizedUser,
+            message: "User created successfully"
+          });
+        });
       });
     } catch (error) {
       console.error("Registration error:", error);

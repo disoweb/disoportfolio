@@ -236,7 +236,7 @@ export default function AuthPage() {
       
       console.log('🚀 [REGISTER SUCCESS] Waiting for session establishment...');
       // Wait longer for session to be fully established with database
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
       // Check for checkout session token first
       const checkoutSessionToken = sessionStorage.getItem('checkoutSessionToken');
@@ -244,10 +244,17 @@ export default function AuthPage() {
       
       if (checkoutSessionToken) {
         try {
-          // Fetch the checkout session data
+          console.log('🔄 AUTH: Making authenticated request to fetch checkout session');
+          
+          // Fetch the checkout session data with credentials
           const response = await fetch(`/api/checkout-sessions/${checkoutSessionToken}`, {
-            credentials: 'include'
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json'
+            }
           });
+          
+          console.log('🔄 AUTH: Checkout session fetch response status:', response.status);
           
           if (response.ok) {
             const sessionData = await response.json();
@@ -267,11 +274,15 @@ export default function AuthPage() {
             
             // Set auto-submit flag for immediate payment
             sessionStorage.setItem('auto_submit_payment', 'true');
-            console.log('🔄 AUTH: Set auto_submit_payment flag, redirecting to checkout');
+            console.log('🔄 AUTH: Set auto_submit_payment flag, redirecting to checkout with URL:', `/checkout?${params.toString()}`);
             
-            // Redirect to checkout with auto-payment
-            window.location.href = `/checkout?${params.toString()}`;
+            // Use a short delay then redirect
+            setTimeout(() => {
+              window.location.href = `/checkout?${params.toString()}`;
+            }, 100);
             return;
+          } else {
+            console.log('🔄 AUTH: Checkout session fetch failed:', response.status);
           }
         } catch (error) {
           console.error('🔄 AUTH: Error fetching checkout session:', error);
