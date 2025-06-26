@@ -17,10 +17,16 @@ export default function Checkout() {
   const [totalPrice, setTotalPrice] = useState<number>(0);
   const { user } = useAuth();
 
+  // Parse URL parameters
+  const urlParams = new URLSearchParams(window.location.search);
   const serviceId = urlParams.get('service');
   const price = urlParams.get('price');
   const addons = urlParams.get('addons');
   const checkoutParam = urlParams.get('checkout');
+  const stepParam = urlParams.get('step');
+  
+  // Check if coming from authentication with ready-for-payment state
+  const isReadyForPayment = sessionStorage.getItem('checkout_ready_for_payment') === 'true';
 
   // Fetch service data
   const { data: services = [], isLoading: servicesLoading } = useQuery({
@@ -58,16 +64,11 @@ export default function Checkout() {
             setTotalPrice(sessionData.totalPrice || 0);
             setSelectedAddOns(sessionData.selectedAddOns || []);
             
-            // If we have contact data from the session, restore it and go to payment step
-            if (sessionData.contactData) {
-              setContactData(sessionData.contactData);
-              
-              // Check if user is authenticated and ready for payment
-              if (user && (stepParam === 'payment' || isReadyForPayment)) {
-                setCurrentStep('payment');
-                sessionStorage.removeItem('checkout_ready_for_payment'); // Clear flag
-                console.log('Checkout page - User authenticated, moving to payment step');
-              }
+            // Check if this is a post-authentication redirect to payment step
+            if (sessionData.contactData && user && (stepParam === 'payment' || isReadyForPayment)) {
+              // Auto-redirect to payment step for authenticated users with contact data
+              sessionStorage.removeItem('checkout_ready_for_payment'); // Clear flag
+              console.log('Checkout page - User authenticated, auto-redirecting to payment step');
             }
             
             console.log('Checkout page - Successfully restored service data from database');
