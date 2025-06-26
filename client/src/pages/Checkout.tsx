@@ -102,64 +102,6 @@ export default function Checkout() {
     }
   }, [serviceId, services, price, addons, serviceData]);
 
-  // Handle post-authentication auto-payment
-  useEffect(() => {
-    console.log('🔍 [CHECKOUT PAGE] === POST-AUTH AUTO-PAYMENT CHECK ===');
-    console.log('🔍 [CHECKOUT PAGE] User authenticated:', !!user);
-    
-    if (user) {
-      const pendingCheckout = sessionStorage.getItem('pendingCheckout');
-      console.log('🔍 [CHECKOUT PAGE] Pending checkout exists:', !!pendingCheckout);
-      
-      if (pendingCheckout) {
-        try {
-          const checkoutData = JSON.parse(pendingCheckout);
-          console.log('🔍 [CHECKOUT PAGE] Parsed checkout data:', checkoutData);
-          
-          // Check if this is a completed form that came from authentication
-          const hasContactData = checkoutData.contactInfo || checkoutData.contactData;
-          const hasProjectDetails = checkoutData.projectDetails;
-          const hasService = checkoutData.service;
-          
-          console.log('🔍 [CHECKOUT PAGE] Has contact data:', !!hasContactData);
-          console.log('🔍 [CHECKOUT PAGE] Has project details:', !!hasProjectDetails);
-          console.log('🔍 [CHECKOUT PAGE] Has service:', !!hasService);
-          
-          if (hasContactData && hasProjectDetails && hasService) {
-            console.log('🔍 [CHECKOUT PAGE] ✅ All data present - triggering direct payment');
-            
-            // Transform data to match expected format and trigger payment immediately
-            const contactData = checkoutData.contactInfo || checkoutData.contactData;
-            const transformedContactData = {
-              fullName: contactData.fullName,
-              email: contactData.email,
-              phone: contactData.phone,
-              company: contactData.company || "",
-              projectDescription: checkoutData.projectDetails.description
-            };
-            
-            // Store the transformed contact data for the checkout form
-            const formKey = 'checkout_contact_data';
-            localStorage.setItem(formKey, JSON.stringify({
-              data: transformedContactData,
-              timestamp: Date.now()
-            }));
-            
-            // Clear pending checkout and set auto-payment flag
-            sessionStorage.removeItem('pendingCheckout');
-            sessionStorage.setItem('auto_trigger_payment', 'true');
-            
-            // Force page refresh to trigger the checkout form with auto-payment
-            window.location.reload();
-            return;
-          }
-        } catch (error) {
-          console.error('🔍 [CHECKOUT PAGE] Error parsing pending checkout:', error);
-        }
-      }
-    }
-  }, [user]);
-
   // Debug render conditions
   console.log('🔍 [CHECKOUT PAGE] === RENDER CONDITIONS CHECK ===');
   console.log('🔍 [CHECKOUT PAGE] serviceId from URL:', serviceId);

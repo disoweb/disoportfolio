@@ -46,64 +46,29 @@ export default function AuthPage() {
   const [redirectHandled, setRedirectHandled] = useState(false);
 
   // Handle pending checkout completion and redirect if already logged in
+  // Only auto-redirect if we haven't already handled it
   useEffect(() => {
-    console.log('🔐 [AUTH PAGE] useEffect triggered - isLoading:', isLoading, 'user:', !!user, 'redirectHandled:', redirectHandled);
-    
     if (!isLoading && user && !redirectHandled) {
       const pendingCheckout = sessionStorage.getItem('pendingCheckout');
-      
-      console.log('🔐 [AUTH PAGE] User authenticated, checking pending checkout:', !!pendingCheckout);
-      console.log('🔐 [AUTH PAGE] Raw pending checkout data:', pendingCheckout);
+
       
       if (pendingCheckout) {
         try {
           const checkoutData = JSON.parse(pendingCheckout);
-          console.log('🔐 [AUTH PAGE] Checkout data found:', checkoutData);
+
           
-          // Check if this is a completed form (has all required data for payment)
-          const hasCompletedForm = checkoutData.service && 
-                                 checkoutData.contactInfo && 
-                                 checkoutData.projectDetails && 
-                                 checkoutData.totalPrice;
-          
-          // Transform the data structure to match what CheckoutForm expects
-          if (hasCompletedForm) {
-            const transformedData = {
-              ...checkoutData,
-              contactData: {
-                fullName: checkoutData.contactInfo.fullName,
-                email: checkoutData.contactInfo.email,
-                phone: checkoutData.contactInfo.phone,
-                company: checkoutData.contactInfo.company || "",
-                projectDescription: checkoutData.projectDetails.description
-              }
-            };
-            
-            // Update the session storage with the correct data structure
-            sessionStorage.setItem('pendingCheckout', JSON.stringify(transformedData));
-            console.log('🔐 [AUTH PAGE] ✅ Transformed checkout data structure for auto-payment');
-          }
-          
-          if (hasCompletedForm) {
-            console.log('🔐 [AUTH PAGE] ✅ Form is completed, redirecting to checkout for auto-payment');
-            setRedirectHandled(true);
-            setLocation('/checkout');
-          } else {
-            console.log('🔐 [AUTH PAGE] ❌ Form incomplete, redirecting to checkout form');
-            // Form is incomplete, redirect to checkout to complete it
-            const returnUrl = checkoutData.returnUrl || '/checkout';
-            setRedirectHandled(true);
-            setLocation(returnUrl);
-          }
+          const returnUrl = checkoutData.returnUrl || '/checkout';
+
+          setRedirectHandled(true);
+          setLocation(returnUrl);
         } catch (error) {
-          console.error('🔐 [AUTH PAGE] Error parsing checkout data:', error);
+
           sessionStorage.removeItem('pendingCheckout');
           setRedirectHandled(true);
           setLocation("/");
         }
       } else {
         // No pending checkout, redirect to dashboard
-        console.log('🔐 [AUTH PAGE] No pending checkout, redirecting to dashboard');
         setRedirectHandled(true);
         setLocation("/dashboard");
       }
@@ -168,16 +133,11 @@ export default function AuthPage() {
           console.log('🚀 [LOGIN SUCCESS] Total price in checkout:', checkoutData.totalPrice);
           console.log('🚀 [LOGIN SUCCESS] Selected addons in checkout:', checkoutData.selectedAddOns);
           
-          // Check if we have complete data for direct payment submission
-          const hasCompleteData = checkoutData.service && 
-                                 checkoutData.contactData && 
-                                 checkoutData.totalPrice;
+          // Set payment flag and redirect to checkout for auto-payment
+          sessionStorage.setItem('payment_in_progress', 'true');
+          console.log('🚀 [LOGIN SUCCESS] ✅ Set payment_in_progress flag');
           
-          // Set a flag to trigger payment after redirect and session establishment
-          sessionStorage.setItem('trigger_immediate_payment', 'true');
-          console.log('🚀 [LOGIN SUCCESS] Set immediate payment trigger flag');
-          
-          // Redirect to checkout to let the normal flow handle it with proper session
+          console.log('🚀 [LOGIN SUCCESS] ✅ Redirecting to checkout for auto-payment processing');
           setTimeout(() => {
             setLocation('/checkout');
           }, 100);
