@@ -288,63 +288,63 @@ function ROICalculator({ service }: { service: Service }) {
   );
 
   return (
-    <div className="bg-green-50 p-3 rounded-lg">
+    <div className="bg-green-50 p-2 rounded">
       <button
         onClick={() => setShowROI(!showROI)}
         className="w-full flex items-center justify-between text-left"
         aria-expanded={showROI}
         aria-controls={`roi-details-${service.id}`}
       >
-        <h4 className="font-semibold text-green-800 flex items-center space-x-1">
-          <Calculator className="h-4 w-4" />
+        <h4 className="font-semibold text-green-800 flex items-center space-x-1 text-xs">
+          <Calculator className="h-3 w-3" />
           <span>ROI Calculator</span>
         </h4>
         {showROI ? (
-          <ChevronUp className="h-4 w-4 text-green-800" />
+          <ChevronUp className="h-3 w-3 text-green-800" />
         ) : (
-          <ChevronDown className="h-4 w-4 text-green-800" />
+          <ChevronDown className="h-3 w-3 text-green-800" />
         )}
       </button>
 
       {showROI && (
         <div
           id={`roi-details-${service.id}`}
-          className="mt-3 space-y-2 text-sm"
+          className="mt-2 space-y-1 text-xs"
         >
           <div className="flex items-center justify-between">
             <label
               htmlFor={`monthlyRevenue-${service.id}`}
               className="text-xs text-slate-700"
             >
-              Current Avg. Monthly Revenue (₦):
+              Monthly Revenue (₦):
             </label>
             <input
               type="number"
               id={`monthlyRevenue-${service.id}`}
               value={monthlyRevenue}
               onChange={(e) => setMonthlyRevenue(Number(e.target.value))}
-              className="w-24 p-1 border rounded text-xs text-right"
+              className="w-20 p-1 border rounded text-xs text-right"
               step="10000"
               aria-label="Current Average Monthly Revenue"
             />
           </div>
           <div className="flex justify-between">
-            <span>Expected revenue increase:</span>
+            <span>Revenue increase:</span>
             <span className="font-medium text-green-700">
               +{projectedIncrease}%
             </span>
           </div>
           <div className="flex justify-between">
-            <span>Monthly revenue boost:</span>
+            <span>Monthly boost:</span>
             <span className="font-medium text-green-700">
               ₦{monthlyIncrease.toLocaleString()}
             </span>
           </div>
           <div className="flex justify-between text-green-700 font-bold">
-            <span>ROI breakeven:</span>
+            <span>Breakeven:</span>
             <span>
               {roiMonths === Infinity
-                ? "N/A (check revenue/boost)"
+                ? "N/A"
                 : `${roiMonths} months`}
             </span>
           </div>
@@ -595,9 +595,7 @@ export default function ServicePackages() {
                 )}
 
                 <div className="mt-auto space-y-2 pt-2">
-                  <div className="hidden md:block">
-                    <ROICalculator service={service} />
-                  </div>
+                  <ROICalculator service={service} />
 
                   {service.spots > 0 && service.spots <= 5 && (
                     <div className="text-xs text-orange-700 bg-orange-50 p-2 rounded border border-orange-200 flex items-center">
