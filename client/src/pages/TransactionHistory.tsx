@@ -25,15 +25,15 @@ export default function TransactionHistory() {
   const filteredOrders = React.useMemo(() => {
     if (!orders) return [];
     if (statusFilter === 'all') return orders;
-    return orders.filter((order: any) => order.status === statusFilter);
+    return (orders as any[]).filter((order: any) => order.status === statusFilter);
   }, [orders, statusFilter]);
 
   // Pagination logic
-  const totalPages = Math.ceil((filteredOrders?.length || 0) / itemsPerPage);
+  const totalPages = Math.ceil(((filteredOrders as any[])?.length || 0) / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const paginatedOrders = React.useMemo(() => {
-    return filteredOrders.slice(startIndex, endIndex);
+    return (filteredOrders as any[]).slice(startIndex, endIndex);
   }, [filteredOrders, startIndex, endIndex]);
 
   // Reset to page 1 when filter changes
@@ -66,10 +66,10 @@ export default function TransactionHistory() {
   const getStatusCounts = () => {
     if (!orders) return { all: 0, paid: 0, pending: 0, cancelled: 0 };
     return {
-      all: orders.length,
-      paid: orders.filter((o: any) => o.status === 'paid').length,
-      pending: orders.filter((o: any) => o.status === 'pending').length,
-      cancelled: orders.filter((o: any) => o.status === 'cancelled').length,
+      all: (orders as any[]).length,
+      paid: (orders as any[]).filter((o: any) => o.status === 'paid').length,
+      pending: (orders as any[]).filter((o: any) => o.status === 'pending').length,
+      cancelled: (orders as any[]).filter((o: any) => o.status === 'cancelled').length,
     };
   };
 
@@ -102,7 +102,7 @@ export default function TransactionHistory() {
             Transaction History
           </h1>
           <p className="text-slate-600">
-            View all your orders and transactions (Total Spent: ₦{(stats?.totalSpent || 0).toLocaleString()})
+            View all your orders and transactions (Total Spent: ₦{((stats as any)?.totalSpent || 0).toLocaleString()})
           </p>
         </div>
 

@@ -165,17 +165,17 @@ export default function ClientDashboard() {
     }
   }, [toast]);
 
-  const { data: projects, isLoading: projectsLoading } = useQuery({
+  const { data: projects = [], isLoading: projectsLoading } = useQuery({
     queryKey: ["/api/projects"],
   });
 
-  const { data: orders, isLoading: ordersLoading } = useQuery({
+  const { data: orders = [], isLoading: ordersLoading } = useQuery({
     queryKey: ["/api/orders"],
   });
 
   // Calculate total spent from paid orders
   const totalSpent = React.useMemo(() => {
-    if (!orders) return 0;
+    if (!Array.isArray(orders)) return 0;
     return orders.filter((o: any) => o.status === 'paid').reduce((sum: number, o: any) => {
       const price = typeof o.totalPrice === 'string' ? parseInt(o.totalPrice) : (o.totalPrice || 0);
       return sum + price;
@@ -184,7 +184,7 @@ export default function ClientDashboard() {
 
   // Filter orders based on selected filter
   const filteredOrders = React.useMemo(() => {
-    if (!orders) return [];
+    if (!Array.isArray(orders)) return [];
     if (orderFilter === 'all') return orders;
     return orders.filter((order: any) => {
       switch (orderFilter) {
@@ -215,7 +215,7 @@ export default function ClientDashboard() {
 
   // Calculate filter counts
   const filterCounts = React.useMemo(() => {
-    if (!orders) return { all: 0, pending: 0, paid: 0, cancelled: 0 };
+    if (!Array.isArray(orders)) return { all: 0, pending: 0, paid: 0, cancelled: 0 };
     return {
       all: orders.length,
       pending: orders.filter((o: any) => o.status === 'pending').length,
@@ -254,7 +254,7 @@ export default function ClientDashboard() {
     }
   }, [orders, filterCounts, hasSetDefaultFilter]);
 
-  const { data: stats } = useQuery({
+  const { data: stats = {} } = useQuery({
     queryKey: ["/api/client/stats"],
   });
 
@@ -289,7 +289,7 @@ export default function ClientDashboard() {
                 </div>
                 <div className="ml-4">
                   <p className="text-sm text-slate-600">Active Projects</p>
-                  <p className="text-2xl font-bold text-slate-900">{stats?.activeProjects || 0}</p>
+                  <p className="text-2xl font-bold text-slate-900">{(stats as any)?.activeProjects || 0}</p>
                 </div>
               </div>
             </CardContent>
@@ -303,7 +303,7 @@ export default function ClientDashboard() {
                 </div>
                 <div className="ml-4">
                   <p className="text-sm text-slate-600">Completed</p>
-                  <p className="text-2xl font-bold text-slate-900">{stats?.completedProjects || 0}</p>
+                  <p className="text-2xl font-bold text-slate-900">{(stats as any)?.completedProjects || 0}</p>
                 </div>
               </div>
             </CardContent>
@@ -318,7 +318,7 @@ export default function ClientDashboard() {
                 <div className="ml-4">
                   <p className="text-sm text-slate-600">Total Spent</p>
                   <p className="text-2xl font-bold text-slate-900">
-                    ₦{(stats?.totalSpent || 0).toLocaleString()}
+                    ₦{((stats as any)?.totalSpent || 0).toLocaleString()}
                   </p>
                 </div>
               </div>
@@ -333,7 +333,7 @@ export default function ClientDashboard() {
                 </div>
                 <div className="ml-4">
                   <p className="text-sm text-slate-600">New Messages</p>
-                  <p className="text-2xl font-bold text-slate-900">{stats?.newMessages || 0}</p>
+                  <p className="text-2xl font-bold text-slate-900">{(stats as any)?.newMessages || 0}</p>
                 </div>
               </div>
             </CardContent>
@@ -635,7 +635,7 @@ export default function ClientDashboard() {
                 <CardTitle className="text-xl font-bold text-slate-900">Active Projects</CardTitle>
               </CardHeader>
               <CardContent>
-                {projects && projects.length > 0 ? (
+                {Array.isArray(projects) && projects.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {projects.map((project: any) => (
                       <ProjectTimer key={project.id} project={project} />
@@ -676,7 +676,7 @@ export default function ClientDashboard() {
                 <CardTitle className="text-xl font-bold text-slate-900">Recent Messages</CardTitle>
               </CardHeader>
               <CardContent>
-                <MessagesList projectId={projects?.[0]?.id} />
+                <MessagesList projectId={Array.isArray(projects) && projects.length > 0 ? projects[0]?.id : undefined} />
               </CardContent>
             </Card>
 
@@ -742,12 +742,12 @@ export default function ClientDashboard() {
                   <div className="flex justify-between">
                     <span className="text-slate-600">Total Spent</span>
                     <span className="font-semibold text-slate-900">
-                      ₦{(stats?.totalSpent || 0).toLocaleString()}
+                      ₦{((stats as any)?.totalSpent || 0).toLocaleString()}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-600">Active Projects</span>
-                    <span className="font-semibold text-slate-900">{stats?.activeProjects || 0}</span>
+                    <span className="font-semibold text-slate-900">{(stats as any)?.activeProjects || 0}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-600">Member Since</span>

@@ -51,7 +51,7 @@ export default function ActiveProjects() {
             Active Projects
           </h1>
           <p className="text-slate-600">
-            Track progress and manage your ongoing projects ({stats?.activeProjects || 0} active)
+            Track progress and manage your ongoing projects ({(stats as any)?.activeProjects || 0} active)
           </p>
         </div>
 

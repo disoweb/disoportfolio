@@ -363,13 +363,7 @@ export class DatabaseStorage implements IStorage {
     }
 
     // Initialize payment using existing order data
-    console.log('🔄 REACTIVATE: Starting payment for order:', existingOrder.id, 'Amount:', existingOrder.totalPrice);
-    console.log('🔄 REACTIVATE: Payment params:', {
-      orderId: existingOrder.id,
-      amount: parseInt(existingOrder.totalPrice),
-      email: user.email,
-      userId: existingOrder.userId,
-    });
+
 
     try {
       const paymentUrl = await this.initializePayment({
@@ -379,10 +373,8 @@ export class DatabaseStorage implements IStorage {
         userId: existingOrder.userId,
       });
 
-      console.log('💳 REACTIVATE: Payment URL generated successfully:', paymentUrl);
       return paymentUrl;
     } catch (error) {
-      console.log('❌ REACTIVATE: Error in initializePayment:', error);
       throw error;
     }
   }
@@ -677,18 +669,14 @@ export class DatabaseStorage implements IStorage {
     email: string;
     userId: string;
   }): Promise<string> {
-    console.log('💳 INIT-PAYMENT: Starting with params:', params);
     
     const paystackSecretKey = process.env.PAYSTACK_SECRET_KEY;
-    console.log('💳 INIT-PAYMENT: Paystack key exists:', !!paystackSecretKey);
     if (!paystackSecretKey) {
       throw new Error("Payment service not configured");
     }
 
     // Validate parameters
-    console.log('💳 INIT-PAYMENT: Validating parameters...');
     if (!params.orderId || !params.email || !params.userId || params.amount <= 0) {
-      console.log('❌ INIT-PAYMENT: Invalid parameters:', params);
       throw new Error('Invalid payment parameters');
     }
 
@@ -708,8 +696,6 @@ export class DatabaseStorage implements IStorage {
           userId: params.userId,
         },
       };
-      console.log('💳 INIT-PAYMENT: Request body:', requestBody);
-      console.log('💳 INIT-PAYMENT: Making fetch request...');
 
       const response = await fetch(
         "https://api.paystack.co/transaction/initialize",
@@ -731,12 +717,10 @@ export class DatabaseStorage implements IStorage {
       console.log('📊 Paystack response:', JSON.stringify(data, null, 2));
 
       if (!data.status) {
-        console.log('❌ Paystack error:', data.message);
         throw new Error(data.message || "Failed to initialize payment");
       }
 
       if (!data.data?.authorization_url) {
-        console.log('❌ No authorization URL in response:', data);
         throw new Error("No payment URL received from Paystack");
       }
 
@@ -976,7 +960,6 @@ export class DatabaseStorage implements IStorage {
     message: string;
   }): Promise<void> {
     // In a real implementation, you would send an email notification here
-    console.log("Contact form submission:", data);
 
     // Create a system user if it doesn't exist
     const systemUser = await this.getUserByEmail("system@disowebs.com");
@@ -1001,18 +984,15 @@ export class DatabaseStorage implements IStorage {
   async handleQuoteRequest(data: any): Promise<void> {
     // Store the quote request without audit log for now
     // TODO: Create a separate quotes table for better data management
-    console.log("Quote request submission:", data);
   }
 
   // Checkout session management
   async createCheckoutSession(session: InsertCheckoutSession): Promise<CheckoutSession> {
-    console.log('DatabaseStorage: Creating checkout session:', session);
     try {
       const [newSession] = await db
         .insert(checkoutSessions)
         .values(session)
         .returning();
-      console.log('DatabaseStorage: Created session:', newSession);
       return newSession;
     } catch (error) {
       console.error('DatabaseStorage: Error creating session:', error);
@@ -1021,13 +1001,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCheckoutSession(sessionToken: string): Promise<CheckoutSession | undefined> {
-    console.log('DatabaseStorage: Getting session:', sessionToken);
     try {
       const [session] = await db
         .select()
         .from(checkoutSessions)
         .where(eq(checkoutSessions.sessionToken, sessionToken));
-      console.log('DatabaseStorage: Found session:', session);
       return session;
     } catch (error) {
       console.error('DatabaseStorage: Error getting session:', error);
@@ -1036,14 +1014,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateCheckoutSession(sessionToken: string, updates: Partial<InsertCheckoutSession>): Promise<CheckoutSession> {
-    console.log('DatabaseStorage: Updating session:', sessionToken, updates);
     try {
       const [updatedSession] = await db
         .update(checkoutSessions)
         .set(updates)
         .where(eq(checkoutSessions.sessionToken, sessionToken))
         .returning();
-      console.log('DatabaseStorage: Updated session:', updatedSession);
       return updatedSession;
     } catch (error) {
       console.error('DatabaseStorage: Error updating session:', error);
@@ -1052,12 +1028,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteCheckoutSession(sessionToken: string): Promise<void> {
-    console.log('DatabaseStorage: Deleting session:', sessionToken);
     try {
       await db
         .delete(checkoutSessions)
         .where(eq(checkoutSessions.sessionToken, sessionToken));
-      console.log('DatabaseStorage: Session deleted');
     } catch (error) {
       console.error('DatabaseStorage: Error deleting session:', error);
       throw error;
@@ -1065,13 +1039,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async cleanupExpiredCheckoutSessions(): Promise<void> {
-    console.log('DatabaseStorage: Cleaning up expired sessions');
     try {
       const now = new Date();
       await db
         .delete(checkoutSessions)
         .where(lt(checkoutSessions.expiresAt, now));
-      console.log('DatabaseStorage: Expired sessions cleaned up');
     } catch (error) {
       console.error('DatabaseStorage: Error cleaning up sessions:', error);
       throw error;
