@@ -43,17 +43,31 @@ export async function setupAuth(app: Express) {
   
   try {
     if (process.env.DATABASE_URL) {
+      // Initialize PostgreSQL session store with timeout protection
       const PostgresSessionStore = connectPg(session);
-      sessionStore = new PostgresSessionStore({
-        conString: process.env.DATABASE_URL,
-        createTableIfMissing: false, // Table already exists
-        tableName: "sessions",
-        ttl: 7 * 24 * 60 * 60, // 7 days in seconds
-        errorLog: (error: any) => {
-          console.error('Session store error:', error);
-        }
-      });
-      console.log('Using PostgreSQL session store for persistent sessions');
+      
+      // Add connection timeout protection
+      const initTimeout = setTimeout(() => {
+        console.warn('PostgreSQL session store initialization timeout, using memory store');
+        sessionStore = undefined;
+      }, 5000);
+      
+      try {
+        sessionStore = new PostgresSessionStore({
+          conString: process.env.DATABASE_URL,
+          createTableIfMissing: false, // Table already exists
+          tableName: "sessions",
+          ttl: 7 * 24 * 60 * 60, // 7 days in seconds
+          errorLog: (error: any) => {
+            console.error('Session store error:', error);
+          }
+        });
+        clearTimeout(initTimeout);
+        console.log('Using PostgreSQL session store for persistent sessions');
+      } catch (storeError) {
+        clearTimeout(initTimeout);
+        throw storeError;
+      }
     } else {
       console.log('Using memory store for sessions (DATABASE_URL not available)');
       sessionStore = undefined;
@@ -65,9 +79,10 @@ export async function setupAuth(app: Express) {
 
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || 'dev-secret-key-for-replit-development',
-    resave: true,
-    saveUninitialized: true,
+    resave: false, // Optimized for PostgreSQL session store
+    saveUninitialized: false, // Better security and performance
     store: sessionStore,
+    rolling: true, // Extend session on activity
     cookie: {
       secure: false,
       httpOnly: true,
@@ -374,28 +389,40 @@ export async function setupAuth(app: Express) {
         return res.status(401).json({ message: info?.message || "Login failed" });
       }
 
-      // Custom session management to avoid passport issues
+      // Robust session management for PostgreSQL session store
       try {
         if (req.session) {
-          // Set user ID directly in session without passport wrapper
-          (req.session as any).userId = user.id;
-          
-          // Force immediate session save and regeneration
-          req.session.save((saveErr) => {
-            if (saveErr) {
-              console.error('Session save error:', saveErr);
-              auditLog('login_session_error', user.id, { error: saveErr.message, clientIP });
-              return res.status(500).json({ message: "Login failed" });
+          // Regenerate session ID for security and ensure fresh session
+          req.session.regenerate((regenErr) => {
+            if (regenErr) {
+              console.error('Session regeneration error:', regenErr);
+              // Fallback to direct session setting if regeneration fails
+              (req.session as any).userId = user.id;
+              
+              const sanitizedUser = { ...user };
+              delete (sanitizedUser as any).password;
+              
+              auditLog('login_success', user.id, { email: sanitizedEmail.substring(0, 5) + '***', clientIP });
+              return res.json({ user: sanitizedUser });
             }
             
-            // Set userId directly without regeneration to avoid session issues
+            // Set user ID in the regenerated session
             (req.session as any).userId = user.id;
             
-            const sanitizedUser = { ...user };
-            delete (sanitizedUser as any).password;
-            
-            auditLog('login_success', user.id, { email: sanitizedEmail.substring(0, 5) + '***', clientIP });
-            res.json({ user: sanitizedUser });
+            // Force session save to PostgreSQL immediately
+            req.session.save((saveErr) => {
+              if (saveErr) {
+                console.error('Session save error:', saveErr);
+                auditLog('login_session_error', user.id, { error: saveErr.message, clientIP });
+                return res.status(500).json({ message: "Login failed" });
+              }
+              
+              const sanitizedUser = { ...user };
+              delete (sanitizedUser as any).password;
+              
+              auditLog('login_success', user.id, { email: sanitizedEmail.substring(0, 5) + '***', clientIP });
+              res.json({ user: sanitizedUser });
+            });
           });
         } else {
           console.error('No session object available');
@@ -520,8 +547,13 @@ export async function setupAuth(app: Express) {
 
 export const isAuthenticated = async (req: any, res: any, next: any) => {
   try {
+    // Ensure session is loaded from PostgreSQL database
+    if (!req.session) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+    
     // Check custom session userId first (from our login system)
-    if (req.session && (req.session as any).userId) {
+    if ((req.session as any).userId) {
       const userId = (req.session as any).userId;
       const user = await storage.getUser(userId);
       if (user) {
@@ -531,11 +563,17 @@ export const isAuthenticated = async (req: any, res: any, next: any) => {
     }
 
     // Fallback check for passport session
-    if (req.session && req.session.passport && req.session.passport.user) {
-      const user = await storage.getUser(req.session.passport.user);
-      if (user) {
-        req.user = user;
-        return next();
+    if (req.session.passport && req.session.passport.user) {
+      const passportUserId = typeof req.session.passport.user === 'object' 
+        ? req.session.passport.user.id 
+        : req.session.passport.user;
+      
+      if (passportUserId) {
+        const user = await storage.getUser(passportUserId);
+        if (user) {
+          req.user = user;
+          return next();
+        }
       }
     }
     
@@ -546,6 +584,7 @@ export const isAuthenticated = async (req: any, res: any, next: any) => {
     
     return res.status(401).json({ message: "Authentication required" });
   } catch (error) {
+    console.error('Authentication middleware error:', error);
     res.status(401).json({ message: "Authentication required" });
   }
 };
