@@ -56,21 +56,25 @@ export default function AuthPage() {
           const checkoutData = JSON.parse(pendingCheckout);
           const returnUrl = checkoutData.returnUrl || '/checkout';
           
+          console.log('Auth page - Found pending checkout:', checkoutData);
+          
           // Add session stabilization flag for post-auth checkout
           sessionStorage.setItem('auth_completed', 'true');
           sessionStorage.setItem('auth_timestamp', Date.now().toString());
           
           setRedirectHandled(true);
           
-          // Redirect to checkout with service parameters to avoid "Service Not Found"
+          // Always redirect to checkout with service parameters to avoid "Service Not Found"
           if (checkoutData.service && checkoutData.service.id) {
             const serviceParams = new URLSearchParams({
               service: checkoutData.service.id,
               price: checkoutData.totalPrice?.toString() || '0',
               addons: (checkoutData.selectedAddOns || []).join(',')
             });
+            console.log('Auth page - Redirecting to:', `/checkout?${serviceParams.toString()}`);
             setLocation(`/checkout?${serviceParams.toString()}`);
           } else {
+            console.log('Auth page - No service data, redirecting to:', returnUrl);
             setLocation(returnUrl);
           }
         } catch (error) {

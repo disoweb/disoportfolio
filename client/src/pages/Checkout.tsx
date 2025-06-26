@@ -32,30 +32,30 @@ export default function Checkout() {
     // Scroll to top when component mounts
     window.scrollTo(0, 0);
     
-
+    // First priority: Check for pending checkout data (for post-auth users)
+    const pendingCheckout = sessionStorage.getItem('pendingCheckout');
+    console.log('Checkout page - Pending checkout data:', pendingCheckout ? 'Found' : 'Not found');
+    console.log('Checkout page - Service ID from URL:', serviceId);
+    console.log('Checkout page - Current serviceData:', serviceData ? 'Set' : 'Not set');
     
-    // Check for pending checkout data if no URL params
-    if (!serviceId) {
-      const pendingCheckout = sessionStorage.getItem('pendingCheckout');
-
-      
-      if (pendingCheckout) {
-        try {
-          const checkoutData = JSON.parse(pendingCheckout);
-
-          
-          if (checkoutData.service) {
-            setServiceData(checkoutData.service);
-            setTotalPrice(checkoutData.totalPrice);
-            setSelectedAddOns(checkoutData.selectedAddOns || []);
-            return; // Exit early since we got data from pending checkout
-          }
-        } catch (error) {
-
+    if (pendingCheckout && !serviceData) {
+      try {
+        const checkoutData = JSON.parse(pendingCheckout);
+        console.log('Checkout page - Parsed checkout data:', checkoutData);
+        if (checkoutData.service) {
+          console.log('Checkout page - Setting service data from pending checkout');
+          setServiceData(checkoutData.service);
+          setTotalPrice(checkoutData.totalPrice || 0);
+          setSelectedAddOns(checkoutData.selectedAddOns || []);
+          return; // Exit early since we got data from pending checkout
         }
+      } catch (error) {
+        console.error('Error parsing pending checkout:', error);
+        sessionStorage.removeItem('pendingCheckout');
       }
     }
     
+    // Second priority: Use URL parameters to find service
     if (serviceId && Array.isArray(services) && services.length > 0) {
       const service = services.find((s: any) => s.id === serviceId);
       
@@ -86,30 +86,26 @@ export default function Checkout() {
         }
       }
     }
-  }, [serviceId, services, price, addons]);
+  }, [serviceId, services, price, addons, serviceData]);
 
   // Only show error if no serviceId AND no serviceData AND no pending checkout
-  if (!serviceId && !serviceData) {
-    // Check for pending checkout one more time before showing error
-    const pendingCheckout = sessionStorage.getItem('pendingCheckout');
-    if (!pendingCheckout) {
-      return (
-        <div className="min-h-screen bg-gray-50">
-          <Navigation />
-          <div className="container mx-auto px-4 py-16">
-            <div className="text-center">
-              <h1 className="text-2xl font-bold text-gray-900 mb-4">Service Not Found</h1>
-              <p className="text-gray-600 mb-6">The service you're trying to purchase could not be found.</p>
-              <Button onClick={() => setLocation('/')}>
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Home
-              </Button>
-            </div>
+  if (!serviceId && !serviceData && !sessionStorage.getItem('pendingCheckout')) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navigation />
+        <div className="container mx-auto px-4 py-16">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">Service Not Found</h1>
+            <p className="text-gray-600 mb-6">The service you're trying to purchase could not be found.</p>
+            <Button onClick={() => setLocation('/')}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Home
+            </Button>
           </div>
-          <Footer />
         </div>
-      );
-    }
+        <Footer />
+      </div>
+    );
   }
 
   if (servicesLoading || (!serviceData && serviceId)) {
