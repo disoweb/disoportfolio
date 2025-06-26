@@ -74,39 +74,6 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // Check for post-authentication auto-payment
-  useEffect(() => {
-    const autoSubmitPayment = sessionStorage.getItem('auto_submit_payment');
-    console.log('CheckoutForm - useEffect triggered:', {
-      autoSubmitPayment,
-      isPostAuthRedirect,
-      hasSessionData: !!sessionData?.contactData,
-      hasUser: !!user
-    });
-    
-    if (autoSubmitPayment === 'true' && isPostAuthRedirect && sessionData?.contactData && user && orderMutation) {
-      console.log('CheckoutForm - Auto-submitting payment after authentication');
-      setContactData(sessionData.contactData);
-      setShowPaymentLoader(true);
-      sessionStorage.setItem('payment_in_progress', 'true');
-      sessionStorage.removeItem('auto_submit_payment');
-      
-      // Auto-submit payment directly without showing the form
-      const paymentData = {
-        paymentMethod: "paystack" as const,
-        timeline: "standard",
-        overrideSelectedAddOns: sessionData.selectedAddOns,
-        overrideTotalAmount: sessionData.totalPrice
-      };
-      
-      console.log('CheckoutForm - Submitting payment data:', paymentData);
-      
-      setTimeout(() => {
-        orderMutation.mutate(paymentData);
-      }, 1000); // Delay to ensure mutation is ready
-    }
-  }, [isPostAuthRedirect, sessionData, user, orderMutation]);
-
   // Step 1: Contact Form with persistent data
   const storedContactData = getStoredFormData('checkout_contact_data');
   const contactForm = useForm<ContactForm>({
