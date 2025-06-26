@@ -148,7 +148,7 @@ export default function AdminDashboard() {
 
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card>
+          <Card className="cursor-pointer hover:bg-slate-50 transition-colors duration-200 active:scale-95 transform" onClick={() => setActiveTab("analytics")}>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -165,7 +165,7 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="cursor-pointer hover:bg-slate-50 transition-colors duration-200 active:scale-95 transform" onClick={() => setActiveTab("orders")}>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -180,7 +180,7 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="cursor-pointer hover:bg-slate-50 transition-colors duration-200 active:scale-95 transform" onClick={() => setActiveTab("clients")}>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -195,7 +195,7 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="cursor-pointer hover:bg-slate-50 transition-colors duration-200 active:scale-95 transform" onClick={() => setActiveTab("projects")}>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -241,7 +241,7 @@ export default function AdminDashboard() {
                             <p className="text-sm text-slate-600">{order.service?.name}</p>
                           </div>
                           <div className="text-right">
-                            <p className="font-semibold">${order.totalPrice}</p>
+                            <p className="font-semibold">₦{parseInt(order.totalPrice).toLocaleString()}</p>
                             <Badge variant={order.status === 'paid' ? 'default' : 'secondary'}>
                               {order.status}
                             </Badge>
@@ -322,7 +322,7 @@ export default function AdminDashboard() {
                               {order.user?.firstName} {order.user?.lastName}
                             </td>
                             <td className="p-2">{order.service?.name}</td>
-                            <td className="p-2">${order.totalPrice}</td>
+                            <td className="p-2">₦{parseInt(order.totalPrice).toLocaleString()}</td>
                             <td className="p-2">
                               <Badge variant={order.status === 'paid' ? 'default' : 'secondary'}>
                                 {order.status}
