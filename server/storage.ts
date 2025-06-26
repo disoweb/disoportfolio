@@ -390,6 +390,9 @@ export class DatabaseStorage implements IStorage {
   // Project operations
   async getUserProjects(userId: string): Promise<any[]> {
     try {
+      // First, ensure all paid orders have corresponding projects
+      await this.ensureProjectsForPaidOrders(userId);
+      
       const results = await db
         .select()
         .from(projects)
@@ -402,6 +405,53 @@ export class DatabaseStorage implements IStorage {
       }));
     } catch (error) {
       throw new Error(`Failed to fetch user projects: ${(error as Error).message}`);
+    }
+  }
+
+  async ensureProjectsForPaidOrders(userId: string): Promise<void> {
+    try {
+      // Get all paid orders for the user
+      const paidOrders = await db
+        .select({
+          id: orders.id,
+          serviceName: orders.serviceName,
+          userId: orders.userId,
+          createdAt: orders.createdAt,
+        })
+        .from(orders)
+        .where(and(eq(orders.userId, userId), eq(orders.status, 'paid')));
+
+      // Get existing projects for this user
+      const existingProjects = await db
+        .select({ orderId: projects.orderId })
+        .from(projects)
+        .where(eq(projects.userId, userId));
+
+      const existingOrderIds = new Set(existingProjects.map(p => p.orderId));
+
+      // Create projects for paid orders that don't have projects
+      for (const order of paidOrders) {
+        if (!existingOrderIds.has(order.id)) {
+          const startDate = new Date();
+          const dueDate = new Date();
+          dueDate.setDate(dueDate.getDate() + 30); // 30 days from now
+
+          await this.createProject({
+            orderId: order.id,
+            userId: order.userId,
+            projectName: order.serviceName || 'Project',
+            title: order.serviceName || 'Project',
+            currentStage: 'Discovery',
+            progress: 0,
+            timeProgress: 3, // Start with 3% time progress
+            status: 'active',
+            startDate: startDate.toISOString(),
+            dueDate: dueDate.toISOString(),
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error ensuring projects for paid orders:', error);
     }
   }
 
