@@ -350,6 +350,9 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
           // Clear the auto-submit flag to prevent multiple submissions
           sessionStorage.removeItem('auto_submit_payment');
           
+          // Pre-populate form with session data
+          setContactData(sessionData.contactData);
+          
           setTimeout(() => {
             console.log('💰 CHECKOUT-FORM: Calling onPaymentSubmit with direct auth');
             // Use the existing form submission logic with contact data
@@ -367,7 +370,21 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
     };
     
     checkAuthAndSubmit();
+  }, [isPostAuthRedirect, sessionData, user, orderMutation, service.id, totalPrice, selectedAddOns, onPaymentSubmit]);
+
+  // Legacy auto-payment logic (keeping for compatibility)
+  useEffect(() => {
+    const autoSubmitPayment = sessionStorage.getItem('auto_submit_payment');
+    const stepParam = new URLSearchParams(window.location.search).get('step');
     
+    if (!sessionData) {
+      console.log('💰 CHECKOUT-FORM: Waiting for sessionData to load');
+      return;
+    }
+
+    const shouldAutoSubmit = autoSubmitPayment === 'true' || 
+      (stepParam === 'payment' && sessionData?.contactData && user);
+
     if (shouldAutoSubmit) {
       console.log('💰 CHECKOUT-FORM: Should auto-submit payment - conditions met');
       
@@ -415,7 +432,7 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
         reason: !shouldAutoSubmit ? 'Conditions not met' : 'Unknown'
       });
     }
-  }, [isPostAuthRedirect, sessionData, user, orderMutation]);
+  }, [sessionData, user, onPaymentSubmit]);
 
   const onContactSubmit = (data: ContactForm) => {
     // Store contact data persistently

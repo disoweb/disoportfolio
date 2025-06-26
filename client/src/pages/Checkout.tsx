@@ -89,7 +89,8 @@ export default function Checkout() {
               hasContactData: !!fetchedSessionData.contactData,
               isPostAuthRedirect: stepParam === 'payment' && !!user,
               user: !!user,
-              stepParam
+              stepParam,
+              autoSubmitFlag: sessionStorage.getItem('auto_submit_payment')
             });
           }
         } else {
