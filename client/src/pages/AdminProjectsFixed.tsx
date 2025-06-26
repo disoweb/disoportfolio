@@ -166,6 +166,33 @@ export default function AdminProjectsFixed() {
     },
   });
 
+  // Helper functions for timestamp-based calculations (like client dashboard)
+  const getTimelineDisplay = (project: any) => {
+    // If timelineDays is available and <= 7 days, show in days
+    if (project.timelineDays && project.timelineDays <= 7) {
+      return `${project.timelineDays} day${project.timelineDays !== 1 ? 's' : ''}`;
+    }
+    // Otherwise show in weeks
+    if (project.timelineWeeks) {
+      return `${project.timelineWeeks} week${project.timelineWeeks !== 1 ? 's' : ''}`;
+    }
+    return 'N/A';
+  };
+
+  const calculateTimeProgress = (project: any) => {
+    if (!project.startDate || !project.dueDate) return 0;
+    const start = new Date(project.startDate).getTime();
+    const end = new Date(project.dueDate).getTime();
+    const now = new Date().getTime();
+    const progress = ((now - start) / (end - start)) * 100;
+    return Math.min(Math.max(progress, 0), 100);
+  };
+
+  const isOverdue = (project: any) => {
+    if (!project.dueDate || project.status === 'completed') return false;
+    return new Date(project.dueDate) < new Date();
+  };
+
   // Filter projects
   const filteredProjects = projects.filter((project: Project) => {
     const matchesSearch = project.projectName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -412,7 +439,7 @@ export default function AdminProjectsFixed() {
                     </div>
                     <div>
                       <span className="text-sm text-slate-600">Timeline</span>
-                      <p className="font-medium text-slate-900">{project.timelineWeeks || 'N/A'} weeks</p>
+                      <p className="font-medium text-slate-900">{getTimelineDisplay(project)}</p>
                     </div>
                     <div>
                       <span className="text-sm text-slate-600">Due Date</span>
