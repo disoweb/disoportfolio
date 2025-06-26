@@ -33,8 +33,7 @@ import {
   Filter,
   Calendar,
   FileText,
-  User,
-  X
+  User
 } from "lucide-react";
 
 export default function AdminDashboard() {
@@ -97,7 +96,6 @@ export default function AdminDashboard() {
   }
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedProject, setSelectedProject] = useState<any>(null);
-  const [selectedProjectForDetails, setSelectedProjectForDetails] = useState<any>(null);
   const [projectFilter, setProjectFilter] = useState("all");
   const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
   const [updateForm, setUpdateForm] = useState({
@@ -433,13 +431,6 @@ export default function AdminDashboard() {
                 updateForm={updateForm}
                 setUpdateForm={setUpdateForm}
               />
-
-              {/* Project Details Modal */}
-              <ProjectDetailsModal 
-                project={selectedProjectForDetails}
-                isOpen={!!selectedProjectForDetails}
-                onClose={() => setSelectedProjectForDetails(null)}
-              />
             </div>
           </TabsContent>
 
@@ -628,7 +619,7 @@ function ProjectCard({ project, onUpdate }: { project: any; onUpdate: (project: 
                 <MessageSquare className="h-4 w-4 mr-2" />
                 Message Client
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setSelectedProjectForDetails(project)}>
+              <DropdownMenuItem>
                 <FileText className="h-4 w-4 mr-2" />
                 View Details
               </DropdownMenuItem>
@@ -813,174 +804,6 @@ function ProjectUpdateDialog({
             </Button>
           </div>
         </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-// Project Details Modal Component
-function ProjectDetailsModal({ 
-  project, 
-  isOpen, 
-  onClose 
-}: { 
-  project: any; 
-  isOpen: boolean; 
-  onClose: () => void;
-}) {
-  const [activeTab, setActiveTab] = useState("overview");
-
-  if (!project) return null;
-
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-lg h-[600px] p-0 overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b">
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-              <FileText className="h-4 w-4 text-blue-600" />
-            </div>
-            <h2 className="text-lg font-semibold text-slate-900">
-              {project.projectName || 'Untitled Project'}
-            </h2>
-          </div>
-          <Button variant="ghost" size="sm" onClick={onClose}>
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-
-        {/* Tab Navigation */}
-        <div className="px-6 pt-4">
-          <div className="flex space-x-8 border-b">
-            <button
-              onClick={() => setActiveTab("overview")}
-              className={`pb-3 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === "overview"
-                  ? "border-blue-600 text-blue-600"
-                  : "border-transparent text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              Overview
-            </button>
-            <button
-              onClick={() => setActiveTab("timeline")}
-              className={`pb-3 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === "timeline"
-                  ? "border-blue-600 text-blue-600"
-                  : "border-transparent text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              Timeline
-            </button>
-            <button
-              onClick={() => setActiveTab("communication")}
-              className={`pb-3 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === "communication"
-                  ? "border-blue-600 text-blue-600"
-                  : "border-transparent text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              Communication
-            </button>
-          </div>
-        </div>
-
-        {/* Tab Content */}
-        <div className="flex-1 overflow-hidden">
-          <div className="h-full overflow-y-auto p-6">
-            {activeTab === "overview" && (
-              <div className="space-y-6">
-                <div className="bg-slate-50 rounded-lg p-6">
-                  <div className="text-center space-y-4">
-                    <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto">
-                      <ChartGantt className="h-8 w-8 text-blue-600" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-slate-900 mb-2">Project Overview</h3>
-                      <p className="text-slate-600 text-sm leading-relaxed">
-                        {project.description || 'Project details and milestones tracking for comprehensive development workflow management.'}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-slate-700">Current Stage</span>
-                    <Badge className="bg-blue-100 text-blue-800 border-blue-200">
-                      {project.currentStage || 'Not Started'}
-                    </Badge>
-                  </div>
-                  
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-slate-700">Progress</span>
-                    <span className="text-sm text-slate-600">{project.progressPercentage || 0}%</span>
-                  </div>
-                  
-                  <Progress value={project.progressPercentage || 0} className="h-2" />
-                  
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-slate-700">Start Date</span>
-                    <span className="text-sm text-slate-600">
-                      {project.startDate ? new Date(project.startDate).toLocaleDateString() : 'Not set'}
-                    </span>
-                  </div>
-                  
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-slate-700">Due Date</span>
-                    <span className="text-sm text-slate-600">
-                      {project.dueDate ? new Date(project.dueDate).toLocaleDateString() : 'Not set'}
-                    </span>
-                  </div>
-                  
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-slate-700">Status</span>
-                    <Badge variant={project.status === 'active' ? 'default' : 'secondary'}>
-                      {project.status || 'Unknown'}
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activeTab === "timeline" && (
-              <div className="space-y-6">
-                <div className="bg-slate-50 rounded-lg p-6">
-                  <div className="text-center space-y-4">
-                    <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto">
-                      <TrendingUp className="h-8 w-8 text-blue-600" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-slate-900 mb-2">Timeline View</h3>
-                      <p className="text-slate-600 text-sm leading-relaxed">
-                        Project timeline and milestone tracking coming soon...
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activeTab === "communication" && (
-              <div className="space-y-6">
-                <div className="bg-slate-50 rounded-lg p-6">
-                  <div className="text-center space-y-4">
-                    <div className="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mx-auto">
-                      <MessageSquare className="h-8 w-8 text-green-600" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-slate-900 mb-2">Communication Hub</h3>
-                      <p className="text-slate-600 text-sm leading-relaxed">
-                        Client communication and project updates will be available here.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
       </DialogContent>
     </Dialog>
   );
