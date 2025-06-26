@@ -51,7 +51,7 @@ export default function AdminDashboard() {
       setTimeout(() => {
         window.location.href = "/admin";
       }, 1000);
-    } else if (!isLoading && user && user.role !== 'admin') {
+    } else if (!isLoading && user && (user as any).role !== 'admin') {
       toast({
         title: "Access Denied",
         description: "Admin privileges required",
@@ -83,7 +83,7 @@ export default function AdminDashboard() {
     );
   }
 
-  if (user.role !== 'admin') {
+  if ((user as any).role !== 'admin') {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -105,19 +105,19 @@ export default function AdminDashboard() {
     status: ""
   });
 
-  const { data: analytics = {}, isLoading: analyticsLoading } = useQuery({
+  const { data: analytics, isLoading: analyticsLoading } = useQuery({
     queryKey: ["/api/analytics"],
   });
 
-  const { data: orders = [] } = useQuery({
+  const { data: orders = [] as any[] } = useQuery({
     queryKey: ["/api/orders"],
   });
 
-  const { data: projects = [] } = useQuery({
+  const { data: projects = [] as any[] } = useQuery({
     queryKey: ["/api/projects"],
   });
 
-  const { data: workload = {} } = useQuery({
+  const { data: workload = {} as any } = useQuery({
     queryKey: ["/api/admin/workload"],
   });
 
@@ -154,7 +154,7 @@ export default function AdminDashboard() {
                 <div>
                   <p className="text-sm text-slate-600">Total Revenue</p>
                   <p className="text-2xl font-bold text-slate-900">
-                    ${analytics?.totalRevenue?.toLocaleString() || '0'}
+                    ₦{(analytics as any)?.totalRevenue?.toLocaleString() || '0'}
                   </p>
                   <p className="text-sm text-green-600">+12% this month</p>
                 </div>
@@ -170,7 +170,7 @@ export default function AdminDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-slate-600">New Orders</p>
-                  <p className="text-2xl font-bold text-slate-900">{analytics?.newOrders || 0}</p>
+                  <p className="text-2xl font-bold text-slate-900">{(analytics as any)?.newOrders || 0}</p>
                   <p className="text-sm text-blue-600">+3 this week</p>
                 </div>
                 <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -185,7 +185,7 @@ export default function AdminDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-slate-600">Total Clients</p>
-                  <p className="text-2xl font-bold text-slate-900">{analytics?.totalClients || 0}</p>
+                  <p className="text-2xl font-bold text-slate-900">{(analytics as any)?.totalClients || 0}</p>
                   <p className="text-sm text-purple-600">+8 this month</p>
                 </div>
                 <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
@@ -200,7 +200,7 @@ export default function AdminDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-slate-600">Active Projects</p>
-                  <p className="text-2xl font-bold text-slate-900">{analytics?.activeProjects || 0}</p>
+                  <p className="text-2xl font-bold text-slate-900">{(analytics as any)?.activeProjects || 0}</p>
                   <p className="text-sm text-orange-600">2 due this week</p>
                 </div>
                 <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
