@@ -1,16 +1,16 @@
-import React, { useEffect, useState } from "react";
-import { useLocation } from "wouter";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { ArrowLeft, Clock, Calendar, Plus } from "lucide-react";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import CheckoutForm from "@/components/CheckoutForm";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, Package, Clock, Calendar, Plus } from "lucide-react";
-import { Separator } from "@/components/ui/separator";
 
 export default function Checkout() {
-  const [location, setLocation] = useLocation();
+  const [, setLocation] = useLocation();
   const [serviceData, setServiceData] = useState<any>(null);
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
   const [totalPrice, setTotalPrice] = useState<number>(0);
@@ -78,14 +78,13 @@ export default function Checkout() {
     );
   }
 
-  // Calculate add-on costs
-  const addOnsCost = selectedAddOns.reduce((sum, addonName) => {
-    const addon = serviceData?.addOns?.find((a: any) => a.name === addonName);
-    return sum + (addon ? addon.price : 0);
-  }, 0);
-
+  // Calculate pricing
   const basePrice = serviceData?.price || 0;
-  const finalTotal = basePrice + addOnsCost;
+  const addOnTotal = selectedAddOns.reduce((total, addonName) => {
+    const addon = serviceData?.addOns?.find((a: any) => a.name === addonName);
+    return total + (addon?.price || 0);
+  }, 0);
+  const finalTotal = basePrice + addOnTotal;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -109,10 +108,9 @@ export default function Checkout() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Order Summary */}
           <div className="lg:col-span-1 order-2 lg:order-1">
-            <Card className="sticky top-4">
+            <Card className="sticky top-8">
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <Package className="mr-2 h-5 w-5" />
                   Order Summary
                 </CardTitle>
               </CardHeader>
@@ -178,10 +176,10 @@ export default function Checkout() {
               <CardContent>
                 <CheckoutForm 
                   service={{
-                    id: serviceId,
+                    id: serviceData.id,
                     name: serviceData.name,
                     price: finalTotal.toString(),
-                    description: serviceData.description
+                    description: serviceData.description,
                   }}
                   onSuccess={() => {
                     setLocation('/dashboard');
