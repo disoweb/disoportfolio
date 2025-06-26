@@ -428,17 +428,120 @@ export class DatabaseStorage implements IStorage {
     return 4; // Default fallback
   }
 
+  private extractProjectDataFromOrder(order: any): any {
+    const startDate = order.createdAt ? new Date(order.createdAt) : new Date();
+    const dueDate = new Date(startDate);
+    
+    // Calculate timeline based on service duration or custom timeline
+    let timelineWeeks = this.parseServiceDuration(order.serviceDuration);
+    let projectName = order.serviceName || 'Custom Project';
+    let notes = '';
+    let currentStage = 'Discovery';
+    let progressPercentage = Math.floor(Math.random() * 15) + 5; // Random 5-20%
+    
+    // Parse custom request for additional data
+    if (order.customRequest) {
+      try {
+        // Handle JSON format from checkout system
+        const customData = JSON.parse(order.customRequest);
+        if (customData.projectDetails?.description) {
+          notes = customData.projectDetails.description;
+        }
+        if (customData.contactInfo?.fullName) {
+          projectName = `${projectName} - ${customData.contactInfo.fullName}`;
+        }
+      } catch (e) {
+        // Handle text format from custom requests
+        const customText = order.customRequest;
+        
+        // Extract service name if specified
+        const serviceMatch = customText.match(/Service:\s*([^\n]+)/i);
+        if (serviceMatch) {
+          projectName = serviceMatch[1].trim();
+        }
+        
+        // Extract timeline from custom request
+        const timelineMatch = customText.match(/Timeline:\s*([^\n]+)/i);
+        if (timelineMatch) {
+          const customTimeline = timelineMatch[1].trim();
+          const customWeeks = this.parseCustomTimeline(customTimeline);
+          if (customWeeks > 0) {
+            timelineWeeks = customWeeks;
+          }
+        }
+        
+        // Use custom request as notes
+        notes = customText;
+      }
+    }
+    
+    // Calculate progress based on time elapsed
+    const totalDays = timelineWeeks * 7;
+    const daysSinceStart = Math.floor((Date.now() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    const timeProgress = Math.min(Math.round((daysSinceStart / totalDays) * 100), 95);
+    
+    // Adjust progress based on time elapsed (more realistic)
+    progressPercentage = Math.min(progressPercentage + Math.floor(timeProgress * 0.3), 85);
+    
+    // Set stage based on progress
+    if (progressPercentage < 20) currentStage = 'Discovery';
+    else if (progressPercentage < 40) currentStage = 'Design';
+    else if (progressPercentage < 70) currentStage = 'Development';
+    else if (progressPercentage < 90) currentStage = 'Testing';
+    else currentStage = 'Launch';
+    
+    // Set due date
+    dueDate.setDate(dueDate.getDate() + (timelineWeeks * 7));
+    
+    return {
+      orderId: order.id,
+      userId: order.userId,
+      projectName: projectName,
+      currentStage: currentStage,
+      notes: notes,
+      progressPercentage: progressPercentage,
+      timelineWeeks: timelineWeeks,
+      status: 'active',
+      startDate: startDate.toISOString().split('T')[0],
+      dueDate: dueDate.toISOString().split('T')[0],
+    };
+  }
+
+  parseCustomTimeline(timeline: string): number {
+    if (!timeline) return 0;
+    
+    // Handle formats like "1-2months", "3 weeks", "2-4 weeks"
+    const monthMatch = timeline.match(/(\d+)(?:-(\d+))?\s*months?/i);
+    if (monthMatch) {
+      const min = parseInt(monthMatch[1]);
+      const max = monthMatch[2] ? parseInt(monthMatch[2]) : min;
+      return Math.round((min + max) / 2) * 4; // Convert months to weeks
+    }
+    
+    const weekMatch = timeline.match(/(\d+)(?:-(\d+))?\s*weeks?/i);
+    if (weekMatch) {
+      const min = parseInt(weekMatch[1]);
+      const max = weekMatch[2] ? parseInt(weekMatch[2]) : min;
+      return Math.round((min + max) / 2);
+    }
+    
+    return 0;
+  }
+
   async ensureProjectsForPaidOrders(userId: string): Promise<void> {
     try {
-      // Get all paid orders for the user with service information
+      // Get all paid orders for the user with complete service information
       const paidOrders = await db
         .select({
           id: orders.id,
           serviceId: orders.serviceId,
           userId: orders.userId,
           createdAt: orders.createdAt,
+          totalPrice: orders.totalPrice,
+          customRequest: orders.customRequest,
           serviceName: services.name,
           serviceDuration: services.duration,
+          serviceCategory: services.category,
         })
         .from(orders)
         .leftJoin(services, eq(orders.serviceId, services.id))
@@ -455,24 +558,8 @@ export class DatabaseStorage implements IStorage {
       // Create projects for paid orders that don't have projects
       for (const order of paidOrders) {
         if (!existingOrderIds.has(order.id)) {
-          const startDate = order.createdAt ? new Date(order.createdAt) : new Date(); // Use order creation date as start date
-          const dueDate = new Date(startDate);
-          
-          // Calculate timeline based on service duration
-          const timelineWeeks = this.parseServiceDuration(order.serviceDuration);
-          dueDate.setDate(dueDate.getDate() + (timelineWeeks * 7)); // Convert weeks to days
-
-          await this.createProject({
-            orderId: order.id,
-            userId: order.userId,
-            projectName: order.serviceName || 'Project',
-            currentStage: 'Discovery',
-            progressPercentage: Math.floor(Math.random() * 30), // Random progress 0-30%
-            timelineWeeks: timelineWeeks,
-            status: 'active',
-            startDate: startDate.toISOString().split('T')[0], // Format as YYYY-MM-DD
-            dueDate: dueDate.toISOString().split('T')[0], // Format as YYYY-MM-DD
-          });
+          const projectData = this.extractProjectDataFromOrder(order);
+          await this.createProject(projectData);
         }
       }
     } catch (error) {
