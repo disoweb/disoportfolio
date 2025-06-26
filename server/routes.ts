@@ -154,25 +154,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const clientIP = req.ip || req.connection.remoteAddress;
       const orderData = req.body;
       
-      // Input validation and sanitization
-      if (!orderData.serviceId || !orderData.contactInfo || !orderData.totalAmount) {
+      // Input validation and sanitization - handle both formats
+      const hasContactInfo = orderData.contactInfo || (orderData.fullName && orderData.email);
+      const hasTotalAmount = orderData.totalAmount || orderData.totalPrice;
+      
+      if (!orderData.serviceId || !hasContactInfo || !hasTotalAmount) {
         auditLog('order_validation_failed', userId, { reason: 'missing_required_fields', clientIP });
         return res.status(400).json({ message: "Missing required order data" });
       }
 
       // Validate amount is reasonable (between ₦100 and ₦10,000,000)
-      const amount = parseInt(orderData.totalAmount?.toString() || orderData.totalPrice);
+      const amount = parseInt(orderData.totalAmount?.toString() || orderData.totalPrice?.toString() || '0');
       if (isNaN(amount) || amount < 100 || amount > 10000000) {
         auditLog('order_validation_failed', userId, { reason: 'invalid_amount', amount, clientIP });
         return res.status(400).json({ message: "Invalid order amount" });
       }
 
-      // Sanitize and validate contact info
+      // Sanitize and validate contact info - handle both direct fields and nested contactInfo
       const contactInfo = {
-        fullName: sanitizeInput(orderData.contactInfo.fullName || ''),
-        email: sanitizeInput(orderData.contactInfo.email || ''),
-        phone: sanitizeInput(orderData.contactInfo.phone || ''),
-        company: sanitizeInput(orderData.contactInfo.company || '')
+        fullName: sanitizeInput((orderData.contactInfo && orderData.contactInfo.fullName) || orderData.fullName || ''),
+        email: sanitizeInput((orderData.contactInfo && orderData.contactInfo.email) || orderData.email || ''),
+        phone: sanitizeInput((orderData.contactInfo && orderData.contactInfo.phone) || orderData.phone || ''),
+        company: sanitizeInput((orderData.contactInfo && orderData.contactInfo.company) || orderData.company || '')
       };
 
       // Validate email format using simple regex
@@ -182,15 +185,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid email format" });
       }
 
-      // Sanitize project details
+      // Sanitize project details - handle both formats
       const projectDetails = {
-        description: sanitizeInput(orderData.projectDetails?.description || '')
+        description: sanitizeInput((orderData.projectDetails && orderData.projectDetails.description) || orderData.projectDescription || '')
       };
 
-      // Sanitize and validate add-ons
+      // Sanitize and validate add-ons - handle both formats
       let selectedAddOns: string[] = [];
-      if (Array.isArray(orderData.selectedAddOns)) {
-        selectedAddOns = orderData.selectedAddOns
+      const addOnsData = orderData.selectedAddOns || orderData.overrideSelectedAddOns || [];
+      if (Array.isArray(addOnsData)) {
+        selectedAddOns = addOnsData
           .filter((addon: any) => typeof addon === 'string' && addon.trim().length > 0)
           .map((addon: string) => sanitizeInput(addon));
       }
