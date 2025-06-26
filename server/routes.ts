@@ -511,7 +511,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         updates.startDate = new Date(updates.startDate);
       }
       
+      // Debug: Log the updates being applied
+      console.log('Updating project with:', { id, updates });
+      
       const project = await storage.updateProject(id, updates);
+      
+      console.log('Updated project result:', project);
       res.json(project);
     } catch (error) {
       console.error("Error updating project:", error);
