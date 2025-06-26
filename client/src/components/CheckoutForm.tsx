@@ -38,7 +38,7 @@ function storeFormData(key: string, data: any) {
   try {
     localStorage.setItem(key, JSON.stringify(data));
   } catch (error) {
-    console.error('Failed to store form data:', error);
+    // Silently handle storage errors in production
   }
 }
 
@@ -47,7 +47,7 @@ function getStoredFormData(key: string) {
     const stored = localStorage.getItem(key);
     return stored ? JSON.parse(stored) : null;
   } catch (error) {
-    console.error('Failed to retrieve form data:', error);
+    // Return null for any storage retrieval errors
     return null;
   }
 }
@@ -329,7 +329,6 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
         }
       })
       .catch(error => {
-        console.error('Error creating checkout session:', error);
         toast({
           title: "Error", 
           description: "Failed to create checkout session. Please try again.",

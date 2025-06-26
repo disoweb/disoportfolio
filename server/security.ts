@@ -281,3 +281,54 @@ export function validateRequestSize(maxSize: number = 10485760) { // 10MB defaul
     next();
   };
 }
+
+// Enhanced error sanitization for production security
+export function sanitizeError(error: any, isProduction: boolean = process.env.NODE_ENV === 'production'): string {
+  if (!isProduction) {
+    // In development, return full error details
+    return error?.message || 'Unknown error occurred';
+  }
+  
+  // In production, return generic messages to prevent information leakage
+  if (error?.message?.includes('not found') || error?.message?.includes('not authorized')) {
+    return 'Resource not found or access denied';
+  }
+  
+  if (error?.message?.includes('validation') || error?.message?.includes('invalid')) {
+    return 'Invalid request data';
+  }
+  
+  if (error?.message?.includes('rate limit') || error?.message?.includes('too many')) {
+    return 'Too many requests, please try again later';
+  }
+  
+  if (error?.message?.includes('payment') || error?.message?.includes('transaction')) {
+    return 'Payment processing error, please try again';
+  }
+  
+  if (error?.message?.includes('authentication') || error?.message?.includes('unauthorized')) {
+    return 'Authentication required';
+  }
+  
+  // Generic fallback for production
+  return 'Service temporarily unavailable';
+}
+
+// Safe error response helper for production
+export function sendSafeErrorResponse(res: Response, statusCode: number, error: any, auditAction?: string) {
+  const sanitizedMessage = sanitizeError(error);
+  
+  // Log the full error for debugging but return sanitized message
+  if (auditAction) {
+    auditLog(auditAction, undefined, { 
+      statusCode, 
+      sanitizedMessage, 
+      originalError: error?.message?.substring(0, 100) 
+    });
+  }
+  
+  res.status(statusCode).json({ 
+    message: sanitizedMessage,
+    error: process.env.NODE_ENV !== 'production' ? error?.message : undefined 
+  });
+}

@@ -52,9 +52,7 @@ export default function AuthPage() {
       const checkoutParam = urlParams.get('checkout');
       const sessionToken = sessionStorage.getItem('checkoutSessionToken');
       
-      console.log('Auth page - User authenticated, checking for checkout data');
-      console.log('Auth page - Checkout URL param:', checkoutParam);
-      console.log('Auth page - Session token:', sessionToken);
+
       
       const tokenToUse = checkoutParam || sessionToken;
       
@@ -64,14 +62,16 @@ export default function AuthPage() {
         .then(res => res.json())
         .then(sessionData => {
           if (sessionData && !sessionData.error) {
-            console.log('Auth page - Found checkout session:', sessionData);
+
             
             // Update session with user ID
             fetch(`/api/checkout-sessions/${tokenToUse}`, {
               method: "PUT",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ userId: user.id }),
-            }).catch(console.error);
+            }).catch(() => {
+              // Silent error handling for session update
+            });
             
             // Add session stabilization flags
             sessionStorage.setItem('auth_completed', 'true');

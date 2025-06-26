@@ -26,19 +26,7 @@ export default function Checkout() {
   const checkoutParam = urlParams.get('checkout');
   const stepParam = urlParams.get('step');
   
-  console.log('🛒 CHECKOUT: Page loaded with params:', {
-    serviceId,
-    price,
-    addons,
-    checkoutParam,
-    stepParam,
-    isAuthenticated: !!user,
-    sessionStorage: {
-      auto_submit_payment: sessionStorage.getItem('auto_submit_payment'),
-      checkoutSessionToken: sessionStorage.getItem('checkoutSessionToken'),
-      payment_in_progress: sessionStorage.getItem('payment_in_progress')
-    }
-  });
+
   
   // Check if coming from authentication with ready-for-payment state
   const isReadyForPayment = sessionStorage.getItem('checkout_ready_for_payment') === 'true';
@@ -68,8 +56,7 @@ export default function Checkout() {
       .then(res => res.json())
       .then(fetchedSessionData => {
         if (fetchedSessionData && !fetchedSessionData.error) {
-          console.log('🛒 CHECKOUT: Restored from database session:', fetchedSessionData);
-          console.log('🛒 CHECKOUT: Setting sessionData state for CheckoutForm');
+
           
           setSessionData(fetchedSessionData); // Store session data for CheckoutForm
           
@@ -82,23 +69,12 @@ export default function Checkout() {
             setTotalPrice(fetchedSessionData.totalPrice || 0);
             setSelectedAddOns(fetchedSessionData.selectedAddOns || []);
             
-            console.log('🛒 CHECKOUT: Service data restored successfully');
-            console.log('🛒 CHECKOUT: Passing to CheckoutForm:', {
-              service: service.name,
-              totalPrice: fetchedSessionData.totalPrice,
-              hasContactData: !!fetchedSessionData.contactData,
-              isPostAuthRedirect: stepParam === 'payment' && !!user,
-              user: !!user,
-              stepParam,
-              autoSubmitFlag: sessionStorage.getItem('auto_submit_payment')
-            });
+
           }
-        } else {
-          console.log('Checkout page - No valid session found, trying URL params');
         }
       })
       .catch(error => {
-        console.error('Checkout page - Error fetching checkout session:', error);
+        // Clean up invalid session token on error
         sessionStorage.removeItem('checkoutSessionToken');
       });
     }
