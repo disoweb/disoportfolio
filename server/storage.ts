@@ -493,7 +493,7 @@ export class DatabaseStorage implements IStorage {
     else if (progressPercentage < 90) currentStage = 'Testing';
     else currentStage = 'Launch';
     
-    // Set due date
+    // Set due date to exact timestamp (order time + timeline weeks)
     dueDate.setDate(dueDate.getDate() + (timelineWeeks * 7));
     
     return {
@@ -505,8 +505,8 @@ export class DatabaseStorage implements IStorage {
       progressPercentage: progressPercentage,
       timelineWeeks: timelineWeeks,
       status: 'active',
-      startDate: startDate.toISOString().split('T')[0],
-      dueDate: dueDate.toISOString().split('T')[0],
+      startDate: startDate, // Store full timestamp
+      dueDate: dueDate, // Store full timestamp for accurate countdown
     };
   }
 
