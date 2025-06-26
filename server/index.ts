@@ -6,21 +6,75 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Add logout route before any auth middleware to avoid passport conflicts
+// Rate limiting for logout endpoint
+const logoutAttempts = new Map();
+const LOGOUT_RATE_LIMIT = 5; // max attempts per minute
+const LOGOUT_WINDOW = 60000; // 1 minute
+
+// Add secure logout route before any auth middleware to avoid passport conflicts
 app.post("/api/auth/logout", (req, res) => {
-  if (req.session) {
-    req.session.destroy((err) => {
-      if (err) {
-        console.error('Session destroy error:', err);
-        return res.status(500).json({ message: "Error destroying session" });
-      }
-      res.clearCookie('connect.sid');
-      res.json({ message: "Logged out successfully" });
-    });
-  } else {
-    res.clearCookie('connect.sid');
-    res.json({ message: "Logged out successfully" });
+  const clientIP = req.ip || req.connection.remoteAddress || 'unknown';
+  const now = Date.now();
+  
+  // Rate limiting check
+  const attempts = logoutAttempts.get(clientIP) || { count: 0, timestamp: now };
+  if (now - attempts.timestamp > LOGOUT_WINDOW) {
+    attempts.count = 0;
+    attempts.timestamp = now;
   }
+  
+  if (attempts.count >= LOGOUT_RATE_LIMIT) {
+    return res.status(429).json({ message: "Too many logout attempts. Try again later." });
+  }
+  
+  attempts.count++;
+  logoutAttempts.set(clientIP, attempts);
+  
+  // Validate Content-Type to prevent CSRF
+  if (!req.is('application/json')) {
+    return res.status(415).json({ message: "Invalid content type" });
+  }
+  
+  // Check if user is actually logged in
+  if (!req.session || !req.session.passport || !req.session.passport.user) {
+    res.clearCookie('connect.sid', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax'
+    });
+    return res.json({ message: "Already logged out" });
+  }
+
+  // Store user ID for audit logging
+  const userId = req.session.passport.user;
+  
+  // Destroy session securely
+  req.session.destroy((err) => {
+    if (err) {
+      console.error(`Session destroy error for user ${userId}:`, err);
+      return res.status(500).json({ message: "Error destroying session" });
+    }
+    
+    // Clear cookie with all security attributes
+    res.clearCookie('connect.sid', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/'
+    });
+    
+    // Add security headers
+    res.set({
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+      'X-Content-Type-Options': 'nosniff',
+      'X-Frame-Options': 'DENY'
+    });
+    
+    console.log(`User ${userId} logged out successfully from IP ${clientIP}`);
+    res.json({ message: "Logged out successfully" });
+  });
 });
 
 app.use((req, res, next) => {
