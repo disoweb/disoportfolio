@@ -8,6 +8,15 @@ import bcrypt from "bcrypt";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
 import connectPg from "connect-pg-simple";
+import { 
+  checkRateLimit, 
+  validateContentType, 
+  validateEmail, 
+  validatePassword, 
+  sanitizeInput, 
+  auditLog,
+  authRateLimit 
+} from "./security";
 
 declare global {
   namespace Express {
@@ -226,38 +235,65 @@ export async function setupAuth(app: Express) {
     }
   });
 
-  // Auth routes
-  app.post("/api/auth/register", async (req, res, next) => {
+  // Auth routes with comprehensive security
+  app.post("/api/auth/register", authRateLimit('register'), validateContentType, async (req, res, next) => {
+    const clientIP = req.ip || req.connection.remoteAddress || 'unknown';
+    
     try {
       const { email, password, firstName, lastName, companyName, phone } = req.body;
 
-      // Validation
+      // Enhanced input validation
       if (!email || !password || !firstName) {
+        auditLog('register_validation_failed', undefined, { email: email?.substring(0, 5) + '***', clientIP });
         return res.status(400).json({ message: "Email, password, and first name are required" });
       }
 
-      const existingUser = await storage.getUserByEmail(email);
+      // Sanitize inputs
+      const sanitizedEmail = sanitizeInput(email).toLowerCase();
+      const sanitizedFirstName = sanitizeInput(firstName);
+      const sanitizedLastName = sanitizeInput(lastName || '');
+      const sanitizedCompanyName = sanitizeInput(companyName || '');
+      const sanitizedPhone = sanitizeInput(phone || '');
+
+      // Email validation
+      if (!validateEmail(sanitizedEmail)) {
+        auditLog('register_invalid_email', undefined, { email: sanitizedEmail.substring(0, 5) + '***', clientIP });
+        return res.status(400).json({ message: "Invalid email format" });
+      }
+
+      // Password strength validation
+      const passwordCheck = validatePassword(password);
+      if (!passwordCheck.valid) {
+        auditLog('register_weak_password', undefined, { email: sanitizedEmail.substring(0, 5) + '***', clientIP });
+        return res.status(400).json({ message: passwordCheck.message });
+      }
+
+      const existingUser = await storage.getUserByEmail(sanitizedEmail);
       if (existingUser) {
+        auditLog('register_email_exists', undefined, { email: sanitizedEmail.substring(0, 5) + '***', clientIP });
         return res.status(400).json({ message: "Email already exists" });
       }
 
       const user = await storage.createUser({
-        email,
+        email: sanitizedEmail,
         password: await hashPassword(password),
-        firstName,
-        lastName,
-        companyName,
-        phone,
+        firstName: sanitizedFirstName,
+        lastName: sanitizedLastName,
+        companyName: sanitizedCompanyName,
+        phone: sanitizedPhone,
         provider: 'local'
       });
 
       if (!user || !user.id) {
+        auditLog('register_creation_failed', undefined, { email: sanitizedEmail.substring(0, 5) + '***', clientIP });
         return res.status(500).json({ message: "User creation failed" });
       }
 
       // Return user without automatic login to avoid session issues
       const sanitizedUser = { ...user };
-      delete sanitizedUser.password;
+      delete (sanitizedUser as any).password;
+      
+      auditLog('register_success', user.id, { email: sanitizedEmail.substring(0, 5) + '***', clientIP });
       res.status(201).json({ 
         user: sanitizedUser,
         message: "Registration successful. Please log in with your credentials."
@@ -268,10 +304,27 @@ export async function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/auth/login", (req, res, next) => {
+  app.post("/api/auth/login", authRateLimit('login'), validateContentType, (req, res, next) => {
+    const clientIP = req.ip || req.connection.remoteAddress || 'unknown';
+    const { email, password } = req.body;
+
+    // Input validation
+    if (!email || !password) {
+      auditLog('login_validation_failed', undefined, { email: email?.substring(0, 5) + '***', clientIP });
+      return res.status(400).json({ message: "Email and password are required" });
+    }
+
+    // Sanitize email
+    const sanitizedEmail = sanitizeInput(email).toLowerCase();
+
     passport.authenticate("local", (err: any, user: any, info: any) => {
-      if (err) return next(err);
+      if (err) {
+        auditLog('login_error', undefined, { email: sanitizedEmail.substring(0, 5) + '***', error: err.message, clientIP });
+        return next(err);
+      }
+      
       if (!user) {
+        auditLog('login_failed', undefined, { email: sanitizedEmail.substring(0, 5) + '***', reason: info?.message, clientIP });
         return res.status(401).json({ message: info?.message || "Login failed" });
       }
 
@@ -280,15 +333,18 @@ export async function setupAuth(app: Express) {
         req.session.passport = { user: user.id };
         req.session.save((saveErr) => {
           if (saveErr) {
-            console.error("Session save error:", saveErr);
+            auditLog('login_session_error', user.id, { error: saveErr.message, clientIP });
             return res.status(500).json({ message: "Login failed" });
           }
           
           const sanitizedUser = { ...user };
-          delete sanitizedUser.password;
+          delete (sanitizedUser as any).password;
+          
+          auditLog('login_success', user.id, { email: sanitizedEmail.substring(0, 5) + '***', clientIP });
           res.json({ user: sanitizedUser });
         });
       } else {
+        auditLog('login_no_session', user.id, { clientIP });
         res.status(500).json({ message: "Session not available" });
       }
     })(req, res, next);

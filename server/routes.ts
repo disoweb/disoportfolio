@@ -16,6 +16,14 @@ import {
 import { z } from "zod";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
+import { 
+  checkRateLimit, 
+  validateContentType, 
+  sanitizeInput, 
+  auditLog,
+  authRateLimit,
+  validateRequestSize
+} from "./security";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware - always use standard auth
@@ -409,25 +417,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/payments/webhook', async (req, res) => {
+  app.post('/api/payments/webhook', authRateLimit('payment'), validateRequestSize(), async (req, res) => {
+    const clientIP = req.ip || req.connection.remoteAddress || 'unknown';
+    
     try {
       // Verify webhook signature from Paystack
       const hash = req.headers['x-paystack-signature'];
       const body = JSON.stringify(req.body);
 
+      if (!hash) {
+        auditLog('webhook_no_signature', undefined, { clientIP });
+        return res.status(400).json({ message: "Missing signature" });
+      }
+
       if (!await storage.verifyPaystackWebhook(hash as string, body)) {
+        auditLog('webhook_invalid_signature', undefined, { clientIP, hash: hash.substring(0, 10) + '***' });
         return res.status(400).json({ message: "Invalid signature" });
       }
 
       const { event, data } = req.body;
 
       if (event === 'charge.success') {
+        auditLog('webhook_payment_success', undefined, { 
+          clientIP, 
+          orderId: data?.metadata?.orderId,
+          amount: data?.amount 
+        });
         await storage.handleSuccessfulPayment(data);
       }
 
       res.json({ status: 'success' });
     } catch (error) {
-      console.error("Error handling webhook:", error);
+      auditLog('webhook_error', undefined, { error: (error as Error).message, clientIP });
       res.status(500).json({ message: "Webhook error" });
     }
   });

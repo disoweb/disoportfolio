@@ -1,47 +1,34 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { 
+  checkRateLimit, 
+  securityHeaders, 
+  validateContentType, 
+  auditLog, 
+  clearSessionSecurely 
+} from "./security";
 
 const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: false, limit: '10mb' }));
 
-// Rate limiting for logout endpoint
-const logoutAttempts = new Map();
-const LOGOUT_RATE_LIMIT = 5; // max attempts per minute
-const LOGOUT_WINDOW = 60000; // 1 minute
+// Apply security headers globally
+app.use(securityHeaders);
 
 // Add secure logout route before any auth middleware to avoid passport conflicts
-app.post("/api/auth/logout", (req, res) => {
+app.post("/api/auth/logout", validateContentType, (req, res) => {
   const clientIP = req.ip || req.connection.remoteAddress || 'unknown';
-  const now = Date.now();
   
   // Rate limiting check
-  const attempts = logoutAttempts.get(clientIP) || { count: 0, timestamp: now };
-  if (now - attempts.timestamp > LOGOUT_WINDOW) {
-    attempts.count = 0;
-    attempts.timestamp = now;
-  }
-  
-  if (attempts.count >= LOGOUT_RATE_LIMIT) {
-    return res.status(429).json({ message: "Too many logout attempts. Try again later." });
-  }
-  
-  attempts.count++;
-  logoutAttempts.set(clientIP, attempts);
-  
-  // Validate Content-Type to prevent CSRF
-  if (!req.is('application/json')) {
-    return res.status(415).json({ message: "Invalid content type" });
+  const rateCheck = checkRateLimit('logout', clientIP);
+  if (!rateCheck.allowed) {
+    return res.status(429).json({ message: rateCheck.message });
   }
   
   // Check if user is actually logged in
   if (!req.session || !req.session.passport || !req.session.passport.user) {
-    res.clearCookie('connect.sid', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax'
-    });
+    clearSessionSecurely(res);
     return res.json({ message: "Already logged out" });
   }
 
@@ -51,28 +38,12 @@ app.post("/api/auth/logout", (req, res) => {
   // Destroy session securely
   req.session.destroy((err) => {
     if (err) {
-      console.error(`Session destroy error for user ${userId}:`, err);
+      auditLog('logout_error', userId, { error: err.message, clientIP });
       return res.status(500).json({ message: "Error destroying session" });
     }
     
-    // Clear cookie with all security attributes
-    res.clearCookie('connect.sid', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/'
-    });
-    
-    // Add security headers
-    res.set({
-      'Cache-Control': 'no-cache, no-store, must-revalidate',
-      'Pragma': 'no-cache',
-      'Expires': '0',
-      'X-Content-Type-Options': 'nosniff',
-      'X-Frame-Options': 'DENY'
-    });
-    
-    console.log(`User ${userId} logged out successfully from IP ${clientIP}`);
+    clearSessionSecurely(res);
+    auditLog('logout_success', userId, { clientIP });
     res.json({ message: "Logged out successfully" });
   });
 });
