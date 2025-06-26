@@ -73,35 +73,30 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
     }) => {
       console.log('🔄 [ORDER MUTATION] Starting payment process with data:', data);
       
-      const response = await apiRequest('/api/orders', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      const response = await apiRequest('POST', '/api/orders', {
+        serviceId: service.id,
+        contactInfo: {
+          fullName: data.fullName,
+          email: data.email,
+          phone: data.phone,
+          company: data.company || ""
         },
-        body: JSON.stringify({
-          serviceId: service.id,
-          contactInfo: {
-            fullName: data.fullName,
-            email: data.email,
-            phone: data.phone,
-            company: data.company || ""
-          },
-          projectDetails: {
-            description: data.projectDescription
-          },
-          selectedAddOns: data.overrideSelectedAddOns || selectedAddOns,
-          totalAmount: data.overrideTotalAmount || totalPrice
-        }),
+        projectDetails: {
+          description: data.projectDescription
+        },
+        selectedAddOns: data.overrideSelectedAddOns || selectedAddOns,
+        totalAmount: data.overrideTotalAmount || totalPrice
       });
 
-      console.log('🔄 [ORDER MUTATION] Server response:', response);
+      const responseData = await response.json();
+      console.log('🔄 [ORDER MUTATION] Server response:', responseData);
       
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to process order');
+      if (!response.ok) {
+        throw new Error(responseData.error || 'Failed to process order');
       }
 
       // Extract Paystack URL and redirect
-      const paystackUrl = response.data?.paymentUrl || response.paymentUrl;
+      const paystackUrl = responseData.paymentUrl;
       if (paystackUrl) {
         console.log('🔄 [ORDER MUTATION] Redirecting to Paystack:', paystackUrl);
         // Clear the payment loader flag before redirect
@@ -112,7 +107,7 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
         throw new Error('Payment URL not received from server');
       }
 
-      return response;
+      return responseData;
     },
     onSuccess: (data) => {
       console.log('🔄 [ORDER MUTATION] Payment URL received successfully');
