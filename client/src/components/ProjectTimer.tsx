@@ -51,7 +51,7 @@ export default function ProjectTimer({ project }: ProjectTimerProps) {
     };
 
     calculateTimeRemaining();
-    const interval = setInterval(calculateTimeRemaining, 60000); // Update every minute
+    const interval = setInterval(calculateTimeRemaining, 1000); // Update every second
 
     return () => clearInterval(interval);
   }, [project.dueDate]);
