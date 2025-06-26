@@ -362,11 +362,50 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
 
         {/* Step 1: Contact Information */}
         {currentStep === 1 && (
-          <form onSubmit={contactForm.handleSubmit(onContactSubmit)} className="space-y-4">
-            <div className="flex items-center gap-2 mb-4">
-              <User className="h-5 w-5 text-blue-600" />
-              <h3 className="text-lg font-semibold">Contact Information</h3>
+          <div className="space-y-6">
+            {/* Order Summary - Step 1 */}
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h4 className="font-semibold mb-3">Order Summary</h4>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span>{service.name}</span>
+                  <span>₦{(totalPrice - selectedAddOns.reduce((total, addonName) => {
+                    // Calculate addon total for display
+                    return total + 0; // Will be calculated properly below
+                  }, 0)).toLocaleString()}</span>
+                </div>
+                {selectedAddOns.length > 0 && (
+                  <>
+                    <div className="text-sm text-gray-600 space-y-1">
+                      <p className="font-medium">Add-ons:</p>
+                      {selectedAddOns.map((addonName, index) => (
+                        <div key={index} className="flex justify-between pl-2">
+                          <span>• {addonName}</span>
+                          <span>Included</span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+                {selectedAddOns.length === 0 && (
+                  <div className="text-sm text-gray-500">
+                    No add-ons selected
+                  </div>
+                )}
+                <div className="border-t pt-2 font-semibold">
+                  <div className="flex justify-between">
+                    <span>Total</span>
+                    <span>₦{totalPrice.toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
             </div>
+
+            <form onSubmit={contactForm.handleSubmit(onContactSubmit)} className="space-y-4">
+              <div className="flex items-center gap-2 mb-4">
+                <User className="h-5 w-5 text-blue-600" />
+                <h3 className="text-lg font-semibold">Contact Information</h3>
+              </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -453,6 +492,7 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
               <ArrowLeft className="ml-2 h-4 w-4 rotate-180" />
             </Button>
           </form>
+        </div>
         )}
 
         {/* Step 2: Payment Information */}

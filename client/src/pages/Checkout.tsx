@@ -66,6 +66,7 @@ export default function Checkout() {
         let selectedAddonsList: string[] = [];
         if (addons) {
           selectedAddonsList = addons.split(',').filter(addon => addon.length > 0);
+          console.log('DEBUG: Parsed add-ons from URL:', selectedAddonsList);
           setSelectedAddOns(selectedAddonsList);
         }
         
