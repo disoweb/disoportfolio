@@ -85,7 +85,7 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
     resolver: zodResolver(contactSchema),
     defaultValues: storedContactData || {
       fullName: "",
-      email: "",
+      email: user?.email || "",
       phone: "",
       company: "",
       projectDescription: "",
@@ -112,6 +112,14 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
 
     return () => clearTimeout(timer);
   }, [watchedValues, contactForm]);
+
+  // Auto-populate email when user becomes authenticated
+  useEffect(() => {
+    if (user?.email && !contactForm.getValues().email) {
+      console.log('🔍 [CHECKOUT FORM] Auto-populating email from authenticated user:', user.email);
+      contactForm.setValue('email', user.email);
+    }
+  }, [user, contactForm]);
 
   // Restore contact data if it exists (from previous session or auth flow)
   useEffect(() => {
@@ -212,8 +220,28 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
             // Auto-submit the payment after a brief delay to ensure state is set
             setTimeout(() => {
               console.log('🔍 [AUTH EFFECT] Auto-submitting payment');
+              
+              // Ensure email is populated from authenticated user if missing
+              const contactData = { ...checkoutData.contactData };
+              if (!contactData.email && user?.email) {
+                console.log('🔍 [AUTH EFFECT] Populating missing email from user:', user.email);
+                contactData.email = user.email;
+              }
+              
+              // Validate that we have all required fields
+              if (!contactData.fullName || !contactData.email || !contactData.projectDescription) {
+                console.error('🔍 [AUTH EFFECT] Missing required contact data:', contactData);
+                toast({
+                  title: "Incomplete Information",
+                  description: "Please fill out all required contact information.",
+                  variant: "destructive",
+                });
+                setCurrentStep(1);
+                return;
+              }
+              
               const combinedData = { 
-                ...checkoutData.contactData, 
+                ...contactData, 
                 paymentMethod: "paystack",
                 ...(checkoutData.paymentData || {})
               };
