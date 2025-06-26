@@ -156,6 +156,10 @@ export class DatabaseStorage implements IStorage {
     
     return result.map(service => ({
       ...service,
+      price: parseInt(service.priceUsd),
+      originalPrice: service.originalPriceUsd ? parseInt(service.originalPriceUsd) : undefined,
+      features: typeof service.features === 'string' ? JSON.parse(service.features) : service.features,
+      industry: typeof service.industry === 'string' ? JSON.parse(service.industry) : service.industry,
       addOns: JSON.parse(service.addOns)
     }));
   }
@@ -168,6 +172,10 @@ export class DatabaseStorage implements IStorage {
     
     return result.map(service => ({
       ...service,
+      price: parseInt(service.priceUsd),
+      originalPrice: service.originalPriceUsd ? parseInt(service.originalPriceUsd) : undefined,
+      features: typeof service.features === 'string' ? JSON.parse(service.features) : service.features,
+      industry: typeof service.industry === 'string' ? JSON.parse(service.industry) : service.industry,
       addOns: JSON.parse(service.addOns)
     }));
   }
@@ -182,6 +190,10 @@ export class DatabaseStorage implements IStorage {
     
     return {
       ...service,
+      price: parseInt(service.priceUsd),
+      originalPrice: service.originalPriceUsd ? parseInt(service.originalPriceUsd) : undefined,
+      features: typeof service.features === 'string' ? JSON.parse(service.features) : service.features,
+      industry: typeof service.industry === 'string' ? JSON.parse(service.industry) : service.industry,
       addOns: JSON.parse(service.addOns)
     };
   }
