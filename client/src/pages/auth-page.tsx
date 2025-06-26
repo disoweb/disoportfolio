@@ -63,14 +63,26 @@ export default function AuthPage() {
                                  checkoutData.projectDetails && 
                                  checkoutData.totalPrice;
           
+          // Transform the data structure to match what CheckoutForm expects
           if (hasCompletedForm) {
-            console.log('🔐 [AUTH PAGE] ✅ Form is completed, triggering direct payment submission');
+            const transformedData = {
+              ...checkoutData,
+              contactData: {
+                fullName: checkoutData.contactInfo.fullName,
+                email: checkoutData.contactInfo.email,
+                phone: checkoutData.contactInfo.phone,
+                company: checkoutData.contactInfo.company || "",
+                projectDescription: checkoutData.projectDetails.description
+              }
+            };
             
-            // Set payment in progress flag
-            sessionStorage.setItem('payment_in_progress', 'true');
-            
-            // Redirect to checkout with auto-submit flag
-            sessionStorage.setItem('auto_submit_payment', 'true');
+            // Update the session storage with the correct data structure
+            sessionStorage.setItem('pendingCheckout', JSON.stringify(transformedData));
+            console.log('🔐 [AUTH PAGE] ✅ Transformed checkout data structure for auto-payment');
+          }
+          
+          if (hasCompletedForm) {
+            console.log('🔐 [AUTH PAGE] ✅ Form is completed, redirecting to checkout for auto-payment');
             setRedirectHandled(true);
             setLocation('/checkout');
           } else {

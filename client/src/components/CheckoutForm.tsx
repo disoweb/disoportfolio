@@ -114,34 +114,6 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
     }
   }, [contactForm, contactData]);
 
-  // Handle auto-submit after authentication
-  useEffect(() => {
-    const autoSubmit = sessionStorage.getItem('auto_submit_payment');
-    const storedContactData = getStoredFormData('checkout_contact_data');
-    
-    if (autoSubmit && storedContactData && user && !orderMutation.isPending) {
-      console.log('🤖 [AUTO SUBMIT] Triggering automatic payment after authentication');
-      
-      // Clear the auto-submit flag
-      sessionStorage.removeItem('auto_submit_payment');
-      
-      // Ensure form state is properly set
-      if (!contactData) {
-        setContactData(storedContactData);
-        contactForm.reset(storedContactData);
-      }
-      
-      // Auto-submit the payment with default timeline
-      const paymentData = {
-        paymentMethod: "paystack" as const,
-        timeline: "standard", // Default timeline for auto-submit
-      };
-      
-      console.log('🤖 [AUTO SUBMIT] Submitting payment with data:', paymentData);
-      orderMutation.mutate(paymentData);
-    }
-  }, [user, contactData, orderMutation, contactForm]);
-
   const orderMutation = useMutation({
     mutationFn: async (data: PaymentForm & { 
       overrideSelectedAddOns?: string[], 
