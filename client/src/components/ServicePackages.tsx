@@ -320,12 +320,12 @@ export default function ServicePackages() {
   });
 
   const industryRecommendations: Record<string, string[]> = {
-    tech: ["webapp", "landing-page"],
+    tech: ["custom-webapp", "landing-page"],
     retail: ["ecommerce-app", "landing-page"],
-    consulting: ["landing-page", "webapp"],
-    healthcare: ["webapp", "landing-page", "hospital-management"],
-    finance: ["webapp", "landing-page"],
-    education: ["webapp", "landing-page"],
+    consulting: ["landing-page", "custom-webapp"],
+    healthcare: ["custom-webapp", "landing-page", "hospital-management"],
+    finance: ["custom-webapp", "landing-page"],
+    education: ["custom-webapp", "landing-page"],
     restaurant: ["ecommerce-app", "landing-page"],
   };
 
