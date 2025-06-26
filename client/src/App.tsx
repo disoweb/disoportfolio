@@ -129,6 +129,7 @@ function Router() {
         <Route path="/dashboard" component={ClientDashboard} />
         <Route path="/active-projects" component={ActiveProjects} />
         <Route path="/transactions" component={TransactionHistory} />
+        <Route path="/transaction-history" component={TransactionHistory} />
         <Route path="/services" component={Services} />
         <Route path="/service/:id" component={ServiceDetails} />
         <Route path="/checkout" component={Checkout} />

@@ -37,38 +37,37 @@ export default function TransactionHistory() {
       filtered = filtered.filter((order: any) => order.status === statusFilter);
     }
     
-    // Filter by search query
+    // Filter by search query - improved logic to prevent false positives
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
       filtered = filtered.filter((order: any) => {
-        // Debug: log what we're actually searching
-        console.log('Searching order:', {
-          id: order.id,
-          contactName: order.contactName,
-          contactEmail: order.contactEmail,
-          companyName: order.companyName,
-          serviceName: order.serviceName,
-          customRequest: order.customRequest
-        });
-        
+        // Create search fields with better validation
         const searchFields = [
           (order.contactName || '').toString().toLowerCase(),
-          (order.contactEmail || '').toString().toLowerCase(),
+          (order.contactEmail || '').toString().toLowerCase(), 
           (order.companyName || '').toString().toLowerCase(),
           (order.serviceName || '').toString().toLowerCase(),
           (order.customRequest || '').toString().toLowerCase(),
-          (order.id || '').toString().toLowerCase(),
-          (order.id || '').toString().slice(-6).toLowerCase(), // Short order ID
-          (order.id || '').toString().slice(-8).toLowerCase(), // Medium order ID
-        ];
+        ].filter(field => field.length > 0); // Remove empty fields
         
-        const matches = searchFields.some(field => field.includes(query));
-        
-        if (matches) {
-          console.log('Match found for query "' + query + '" in order:', order.id, 'fields:', searchFields.filter(f => f.includes(query)));
+        // Add order ID variants only if they are meaningful
+        const orderId = (order.id || '').toString().toLowerCase();
+        if (orderId.length >= 6) {
+          searchFields.push(orderId);
+          searchFields.push(orderId.slice(-6)); // Short order ID
+          searchFields.push(orderId.slice(-8)); // Medium order ID
         }
         
-        return matches;
+        // Check for exact word matches or meaningful partial matches (3+ chars)
+        return searchFields.some(field => {
+          if (query.length < 3) {
+            // For short queries, require exact word match
+            return field.split(' ').some(word => word === query);
+          } else {
+            // For longer queries, allow substring matching
+            return field.includes(query);
+          }
+        });
       });
     }
     
