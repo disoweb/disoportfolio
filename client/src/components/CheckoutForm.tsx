@@ -115,11 +115,37 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
 
   // Restore contact data if it exists (from previous session or auth flow)
   useEffect(() => {
+    console.log('🔍 [CHECKOUT FORM] Restore data effect triggered');
+    console.log('🔍 [CHECKOUT FORM] storedContactData:', storedContactData);
+    console.log('🔍 [CHECKOUT FORM] contactData:', contactData);
+    
+    // First check for pending checkout data (priority for auth flow)
+    const pendingCheckout = sessionStorage.getItem('pendingCheckout');
+    if (pendingCheckout && !contactData) {
+      try {
+        const checkoutData = JSON.parse(pendingCheckout);
+        console.log('🔍 [CHECKOUT FORM] Found pending checkout data:', checkoutData);
+        
+        if (checkoutData.contactData) {
+          console.log('🔍 [CHECKOUT FORM] Restoring contact data from pending checkout');
+          setContactData(checkoutData.contactData);
+          contactForm.reset(checkoutData.contactData);
+          setCurrentStep(2);
+          return;
+        }
+      } catch (error) {
+        console.error('🔍 [CHECKOUT FORM] Error parsing pending checkout:', error);
+      }
+    }
+    
+    // Fallback to localStorage data
     if (storedContactData && !contactData) {
+      console.log('🔍 [CHECKOUT FORM] Restoring contact data from localStorage');
       setContactData(storedContactData);
+      contactForm.reset(storedContactData);
       setCurrentStep(2);
     }
-  }, [storedContactData, contactData]);
+  }, [storedContactData, contactData, contactForm]);
 
   const orderMutation = useMutation({
     mutationFn: async (data: ContactForm & PaymentForm) => {
