@@ -12,6 +12,8 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
+  console.log('🌐 API-REQUEST: Making request:', { method, url, data });
+  
   const res = await fetch(url, {
     method,
     headers: {
@@ -22,6 +24,8 @@ export async function apiRequest(
     credentials: "include",
   });
 
+  console.log('🌐 API-REQUEST: Response status:', res.status, res.statusText);
+  
   await throwIfResNotOk(res);
   return res;
 }

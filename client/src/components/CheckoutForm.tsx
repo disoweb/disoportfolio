@@ -183,9 +183,13 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
       }
 
       try {
+        console.log('💰 CHECKOUT-FORM: Making API request to /api/orders with data:', orderData);
         const response = await apiRequest("POST", "/api/orders", orderData);
-        return await response.json();
+        const responseData = await response.json();
+        console.log('💰 CHECKOUT-FORM: API response received:', responseData);
+        return responseData;
       } catch (error) {
+        console.error('❌ ORDER-ERROR: API request failed:', error);
         throw new Error(error instanceof Error ? error.message : 'Failed to create order');
       }
     },
