@@ -56,13 +56,22 @@ export const users = pgTable("users", {
 });
 
 export const services = pgTable("services", {
-  id: uuid("id").primaryKey().defaultRandom(),
+  id: varchar("id").primaryKey(),
   name: varchar("name").notNull(),
   description: text("description").notNull(),
-  priceUsd: decimal("price_usd").notNull(),
+  priceUsd: varchar("price_usd").notNull(), // Price as string for easier handling
+  originalPriceUsd: varchar("original_price_usd"),
+  duration: varchar("duration").notNull(), // e.g., "2-3 weeks"
+  spotsRemaining: integer("spots_remaining").notNull(),
+  totalSpots: integer("total_spots").notNull(),
+  features: text("features").notNull(), // JSON string of features
+  addOns: text("add_ons").notNull(), // JSON string of add-ons
+  recommended: boolean("recommended").default(false),
   category: serviceCategoryEnum("category").notNull(),
+  industry: text("industry").notNull(), // JSON string of industries
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const orders = pgTable("orders", {
@@ -231,6 +240,7 @@ export const insertUserSchema = createInsertSchema(users).omit({
 export const insertServiceSchema = createInsertSchema(services).omit({
   id: true,
   createdAt: true,
+  updatedAt: true,
 });
 
 export const insertOrderSchema = createInsertSchema(orders).omit({

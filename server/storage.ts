@@ -38,7 +38,11 @@ export interface IStorage {
 
 
   getActiveServices(): Promise<Service[]>;
+  getAllServices(): Promise<Service[]>;
+  getServiceById(id: string): Promise<Service | undefined>;
   createService(service: InsertService): Promise<Service>;
+  updateService(id: string, updates: Partial<InsertService>): Promise<Service>;
+  deleteService(id: string): Promise<void>;
 
   createOrder(order: InsertOrder): Promise<Order>;
   getUserOrders(userId: string): Promise<Order[]>;
@@ -144,15 +148,85 @@ export class DatabaseStorage implements IStorage {
 
   // Service operations
   async getActiveServices(): Promise<Service[]> {
-    return await db
+    const result = await db
       .select()
       .from(services)
       .where(eq(services.isActive, true))
       .orderBy(services.createdAt);
+    
+    return result.map(service => ({
+      ...service,
+      addOns: JSON.parse(service.addOns)
+    }));
+  }
+
+  async getAllServices(): Promise<Service[]> {
+    const result = await db
+      .select()
+      .from(services)
+      .orderBy(services.createdAt);
+    
+    return result.map(service => ({
+      ...service,
+      addOns: JSON.parse(service.addOns)
+    }));
+  }
+
+  async getServiceById(id: string): Promise<Service | undefined> {
+    const [service] = await db
+      .select()
+      .from(services)
+      .where(eq(services.id, id));
+    
+    if (!service) return undefined;
+    
+    return {
+      ...service,
+      addOns: JSON.parse(service.addOns)
+    };
+  }
+
+  async updateService(id: string, updates: Partial<InsertService>): Promise<Service> {
+    const updateData = { ...updates };
+    if (updateData.addOns && typeof updateData.addOns !== 'string') {
+      updateData.addOns = JSON.stringify(updateData.addOns);
+    }
+
+    const [updatedService] = await db
+      .update(services)
+      .set({ ...updateData, updatedAt: new Date() })
+      .where(eq(services.id, id))
+      .returning();
+
+    return {
+      ...updatedService,
+      addOns: JSON.parse(updatedService.addOns)
+    };
+  }
+
+  async deleteService(id: string): Promise<void> {
+    await db.delete(services).where(eq(services.id, id));
   }
 
   async createService(service: InsertService): Promise<Service> {
-    const [newService] = await db.insert(services).values(service).returning();
+    const serviceData = {
+      id: service.id || crypto.randomUUID(),
+      name: service.name,
+      description: service.description,
+      priceUsd: service.priceUsd,
+      originalPriceUsd: service.originalPriceUsd,
+      duration: service.duration,
+      spotsRemaining: service.spotsRemaining,
+      totalSpots: service.totalSpots,
+      features: typeof service.features === 'string' ? service.features : JSON.stringify(service.features),
+      addOns: typeof service.addOns === 'string' ? service.addOns : JSON.stringify(service.addOns),
+      recommended: service.recommended,
+      category: service.category,
+      industry: typeof service.industry === 'string' ? service.industry : JSON.stringify(service.industry),
+      isActive: service.isActive
+    };
+    
+    const [newService] = await db.insert(services).values([serviceData]).returning();
     return newService;
   }
 

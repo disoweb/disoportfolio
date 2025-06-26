@@ -9,6 +9,7 @@ import {
   insertMessageSchema,
   insertSupportRequestSchema,
   insertPaymentSchema,
+  insertServiceSchema,
   payments,
   orders
 } from "@shared/schema";
@@ -41,34 +42,100 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(services);
     } catch (error) {
       console.error("Error fetching services:", error);
-      // Return sample services if database is empty
-      const sampleServices = [
-        {
-          id: "basic-website",
-          name: "Basic Website Package",
-          description: "Perfect for small businesses and personal portfolios",
-          priceUsd: "150000",
-          category: "launch",
-          isActive: true
-        },
-        {
-          id: "ecommerce",
-          name: "E-commerce Website",
-          description: "Complete online store with payment integration",
-          priceUsd: "500000", 
-          category: "growth",
-          isActive: true
-        },
-        {
-          id: "web-app",
-          name: "Custom Web Application",
-          description: "Tailored web applications for your business needs",
-          priceUsd: "800000",
-          category: "elite", 
-          isActive: true
-        }
-      ];
-      res.json(sampleServices);
+      res.status(500).json({ message: "Failed to fetch services" });
+    }
+  });
+
+  // Admin service management routes
+  app.get('/api/admin/services', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (user?.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const services = await storage.getAllServices();
+      res.json(services);
+    } catch (error) {
+      console.error("Error fetching all services:", error);
+      res.status(500).json({ message: "Failed to fetch services" });
+    }
+  });
+
+  app.get('/api/admin/services/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (user?.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const service = await storage.getServiceById(req.params.id);
+      if (!service) {
+        return res.status(404).json({ message: "Service not found" });
+      }
+
+      res.json(service);
+    } catch (error) {
+      console.error("Error fetching service:", error);
+      res.status(500).json({ message: "Failed to fetch service" });
+    }
+  });
+
+  app.post('/api/admin/services', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (user?.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const serviceData = insertServiceSchema.parse({
+        ...req.body,
+        addOns: typeof req.body.addOns === 'string' ? req.body.addOns : JSON.stringify(req.body.addOns)
+      });
+
+      const service = await storage.createService(serviceData);
+      res.json(service);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid service data", errors: error.errors });
+      }
+      console.error("Error creating service:", error);
+      res.status(500).json({ message: "Failed to create service" });
+    }
+  });
+
+  app.put('/api/admin/services/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (user?.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const updateData = { ...req.body };
+      if (updateData.addOns && typeof updateData.addOns !== 'string') {
+        updateData.addOns = JSON.stringify(updateData.addOns);
+      }
+
+      const service = await storage.updateService(req.params.id, updateData);
+      res.json(service);
+    } catch (error) {
+      console.error("Error updating service:", error);
+      res.status(500).json({ message: "Failed to update service" });
+    }
+  });
+
+  app.delete('/api/admin/services/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (user?.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      await storage.deleteService(req.params.id);
+      res.json({ message: "Service deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting service:", error);
+      res.status(500).json({ message: "Failed to delete service" });
     }
   });
 

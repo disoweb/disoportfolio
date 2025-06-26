@@ -12,6 +12,7 @@ import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
+import { useQuery } from "@tanstack/react-query";
 import {
   CheckCircle,
   ArrowRight,
@@ -26,10 +27,9 @@ import {
   Calendar,
   ChevronDown,
   ChevronUp,
-  Heart, // Added for the new social proof item
+  Heart,
 } from "lucide-react";
 
-// Define types for better clarity
 interface AddOn {
   name: string;
   price: number;
@@ -52,149 +52,31 @@ interface Service {
   industry: string[];
 }
 
-const initialServices: Omit<Service, "recommended">[] = [
-  {
-    id: "landing",
-    name: "Landing Page",
-    description: "Perfect for showcasing your business",
-    price: 150000,
-    originalPrice: 200000,
-    duration: "3-5 days",
-    deliveryDate: "2025-02-05",
-    spots: 2,
-    totalSpots: 10,
-    features: [
-      "Responsive design",
-      "Contact form",
-      "SEO optimization",
-      "Basic analytics",
-      "Social media integration",
-      "1 month support",
-    ],
-    addOns: [
-      { name: "WhatsApp Integration", price: 15000 },
-      { name: "Live Chat Widget", price: 25000 },
-      { name: "Advanced Analytics", price: 20000 },
-    ],
-    category: "startup",
-    industry: ["tech", "consulting", "portfolio"],
-  },
-  {
-    id: "ecommerce",
-    name: "E-commerce App",
-    description: "Complete online store solution",
-    price: 450000,
-    originalPrice: 600000,
-    duration: "2-3 weeks",
-    deliveryDate: "2025-02-20",
-    spots: 3,
-    totalSpots: 5,
-    features: [
-      "Product catalog",
-      "Shopping cart",
-      "Payment integration",
-      "Order management",
-      "Inventory tracking",
-      "Customer accounts",
-      "Mobile responsive",
-      "3 months support",
-    ],
-    addOns: [
-      { name: "Multi-vendor Support", price: 100000 },
-      { name: "Advanced Reporting", price: 50000 },
-      { name: "Email Marketing Integration", price: 35000 },
-    ],
-    category: "business",
-    industry: ["retail", "fashion", "electronics"],
-  },
-  {
-    id: "webapp",
-    name: "Web Application",
-    description: "Custom functionality for your needs",
-    price: 800000,
-    originalPrice: 1000000,
-    duration: "4-6 weeks",
-    deliveryDate: "2025-03-15",
-    spots: 4,
-    totalSpots: 5,
-    features: [
-      "Custom development",
-      "User authentication",
-      "Database integration",
-      "API development",
-      "Admin dashboard",
-      "Advanced security",
-      "6 months support",
-    ],
-    addOns: [
-      { name: "Mobile App", price: 400000 },
-      { name: "Third-party Integrations", price: 150000 },
-      { name: "Advanced Security", price: 100000 },
-    ],
-    category: "enterprise",
-    industry: ["saas", "healthcare", "fintech"],
-  },
-  {
-    id: "hospital-management",
-    name: "Hospital App",
-    description: "Streamline hospital operations and patient care",
-    price: 1200000,
-    originalPrice: 1500000,
-    duration: "6-8 weeks",
-    deliveryDate: "2025-04-10",
-    spots: 2,
-    totalSpots: 3,
-    features: [
-      "Patient Registration & Management",
-      "Appointment Scheduling",
-      "Electronic Health Records (EHR)",
-      "Billing & Invoicing",
-      "Inventory Management (Pharmacy/Supplies)",
-      "Staff Management & Payroll",
-      "Reporting & Analytics",
-      "Secure Data Handling (e.g., HIPAA-compliant design)",
-      "6 months premium support",
-    ],
-    addOns: [
-      { name: "Telemedicine Module", price: 300000 },
-      { name: "Advanced Reporting & BI", price: 150000 },
-      { name: "Patient Portal", price: 200000 },
-      { name: "HL7/FHIR Integration Support", price: 250000 },
-    ],
-    category: "enterprise",
-    industry: ["healthcare"],
-  },
-];
-
-const industryRecommendations: Record<string, string[]> = {
-  tech: ["webapp", "landing"],
-  retail: ["ecommerce", "landing"],
-  consulting: ["landing", "webapp"],
-  healthcare: ["webapp", "landing", "hospital-management"],
-  finance: ["webapp", "landing"],
-  education: ["webapp", "landing"],
-  restaurant: ["ecommerce", "landing"],
-};
-
 // Utility function to calculate delivery date based on duration
 function calculateDeliveryDate(duration: string): string {
   const today = new Date();
-  let weeks = 0;
+  const match = duration.match(/(\d+)(?:-(\d+))?\s*(days?|weeks?|months?)/i);
   
-  // Parse duration string to extract maximum weeks
-  const match = duration.match(/(\d+)(?:-(\d+))?\s*weeks?/i);
-  if (match) {
-    weeks = match[2] ? parseInt(match[2]) : parseInt(match[1]); // Use max if range, single if not
+  if (!match) return today.toISOString().split('T')[0];
+  
+  const minValue = parseInt(match[1]);
+  const maxValue = match[2] ? parseInt(match[2]) : minValue;
+  const unit = match[3].toLowerCase();
+  const averageValue = (minValue + maxValue) / 2;
+  
+  let daysToAdd = 0;
+  if (unit.startsWith('day')) {
+    daysToAdd = averageValue;
+  } else if (unit.startsWith('week')) {
+    daysToAdd = averageValue * 7;
+  } else if (unit.startsWith('month')) {
+    daysToAdd = averageValue * 30;
   }
   
   const deliveryDate = new Date(today);
-  deliveryDate.setDate(today.getDate() + (weeks * 7));
+  deliveryDate.setDate(today.getDate() + Math.ceil(daysToAdd));
   
-  return deliveryDate.toLocaleDateString("en-US", { 
-    month: "short", 
-    day: "numeric", 
-    year: "numeric" 
-  });
+  return deliveryDate.toISOString().split('T')[0];
 }
 
 interface PricingCalculatorProps {
@@ -208,70 +90,68 @@ function PricingCalculator({
   reportPriceUpdate,
   currentSelectedAddOns,
 }: PricingCalculatorProps) {
-  const [installmentPlan, setInstallmentPlan] = useState(false);
-
-  const basePrice = useMemo(() => {
-    return (
-      service.price +
-      currentSelectedAddOns.reduce((sum, addonName) => {
-        const addon = service.addOns.find((a) => a.name === addonName);
-        return sum + (addon?.price || 0);
-      }, 0)
-    );
-  }, [service.price, service.addOns, currentSelectedAddOns]);
+  const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
 
   const totalPrice = useMemo(() => {
-    return installmentPlan ? Math.round(basePrice * 1.3) : basePrice;
-  }, [basePrice, installmentPlan]);
-
-  const savings = service.originalPrice - service.price;
-  const savingsPercentage = Math.round((savings / service.originalPrice) * 100);
+    const addOnsCost = service.addOns
+      .filter((addon) => selectedAddOns.includes(addon.name))
+      .reduce((sum, addon) => sum + addon.price, 0);
+    return service.price + addOnsCost;
+  }, [service.price, service.addOns, selectedAddOns]);
 
   useEffect(() => {
     reportPriceUpdate(service.id, totalPrice);
   }, [service.id, totalPrice, reportPriceUpdate]);
 
+  const handleAddOnChange = (addonName: string) => {
+    setSelectedAddOns((prev) =>
+      prev.includes(addonName)
+        ? prev.filter((name) => name !== addonName)
+        : [...prev, addonName]
+    );
+  };
+
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-1">
-          <span className="text-xs text-slate-500 line-through">
-            ₦{service.originalPrice.toLocaleString()}
-          </span>
-          <span className="font-bold text-sm">₦{service.price.toLocaleString()}</span>
-          {savings > 0 && (
-            <Badge variant="destructive" className="text-xs py-0 px-1">
-              -{savingsPercentage}%
-            </Badge>
-          )}
+    <div className="space-y-3">
+      <div className="flex justify-between items-center">
+        <span className="text-sm font-medium text-slate-600">Base Price:</span>
+        <span className="text-sm font-bold text-slate-800">
+          ₦{service.price.toLocaleString()}
+        </span>
+      </div>
+
+      {service.addOns.length > 0 && (
+        <div className="space-y-2">
+          <span className="text-sm font-medium text-slate-600">Add-ons:</span>
+          {service.addOns.map((addon) => (
+            <div key={addon.name} className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id={`${service.id}-${addon.name}`}
+                  checked={selectedAddOns.includes(addon.name)}
+                  onChange={() => handleAddOnChange(addon.name)}
+                  className="rounded border-slate-300"
+                />
+                <label
+                  htmlFor={`${service.id}-${addon.name}`}
+                  className="text-sm text-slate-700"
+                >
+                  {addon.name}
+                </label>
+              </div>
+              <span className="text-sm font-medium text-slate-600">
+                +₦{addon.price.toLocaleString()}
+              </span>
+            </div>
+          ))}
         </div>
-      </div>
+      )}
 
-      <div className="flex items-center space-x-2 p-2 bg-blue-50 rounded">
-        <input
-          type="checkbox"
-          id={`installment-${service.id}`}
-          checked={installmentPlan}
-          onChange={(e) => setInstallmentPlan(e.target.checked)}
-          className="rounded accent-blue-600"
-          aria-label={`Pay ${service.name} in installments`}
-        />
-        <label
-          htmlFor={`installment-${service.id}`}
-          className="text-xs flex-grow"
-        >
-          Pay in 3 Installments (₦{Math.ceil(totalPrice / 3).toLocaleString()}
-          /month)
-          {installmentPlan && (
-            <span className="text-xs text-red-600 ml-1">(+30% fee)</span>
-          )}
-        </label>
-        <CreditCard className="h-3 w-3 text-blue-600 flex-shrink-0" />
-      </div>
-
-      <div className="flex items-center justify-between bg-slate-100 p-2 rounded">
-        <span className="font-semibold text-sm">Total</span>
-        <span className="font-bold text-base">
+      <Separator />
+      <div className="flex justify-between items-center">
+        <span className="text-base font-bold text-slate-800">Total:</span>
+        <span className="text-lg font-bold text-blue-600">
           ₦{totalPrice.toLocaleString()}
         </span>
       </div>
@@ -280,94 +160,70 @@ function PricingCalculator({
 }
 
 function ROICalculator({ service }: { service: Service }) {
-  const [monthlyRevenue, setMonthlyRevenue] = useState(500000);
-  const [showROI, setShowROI] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
-  const projectedIncrease = useMemo(() => {
-    switch (service.id) {
-      case "ecommerce":
-        return 40;
-      case "webapp":
-        return 35;
-      case "hospital-management":
-        return 50;
-      default:
-        return 25;
-    }
-  }, [service.id]);
+  const roiMetrics = useMemo(() => {
+    const monthlyValue = service.price * 0.1;
+    const yearlyValue = monthlyValue * 12;
+    const breakEvenMonths = Math.ceil(service.price / monthlyValue);
 
-  const monthlyIncrease = useMemo(
-    () => (monthlyRevenue * projectedIncrease) / 100,
-    [monthlyRevenue, projectedIncrease],
-  );
-  const roiMonths = useMemo(
-    () =>
-      monthlyIncrease > 0
-        ? Math.ceil(service.price / monthlyIncrease)
-        : Infinity,
-    [service.price, monthlyIncrease],
-  );
+    return {
+      monthlyValue: Math.round(monthlyValue),
+      yearlyValue: Math.round(yearlyValue),
+      breakEvenMonths,
+      roi: Math.round(((yearlyValue - service.price) / service.price) * 100),
+    };
+  }, [service.price]);
 
   return (
-    <div className="bg-green-50 p-2 rounded">
+    <div className="bg-gradient-to-r from-green-50 to-blue-50 p-4 rounded-lg border border-green-200">
       <button
-        onClick={() => setShowROI(!showROI)}
-        className="w-full flex items-center justify-between text-left"
-        aria-expanded={showROI}
-        aria-controls={`roi-details-${service.id}`}
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="flex items-center justify-between w-full text-left"
       >
-        <h4 className="font-semibold text-green-800 flex items-center space-x-1 text-xs">
-          <Calculator className="h-3 w-3" />
-          <span>ROI Calculator</span>
-        </h4>
-        {showROI ? (
-          <ChevronUp className="h-3 w-3 text-green-800" />
+        <div className="flex items-center space-x-2">
+          <Calculator className="h-4 w-4 text-green-600" />
+          <span className="text-sm font-medium text-green-800">
+            ROI Calculator
+          </span>
+        </div>
+        {isExpanded ? (
+          <ChevronUp className="h-4 w-4 text-green-600" />
         ) : (
-          <ChevronDown className="h-3 w-3 text-green-800" />
+          <ChevronDown className="h-4 w-4 text-green-600" />
         )}
       </button>
 
-      {showROI && (
-        <div
-          id={`roi-details-${service.id}`}
-          className="mt-2 space-y-1 text-xs"
-        >
-          <div className="flex items-center justify-between">
-            <label
-              htmlFor={`monthlyRevenue-${service.id}`}
-              className="text-xs text-slate-700"
-            >
-              Monthly Revenue (₦):
-            </label>
-            <input
-              type="number"
-              id={`monthlyRevenue-${service.id}`}
-              value={monthlyRevenue}
-              onChange={(e) => setMonthlyRevenue(Number(e.target.value))}
-              className="w-20 p-1 border rounded text-xs text-right"
-              step="10000"
-              aria-label="Current Average Monthly Revenue"
-            />
+      {isExpanded && (
+        <div className="mt-3 space-y-2">
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <span className="text-slate-600">Monthly Value:</span>
+              <div className="font-semibold text-green-700">
+                ₦{roiMetrics.monthlyValue.toLocaleString()}
+              </div>
+            </div>
+            <div>
+              <span className="text-slate-600">Yearly Value:</span>
+              <div className="font-semibold text-green-700">
+                ₦{roiMetrics.yearlyValue.toLocaleString()}
+              </div>
+            </div>
+            <div>
+              <span className="text-slate-600">Break-even:</span>
+              <div className="font-semibold text-blue-700">
+                {roiMetrics.breakEvenMonths} months
+              </div>
+            </div>
+            <div>
+              <span className="text-slate-600">Annual ROI:</span>
+              <div className="font-semibold text-purple-700">
+                {roiMetrics.roi}%
+              </div>
+            </div>
           </div>
-          <div className="flex justify-between">
-            <span>Revenue increase:</span>
-            <span className="font-medium text-green-700">
-              +{projectedIncrease}%
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span>Monthly boost:</span>
-            <span className="font-medium text-green-700">
-              ₦{monthlyIncrease.toLocaleString()}
-            </span>
-          </div>
-          <div className="flex justify-between text-green-700 font-bold">
-            <span>Breakeven:</span>
-            <span>
-              {roiMonths === Infinity
-                ? "N/A"
-                : `${roiMonths} months`}
-            </span>
+          <div className="text-xs text-slate-600 mt-2">
+            *Estimates based on typical business growth patterns
           </div>
         </div>
       )}
@@ -376,54 +232,50 @@ function ROICalculator({ service }: { service: Service }) {
 }
 
 export default function ServicePackages() {
-  const [selectedIndustry, setSelectedIndustry] = useState<string>("");
-  const [priceUpdates, setPriceUpdates] = useState<{ [key: string]: number }>(
-    {},
-  );
-  const [openAddOns, setOpenAddOns] = useState<Record<string, boolean>>({});
-  const [selectedAddOns, setSelectedAddOns] = useState<
-    Record<string, string[]>
-  >({});
-  
   const [, setLocation] = useLocation();
   const { user } = useAuth();
+  const [selectedIndustry, setSelectedIndustry] = useState<string>("all");
+  const [priceUpdates, setPriceUpdates] = useState<Record<string, number>>({});
+  const [selectedAddOns, setSelectedAddOns] = useState<Record<string, string[]>>({});
 
-  const handlePriceUpdateCallback = useCallback(
-    (serviceId: string, price: number) => {
-      setPriceUpdates((prev) => ({ ...prev, [serviceId]: price }));
-    },
-    [],
-  );
+  // Fetch services from database
+  const { data: servicesData = [], isLoading, error } = useQuery({
+    queryKey: ['/api/services'],
+    select: (data: any[]) => data.map((service: any) => ({
+      id: service.id,
+      name: service.name,
+      description: service.description,
+      price: parseInt(service.priceUsd) || 0,
+      originalPrice: parseInt(service.originalPriceUsd) || parseInt(service.priceUsd) || 0,
+      duration: service.duration || "4-6 weeks",
+      deliveryDate: calculateDeliveryDate(service.duration || "4-6 weeks"),
+      spots: service.spotsRemaining || 5,
+      totalSpots: service.totalSpots || 10,
+      features: service.features ? JSON.parse(service.features) : [],
+      addOns: service.addOns ? JSON.parse(service.addOns) : [],
+      recommended: service.recommended || false,
+      category: service.category,
+      industry: service.industry ? JSON.parse(service.industry) : ["general"]
+    }))
+  });
 
-  const toggleAddOnsVisibility = useCallback((serviceId: string) => {
-    setOpenAddOns((prev) => ({
-      ...prev,
-      [serviceId]: !prev[serviceId],
-    }));
-  }, []);
-
-  const handleToggleAddOnForService = useCallback(
-    (serviceId: string, addonName: string) => {
-      setSelectedAddOns((prevSelectedAddOns) => {
-        const currentAddonsForService = prevSelectedAddOns[serviceId] || [];
-        const newAddonsForService = currentAddonsForService.includes(addonName)
-          ? currentAddonsForService.filter((name) => name !== addonName)
-          : [...currentAddonsForService, addonName];
-        return {
-          ...prevSelectedAddOns,
-          [serviceId]: newAddonsForService,
-        };
-      });
-    },
-    [],
-  );
+  const industryRecommendations: Record<string, string[]> = {
+    tech: ["webapp", "landing"],
+    retail: ["ecommerce", "landing"],
+    consulting: ["landing", "webapp"],
+    healthcare: ["webapp", "landing", "hospital-management"],
+    finance: ["webapp", "landing"],
+    education: ["webapp", "landing"],
+    restaurant: ["ecommerce", "landing"],
+  };
 
   const recommendedServices = useMemo((): Service[] => {
-    const baseServicesWithDynamicRecommended = initialServices.map((s) => ({
+    const baseServicesWithDynamicRecommended = servicesData.map((s) => ({
       ...s,
       recommended: false,
     }));
-    if (!selectedIndustry) {
+    
+    if (selectedIndustry === "all") {
       return baseServicesWithDynamicRecommended
         .map((s) => ({
           ...s,
@@ -440,248 +292,218 @@ export default function ServicePackages() {
         recommended: recommendedIds.includes(service.id),
       }))
       .sort((a, b) => (b.recommended ? 1 : 0) - (a.recommended ? 1 : 0));
-  }, [selectedIndustry]);
+  }, [selectedIndustry, servicesData]);
+
+  const handlePurchase = (serviceId: string) => {
+    if (!user) {
+      setLocation("/login");
+      return;
+    }
+
+    const service = servicesData.find((s) => s.id === serviceId);
+    if (!service) return;
+
+    const finalPrice = priceUpdates[serviceId] || service.price;
+    const addOns = selectedAddOns[serviceId] || [];
+
+    // Navigate to checkout with service details
+    setLocation(`/checkout?service=${serviceId}&price=${finalPrice}&addons=${addOns.join(',')}`);
+  };
+
+  const reportPriceUpdate = useCallback((serviceId: string, total: number) => {
+    setPriceUpdates((prev) => ({ ...prev, [serviceId]: total }));
+  }, []);
+
+  const industries = [
+    { id: "all", label: "All Industries", icon: "🌐" },
+    { id: "tech", label: "Technology", icon: "💻" },
+    { id: "retail", label: "Retail & E-commerce", icon: "🛒" },
+    { id: "consulting", label: "Consulting", icon: "💼" },
+    { id: "healthcare", label: "Healthcare", icon: "🏥" },
+    { id: "finance", label: "Finance", icon: "💰" },
+    { id: "education", label: "Education", icon: "📚" },
+    { id: "restaurant", label: "Restaurant", icon: "🍽️" },
+  ];
+
+  if (isLoading) {
+    return (
+      <section className="py-6 bg-slate-50">
+        <div className="container mx-auto px-4">
+          <div className="text-center">Loading services...</div>
+        </div>
+      </section>
+    );
+  }
+
+  if (error) {
+    return (
+      <section className="py-6 bg-slate-50">
+        <div className="container mx-auto px-4">
+          <div className="text-center text-red-600">Failed to load services</div>
+        </div>
+      </section>
+    );
+  }
 
   return (
-    <div className="space-y-1 md:space-y-8 p-2 md:p-6 lg:p-8 max-w-7xl mx-auto">
-      <div id="industry-selection" className="text-center bg-slate-50 p-2 md:p-6 rounded-xl shadow">
-        <h3 className="text-xl md:text-2xl font-semibold mb-1 md:mb-4 text-slate-800">
-          What's your industry?
-        </h3>
-        <div className="flex flex-wrap justify-center gap-2">
-          {Object.keys(industryRecommendations).map((industry) => (
-            <Button
-              key={industry}
-              variant={selectedIndustry === industry ? "default" : "outline"}
-              size="sm"
-              onClick={() => setSelectedIndustry(industry)}
-              className="capitalize transition-all duration-150 ease-in-out hover:shadow-md"
-            >
-              {industry}
-            </Button>
-          ))}
-        </div>
-        {selectedIndustry && (
-          <p className="text-sm text-blue-600 mt-3">
-            ✨ Showing personalized recommendations for {selectedIndustry}{" "}
-            businesses
+    <section className="py-6 bg-slate-50" id="packages">
+      <div className="container mx-auto px-4">
+        <div className="text-center mb-6">
+          <h2 className="text-2xl font-bold text-slate-800 mb-2">
+            Choose Your Perfect Package
+          </h2>
+          <p className="text-slate-600 max-w-2xl mx-auto text-sm">
+            Professional web solutions tailored to your industry needs. Select your industry to see recommended packages.
           </p>
-        )}
-      </div>
+        </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
-        {recommendedServices.map((service) => {
-          return (
+        {/* Industry Selection */}
+        <div className="mb-6">
+          <div className="flex flex-wrap justify-center gap-2">
+            {industries.map((industry) => (
+              <button
+                key={industry.id}
+                onClick={() => setSelectedIndustry(industry.id)}
+                className={`px-3 py-2 rounded-full text-xs font-medium transition-all ${
+                  selectedIndustry === industry.id
+                    ? "bg-blue-600 text-white shadow-md"
+                    : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
+                }`}
+              >
+                <span className="mr-1">{industry.icon}</span>
+                {industry.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Services Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {recommendedServices.map((service) => (
             <Card
               key={service.id}
-              className={`flex flex-col transition-all duration-300 ease-in-out hover:shadow-xl ${
+              className={`relative transition-all duration-300 hover:shadow-lg ${
                 service.recommended
-                  ? "ring-2 ring-blue-500 shadow-blue-200"
-                  : "shadow-lg"
-              } rounded-xl overflow-hidden`}
+                  ? "ring-2 ring-blue-500 shadow-lg"
+                  : "hover:shadow-md"
+              }`}
             >
-              <CardHeader className="relative p-3 md:p-6 bg-slate-50">
-                <div className="flex items-start justify-between">
-                  <CardTitle className="text-base md:text-xl text-slate-800">
-                    {service.name}
-                  </CardTitle>
-                  <div className="flex items-center space-x-2">
-                    {service.recommended && (
-                      <Badge className="bg-blue-600 text-white text-xs">
-                        <Star className="h-3 w-3 mr-1" />
-                        Recommended
-                      </Badge>
-                    )}
-                    {service.spots <= 3 && service.spots > 0 && (
-                      <Badge
-                        variant="destructive"
-                        className="text-xs whitespace-nowrap"
-                      >
-                        <AlertTriangle className="h-3 w-3 mr-1" />
-                        {service.spots} left
-                      </Badge>
-                    )}
+              {service.recommended && (
+                <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
+                  <Badge className="bg-blue-600 text-white px-3 py-1 text-xs">
+                    <Star className="h-3 w-3 mr-1" />
+                    Recommended
+                  </Badge>
+                </div>
+              )}
+
+              <CardHeader className="pb-3">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle className="text-lg font-bold text-slate-800">
+                      {service.name}
+                    </CardTitle>
+                    <CardDescription className="text-slate-600 text-sm">
+                      {service.description}
+                    </CardDescription>
                   </div>
                 </div>
-                <CardDescription className="text-xs md:text-sm text-slate-600">
-                  {service.description}
-                </CardDescription>
 
-                <div className="flex items-center space-x-3 text-xs text-slate-500 mt-2">
+                <div className="flex items-center space-x-4 text-xs text-slate-500">
                   <div className="flex items-center">
                     <Clock className="h-3 w-3 mr-1" />
                     {service.duration}
                   </div>
                   <div className="flex items-center">
                     <Calendar className="h-3 w-3 mr-1" />
-                    By {calculateDeliveryDate(service.duration)}
+                    {service.deliveryDate}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-xl font-bold text-blue-600">
+                      ₦{(priceUpdates[service.id] || service.price).toLocaleString()}
+                    </span>
+                    {service.originalPrice > service.price && (
+                      <span className="text-sm text-slate-500 line-through">
+                        ₦{service.originalPrice.toLocaleString()}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center text-xs text-slate-500">
+                    <Users className="h-3 w-3 mr-1" />
+                    {service.spots}/{service.totalSpots} spots
                   </div>
                 </div>
               </CardHeader>
 
-              <CardContent className="flex-grow space-y-2 p-3 md:p-6 flex flex-col">
-                <PricingCalculator
-                  service={service}
-                  reportPriceUpdate={handlePriceUpdateCallback}
-                  currentSelectedAddOns={selectedAddOns[service.id] || []}
-                />
-
-                <div className="space-y-1">
-                  <p className="font-medium text-xs text-slate-700">
+              <CardContent className="space-y-4">
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-700 mb-2">
                     What's included:
-                  </p>
-                  <div className="grid grid-cols-1 gap-0.5">
-                    {service.features.slice(0, 3).map((feature, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center text-xs text-slate-600"
-                      >
-                        <CheckCircle className="h-3 w-3 text-green-500 mr-1.5 flex-shrink-0" />
+                  </h4>
+                  <ul className="space-y-1">
+                    {service.features.slice(0, 4).map((feature, index) => (
+                      <li key={index} className="flex items-center text-xs text-slate-600">
+                        <CheckCircle className="h-3 w-3 text-green-500 mr-2 flex-shrink-0" />
                         {feature}
-                      </div>
+                      </li>
                     ))}
-                    {service.features.length > 3 && (
-                      <p className="text-xs text-slate-500 pl-4">
-                        +{service.features.length - 3} more features
-                      </p>
+                    {service.features.length > 4 && (
+                      <li className="text-xs text-slate-500 pl-5">
+                        +{service.features.length - 4} more features
+                      </li>
                     )}
-                  </div>
+                  </ul>
                 </div>
 
                 {service.addOns.length > 0 && (
-                  <div className="space-y-1">
-                    <button
-                      onClick={() => toggleAddOnsVisibility(service.id)}
-                      className="flex items-center justify-between text-xs font-medium text-blue-600 hover:text-blue-700 w-full p-1.5 rounded-md hover:bg-blue-50 transition-colors"
-                      aria-expanded={openAddOns[service.id] || false}
-                      aria-controls={`addons-details-${service.id}`}
-                    >
-                      <span>Select Addon</span>
-                      {openAddOns[service.id] ? (
-                        <ChevronUp className="h-3 w-3" />
-                      ) : (
-                        <ChevronDown className="h-3 w-3" />
-                      )}
-                    </button>
-
-                    {openAddOns[service.id] && (
-                      <div
-                        id={`addons-details-${service.id}`}
-                        className="space-y-2 pt-1 pl-2 border-l-2 border-blue-100"
-                      >
-                        {service.addOns.map((addon) => (
-                          <div
-                            key={addon.name}
-                            className="flex items-center justify-between p-2 border border-slate-200 rounded-md bg-white"
-                          >
-                            <div className="flex items-center space-x-2">
-                              <input
-                                type="checkbox"
-                                id={`${service.id}-${addon.name}`}
-                                checked={
-                                  selectedAddOns[service.id]?.includes(
-                                    addon.name,
-                                  ) || false
-                                }
-                                onChange={() =>
-                                  handleToggleAddOnForService(
-                                    service.id,
-                                    addon.name,
-                                  )
-                                }
-                                className="rounded accent-blue-600"
-                                aria-label={`Select add-on ${addon.name}`}
-                              />
-                              <label
-                                htmlFor={`${service.id}-${addon.name}`}
-                                className="text-sm text-slate-700"
-                              >
-                                {addon.name}
-                              </label>
-                            </div>
-                            <span className="text-sm font-medium text-slate-600">
-                              +₦{addon.price.toLocaleString()}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                  <PricingCalculator
+                    service={service}
+                    reportPriceUpdate={reportPriceUpdate}
+                    currentSelectedAddOns={selectedAddOns[service.id] || []}
+                  />
                 )}
 
-                <div className="mt-auto space-y-2 pt-2">
-                  <ROICalculator service={service} />
+                <ROICalculator service={service} />
 
-                  {service.spots > 0 && service.spots <= 5 && (
-                    <div className="text-xs text-orange-700 bg-orange-50 p-2 rounded border border-orange-200 flex items-center">
-                      <AlertTriangle className="h-3 w-3 text-orange-600 mr-1 flex-shrink-0" />
-                      Only {service.spots} spots left this month!
-                    </div>
-                  )}
-
+                <div className="space-y-2">
                   <Button
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white transition-all duration-150 ease-in-out"
-                    size="sm"
-                    onClick={() => {
-                      if (!user) {
-                        setLocation("/auth");
-                      } else {
-                        setLocation(`/service/${service.id}`);
-                      }
-                    }}
+                    onClick={() => handlePurchase(service.id)}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                    disabled={service.spots === 0}
                   >
-                    Buy This Package
-                    <ArrowRight className="ml-1 h-3 w-3" />
+                    {service.spots === 0 ? (
+                      "Sold Out"
+                    ) : (
+                      <>
+                        Buy This Package
+                        <ArrowRight className="h-4 w-4 ml-2" />
+                      </>
+                    )}
                   </Button>
 
-                  <div className="flex items-center justify-center space-x-2 text-xs text-slate-500">
-                    <div className="flex items-center">
-                      <Shield className="h-3 w-3 text-green-600 mr-0.5" />
-                      <span>30-day guarantee</span>
-                    </div>
-                    <span className="text-slate-300">•</span>
-                    <div className="flex items-center">
-                      <Shield className="h-3 w-3 text-green-600 mr-0.5" />
-                      <span>Secure</span>
-                    </div>
-                  </div>
+                  {service.spots <= 2 && service.spots > 0 && (
+                    <Alert className="py-2">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertDescription className="text-xs">
+                        Only {service.spots} spots remaining! Limited time offer.
+                      </AlertDescription>
+                    </Alert>
+                  )}
                 </div>
               </CardContent>
             </Card>
-          );
-        })}
-      </div>
-
-      <div className="text-center py-8 bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50 rounded-xl shadow-md mt-8">
-        {/* Updated social proof section layout */}
-        <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:gap-6 md:flex md:flex-row md:justify-around md:items-center text-sm text-slate-700 px-4">
-          <div className="flex flex-col sm:flex-row items-center justify-center sm:justify-start">
-            <Users className="h-5 w-5 text-blue-600 mb-1 sm:mb-0 sm:mr-2" />
-            <span className="text-center sm:text-left">
-              <strong>800+</strong> projects delivered
-            </span>
-          </div>
-          <div className="flex flex-col sm:flex-row items-center justify-center sm:justify-start">
-            <TrendingUp className="h-5 w-5 text-green-600 mb-1 sm:mb-0 sm:mr-2" />
-            <span className="text-center sm:text-left">
-              <strong>98%</strong> client satisfaction
-            </span>
-          </div>
-          <div className="flex flex-col sm:flex-row items-center justify-center sm:justify-start">
-            <Star className="h-5 w-5 text-yellow-500 mb-1 sm:mb-0 sm:mr-2" />
-            <span className="text-center sm:text-left">
-              <strong>4.9/5</strong> average rating
-            </span>
-          </div>
-          <div className="flex flex-col sm:flex-row items-center justify-center sm:justify-start">
-            <Heart className="h-5 w-5 text-red-500 mb-1 sm:mb-0 sm:mr-2" />{" "}
-            {/* New Item */}
-            <span className="text-center sm:text-left">
-              <strong>700+</strong> happy clients
-            </span>
-          </div>
+          ))}
         </div>
+
+        {recommendedServices.length === 0 && (
+          <div className="text-center py-8">
+            <p className="text-slate-600">No services available for the selected industry.</p>
+          </div>
+        )}
       </div>
-    </div>
+    </section>
   );
 }
