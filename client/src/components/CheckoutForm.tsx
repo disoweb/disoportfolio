@@ -194,105 +194,55 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
     },
   });
 
-  // Handle auto-payment after authentication - only when on checkout page
+  // Handle auto-payment after authentication using stored contact data
   useEffect(() => {
-    const currentPath = window.location.pathname;
     console.log('🔄 [CHECKOUT FORM] === AUTO-PAYMENT USEEFFECT START ===');
-    console.log('🔄 [CHECKOUT FORM] Current path:', currentPath);
     console.log('🔄 [CHECKOUT FORM] User exists:', !!user);
-    console.log('🔄 [CHECKOUT FORM] User data:', user);
-    console.log('🔄 [CHECKOUT FORM] Order mutation pending:', orderMutation.isPending);
     console.log('🔄 [CHECKOUT FORM] Contact data state:', contactData);
+    console.log('🔄 [CHECKOUT FORM] Order mutation pending:', orderMutation.isPending);
     
-    if (currentPath !== '/checkout' || !user || orderMutation.isPending) {
-      console.log('🔄 [CHECKOUT FORM] ❌ Exiting early - conditions not met');
+    if (!user || orderMutation.isPending) {
+      console.log('🔄 [CHECKOUT FORM] ❌ Exiting early - no user or mutation pending');
       return;
     }
     
-    const pendingCheckout = sessionStorage.getItem('pendingCheckout');
-    console.log('🔄 [CHECKOUT FORM] Pending checkout exists:', !!pendingCheckout);
-    console.log('🔄 [CHECKOUT FORM] Pending checkout raw:', pendingCheckout);
-    
-    if (pendingCheckout) {
-      try {
-        const checkoutData = JSON.parse(pendingCheckout);
-        console.log('🔄 [CHECKOUT FORM] ✅ Parsed pending checkout data:', checkoutData);
-        console.log('🔄 [CHECKOUT FORM] Contact data exists:', !!checkoutData.contactData);
-        console.log('🔄 [CHECKOUT FORM] Service data exists:', !!checkoutData.service);
-        console.log('🔄 [CHECKOUT FORM] Selected addons:', checkoutData.selectedAddOns);
-        console.log('🔄 [CHECKOUT FORM] Total price:', checkoutData.totalPrice);
-        
-        if (checkoutData.contactData) {
-          console.log('🔄 [CHECKOUT FORM] ✅ Starting auto-payment process');
-          
-          // Show payment loader immediately
-          setShowPaymentLoader(true);
-          sessionStorage.setItem('payment_in_progress', 'true');
-          
-          setTimeout(() => {
-            const contactDataToUse = { ...checkoutData.contactData };
-            if (!contactDataToUse.email && user.email) {
-              contactDataToUse.email = user.email;
-            }
-            
-            const combinedData = { 
-              ...contactDataToUse, 
-              paymentMethod: "paystack" as const,
-              timeline: checkoutData.paymentData?.timeline || "2-4 weeks",
-              overrideSelectedAddOns: checkoutData.selectedAddOns || [],
-              overrideTotalAmount: checkoutData.totalPrice || totalPrice
-            };
-            
-            console.log('🔄 [CHECKOUT FORM] ✅ Submitting order with combined data:', combinedData);
-            orderMutation.mutate(combinedData);
-          }, 100);
-        } else {
-          console.log('🔄 [CHECKOUT FORM] ❌ No contact data in pending checkout');
-        }
-      } catch (error) {
-        console.error('🔄 [CHECKOUT FORM] ❌ Error processing pending checkout:', error);
-        sessionStorage.removeItem('pendingCheckout');
-      }
-    } else {
-      console.log('🔄 [CHECKOUT FORM] ❌ No pending checkout found');
-    }
-  }, [user, orderMutation.isPending, totalPrice]);
-
-  // Handle immediate payment trigger after authentication
-  useEffect(() => {
-    const immediatePaymentTrigger = sessionStorage.getItem('trigger_immediate_payment');
+    // Check for stored contact data (from previous form submission)
     const storedContactData = getStoredFormData('checkout_contact_data');
     
-    console.log('🚀 [IMMEDIATE PAYMENT] Trigger flag:', !!immediatePaymentTrigger);
-    console.log('🚀 [IMMEDIATE PAYMENT] User exists:', !!user);
-    console.log('🚀 [IMMEDIATE PAYMENT] Stored contact data:', !!storedContactData);
-    console.log('🚀 [IMMEDIATE PAYMENT] Mutation pending:', orderMutation.isPending);
+    // Check if we should auto-submit payment (user just returned from auth)
+    const justLoggedIn = sessionStorage.getItem('trigger_immediate_payment');
     
-    if (immediatePaymentTrigger && user && storedContactData && !orderMutation.isPending) {
-      console.log('🚀 [IMMEDIATE PAYMENT] All conditions met - triggering payment');
+    console.log('🔄 [CHECKOUT FORM] Stored contact data:', !!storedContactData);
+    console.log('🔄 [CHECKOUT FORM] Just logged in flag:', !!justLoggedIn);
+    
+    if (justLoggedIn && storedContactData && !contactData) {
+      console.log('🔄 [CHECKOUT FORM] ✅ Starting auto-payment for authenticated user');
       
-      // Clear the trigger flag immediately
+      // Clear the trigger flag
       sessionStorage.removeItem('trigger_immediate_payment');
       
-      // Set contact data and show payment loader
+      // Set the contact data from storage
       setContactData(storedContactData);
-      setShowPaymentLoader(true);
       setCurrentStep(2);
       
-      // Auto-submit the payment with default timeline
-      const paymentData = {
-        paymentMethod: "paystack" as const,
-        timeline: "2-4 weeks", // Default timeline
-      };
+      // Show payment loader
+      setShowPaymentLoader(true);
+      sessionStorage.setItem('payment_in_progress', 'true');
       
-      console.log('🚀 [IMMEDIATE PAYMENT] Submitting payment with data:', paymentData);
-      
-      // Use setTimeout to ensure all state updates are complete
+      // Auto-submit payment after a short delay to ensure state is set
       setTimeout(() => {
+        const paymentData = {
+          paymentMethod: "paystack" as const,
+          timeline: "2-4 weeks",
+        };
+        
+        console.log('🔄 [CHECKOUT FORM] ✅ Auto-submitting payment:', paymentData);
         orderMutation.mutate(paymentData);
-      }, 1000);
+      }, 500);
     }
-  }, [user, orderMutation.isPending]);
+  }, [user, orderMutation.isPending, contactData]);
+
+
 
   const onContactSubmit = (data: ContactForm) => {
     // Store contact data persistently

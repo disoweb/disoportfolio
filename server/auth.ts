@@ -441,19 +441,21 @@ export async function setupAuth(app: Express) {
   });
 }
 
-export const isAuthenticated = (req: any, res: any, next: any) => {
+export const isAuthenticated = async (req: any, res: any, next: any) => {
   // Check session directly due to passport serialization issues
   if (req.session && req.session.passport && req.session.passport.user) {
-    // Manually attach user to request if needed
-    if (!req.user) {
-      storage.getUser(req.session.passport.user).then(user => {
+    try {
+      // Always fetch fresh user data to ensure consistency
+      const user = await storage.getUser(req.session.passport.user);
+      if (user) {
         req.user = user;
-        next();
-      }).catch(() => {
-        return res.status(401).json({ message: "Authentication required" });
-      });
-    } else {
-      next();
+        return next();
+      } else {
+        return res.status(401).json({ message: "User not found" });
+      }
+    } catch (error) {
+      console.error('Authentication error:', error);
+      return res.status(401).json({ message: "Authentication required" });
     }
   } else {
     return res.status(401).json({ message: "Authentication required" });
