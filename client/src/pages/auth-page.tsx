@@ -44,9 +44,17 @@ export default function AuthPage() {
   const { toast } = useToast();
   const { user, isLoading } = useAuth();
 
-  // Redirect if already logged in
+  // Handle pending checkout completion and redirect if already logged in
   if (!isLoading && user) {
-    setLocation("/");
+    const pendingCheckout = sessionStorage.getItem('pendingCheckout');
+    if (pendingCheckout) {
+      sessionStorage.removeItem('pendingCheckout');
+      const checkoutData = JSON.parse(pendingCheckout);
+      // Redirect back to checkout with the stored data
+      setLocation(checkoutData.returnUrl || '/checkout');
+    } else {
+      setLocation("/dashboard");
+    }
     return null;
   }
 

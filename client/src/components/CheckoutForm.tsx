@@ -5,6 +5,8 @@ import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -44,6 +46,8 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
   const [contactData, setContactData] = useState<ContactForm | null>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
+  const [, setLocation] = useLocation();
 
   // Step 1: Contact Form
   const contactForm = useForm<ContactForm>({
@@ -110,9 +114,25 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
   };
 
   const onPaymentSubmit = (data: PaymentForm) => {
-    if (contactData) {
-      orderMutation.mutate({ ...contactData, ...data });
+    if (!contactData) return;
+    
+    // Check if user is authenticated
+    if (!user) {
+      // Store checkout data in sessionStorage and redirect to login
+      const checkoutData = {
+        service,
+        totalPrice,
+        selectedAddOns,
+        contactData,
+        returnUrl: window.location.pathname + window.location.search
+      };
+      sessionStorage.setItem('pendingCheckout', JSON.stringify(checkoutData));
+      setLocation('/login');
+      return;
     }
+    
+    const combinedData = { ...contactData, ...data };
+    orderMutation.mutate(combinedData);
   };
 
   const goBackToStep1 = () => {

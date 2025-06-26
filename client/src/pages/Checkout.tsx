@@ -8,12 +8,14 @@ import { ArrowLeft, Clock, Calendar, Plus } from "lucide-react";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import CheckoutForm from "@/components/CheckoutForm";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Checkout() {
   const [, setLocation] = useLocation();
   const [serviceData, setServiceData] = useState<any>(null);
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
   const [totalPrice, setTotalPrice] = useState<number>(0);
+  const { user } = useAuth();
 
   // Parse URL parameters
   const urlParams = new URLSearchParams(window.location.search);
