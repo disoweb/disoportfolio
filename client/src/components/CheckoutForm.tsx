@@ -147,9 +147,19 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
       }
     },
     onSuccess: (data) => {
-      if (data.paymentUrl) {
+      console.log('🚀 [ORDER SUCCESS] Order response data:', data);
+      console.log('🚀 [ORDER SUCCESS] Payment URL:', data?.paymentUrl);
+      
+      if (data && data.paymentUrl) {
+        console.log('🚀 [ORDER SUCCESS] Redirecting to payment URL:', data.paymentUrl);
+        // Clear any pending checkout data since we're proceeding to payment
+        localStorage.removeItem('checkout_contact_data');
+        sessionStorage.removeItem('pendingCheckout');
+        
+        // Redirect to Paystack
         window.location.href = data.paymentUrl;
       } else {
+        console.log('🚀 [ORDER SUCCESS] No payment URL, showing success message');
         toast({
           title: "Order placed successfully!",
           description: "We'll contact you soon to discuss your project.",
@@ -171,10 +181,11 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
     console.log('🚀 [AUTH EFFECT] Authentication state changed');
     console.log('🚀 [AUTH EFFECT] - User authenticated:', !!user);
     console.log('🚀 [AUTH EFFECT] - User email:', user?.email);
-    console.log('🚀 [AUTH EFFECT] - Loading state:', !user);
+    console.log('🚀 [AUTH EFFECT] - Order mutation pending:', orderMutation.isPending);
     console.log('🚀 [AUTH EFFECT] - Current step:', currentStep);
     
-    if (user) {
+    // Prevent auto-submit if already processing
+    if (user && !orderMutation.isPending) {
       console.log('🚀 [AUTH EFFECT] User is authenticated, checking for pending checkout');
       const pendingCheckout = sessionStorage.getItem('pendingCheckout');
       console.log('🚀 [AUTH EFFECT] Raw sessionStorage pendingCheckout:', pendingCheckout);
@@ -184,7 +195,9 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
           const checkoutData = JSON.parse(pendingCheckout);
           console.log('🔍 [AUTH EFFECT] Parsed checkout data:', checkoutData);
           
-          console.log('🔍 [AUTH EFFECT] Found pending checkout, will remove after processing');
+          // Remove pending checkout immediately to prevent race conditions
+          sessionStorage.removeItem('pendingCheckout');
+          console.log('🔍 [AUTH EFFECT] Removed pending checkout to prevent duplicates');
           
           // Restore the checkout state
           if (checkoutData.contactData) {
@@ -205,6 +218,12 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
                   variant: "destructive",
                 });
                 setLocation('/auth');
+                return;
+              }
+              
+              // Check if mutation is already running
+              if (orderMutation.isPending) {
+                console.log('🔍 [AUTH EFFECT] Order already pending, skipping auto-submit');
                 return;
               }
               
@@ -234,11 +253,7 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
               };
               console.log('🔍 [AUTH EFFECT] Combined data for order:', combinedData);
               orderMutation.mutate(combinedData);
-              
-              // Remove pending checkout data after successful submission
-              sessionStorage.removeItem('pendingCheckout');
-              console.log('🔍 [AUTH EFFECT] Removed pending checkout from storage after order submission');
-            }, 1000);
+            }, 500);
           }
         } catch (error) {
           console.error('🔍 [AUTH EFFECT] Error restoring pending checkout:', error);
@@ -248,7 +263,7 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
         console.log('🔍 [AUTH EFFECT] No pending checkout found');
       }
     }
-  }, [user, orderMutation, currentStep, setLocation, toast]);
+  }, [user, orderMutation.isPending, currentStep, setLocation, toast]);
 
   const onContactSubmit = (data: ContactForm) => {
     // Store contact data persistently
