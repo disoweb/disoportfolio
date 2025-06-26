@@ -302,8 +302,18 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
     });
     
     // Check if we should auto-submit payment (either flag is set OR we have all required data for authenticated user)
+    const stepParam = new URLSearchParams(window.location.search).get('step');
     const shouldAutoSubmit = autoSubmitPayment === 'true' || 
-      (isPostAuthRedirect && sessionData?.contactData && user && new URLSearchParams(window.location.search).get('step') === 'payment');
+      (isPostAuthRedirect && sessionData?.contactData && user && stepParam === 'payment');
+    
+    console.log('💰 CHECKOUT-FORM: Auto-submit check:', {
+      autoSubmitPayment,
+      isPostAuthRedirect, 
+      hasContactData: !!sessionData?.contactData,
+      hasUser: !!user,
+      stepParam,
+      shouldAutoSubmit
+    });
     
     if (shouldAutoSubmit) {
       console.log('💰 CHECKOUT-FORM: Should auto-submit payment - conditions met');
@@ -346,7 +356,11 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
         orderMutation.mutate(paymentData);
       }, 1000);
     } else {
-      console.log('💰 CHECKOUT-FORM: auto_submit_payment flag is not true:', autoSubmitPayment);
+      console.log('💰 CHECKOUT-FORM: Not auto-submitting:', {
+        autoSubmitPayment,
+        shouldAutoSubmit,
+        reason: !shouldAutoSubmit ? 'Conditions not met' : 'Unknown'
+      });
     }
   }, [isPostAuthRedirect, sessionData, user, orderMutation]);
 
