@@ -20,48 +20,30 @@ export default function Checkout() {
   const price = urlParams.get('price');
   const addons = urlParams.get('addons');
 
-  // Initialize state with pending checkout data if available
-  const initializeFromPendingCheckout = () => {
-    const pendingCheckout = sessionStorage.getItem('pendingCheckout');
-    console.log('🔍 [INITIALIZATION] Pending checkout raw:', pendingCheckout);
-    
-    if (pendingCheckout) {
-      try {
-        const checkoutData = JSON.parse(pendingCheckout);
-        console.log('🔍 [INITIALIZATION] Parsed checkout data:', checkoutData);
-        console.log('🔍 [INITIALIZATION] Service in checkout data:', checkoutData.service);
-        console.log('🔍 [INITIALIZATION] Total price in checkout data:', checkoutData.totalPrice);
-        console.log('🔍 [INITIALIZATION] Selected addons in checkout data:', checkoutData.selectedAddOns);
-        
-        if (checkoutData.service) {
-          console.log('🔍 [INITIALIZATION] ✅ Initializing with service data');
-          return {
-            serviceData: checkoutData.service,
-            selectedAddOns: checkoutData.selectedAddOns || [],
-            totalPrice: checkoutData.totalPrice || 0
-          };
-        } else {
-          console.log('🔍 [INITIALIZATION] ❌ No service found in checkout data');
-        }
-      } catch (error) {
-        console.error('🔍 [INITIALIZATION] ❌ Error parsing pending checkout:', error);
-      }
-    } else {
-      console.log('🔍 [INITIALIZATION] ❌ No pending checkout found');
-    }
-    
-    console.log('🔍 [INITIALIZATION] ❌ Returning null service data');
-    return {
-      serviceData: null,
-      selectedAddOns: [],
-      totalPrice: 0
-    };
-  };
+  // Check for pending checkout data immediately
+  const pendingCheckout = typeof window !== 'undefined' ? sessionStorage.getItem('pendingCheckout') : null;
+  let initialServiceData = null;
+  let initialAddOns: string[] = [];
+  let initialPrice = 0;
 
-  const initialState = initializeFromPendingCheckout();
-  const [serviceData, setServiceData] = useState<any>(initialState.serviceData);
-  const [selectedAddOns, setSelectedAddOns] = useState<string[]>(initialState.selectedAddOns);
-  const [totalPrice, setTotalPrice] = useState<number>(initialState.totalPrice);
+  if (pendingCheckout) {
+    try {
+      const checkoutData = JSON.parse(pendingCheckout);
+      console.log('🔍 [INIT] Found pending checkout data:', checkoutData);
+      if (checkoutData.service) {
+        initialServiceData = checkoutData.service;
+        initialAddOns = checkoutData.selectedAddOns || [];
+        initialPrice = checkoutData.totalPrice || 0;
+        console.log('🔍 [INIT] Initialized with service:', checkoutData.service.name);
+      }
+    } catch (error) {
+      console.error('Error parsing pending checkout:', error);
+    }
+  }
+
+  const [serviceData, setServiceData] = useState<any>(initialServiceData);
+  const [selectedAddOns, setSelectedAddOns] = useState<string[]>(initialAddOns);
+  const [totalPrice, setTotalPrice] = useState<number>(initialPrice);
 
   // Fetch service data
   const { data: services = [], isLoading: servicesLoading } = useQuery({
@@ -74,41 +56,24 @@ export default function Checkout() {
     
     console.log('🔍 [CHECKOUT PAGE] === CHECKOUT PAGE USEEFFECT START ===');
     console.log('🔍 [CHECKOUT PAGE] URL serviceId:', serviceId);
-    console.log('🔍 [CHECKOUT PAGE] URL price:', price);
-    console.log('🔍 [CHECKOUT PAGE] URL addons:', addons);
-    console.log('🔍 [CHECKOUT PAGE] Services loaded:', Array.isArray(services) ? services.length : 'not array');
     console.log('🔍 [CHECKOUT PAGE] Current serviceData state:', serviceData);
-    console.log('🔍 [CHECKOUT PAGE] Current totalPrice state:', totalPrice);
-    console.log('🔍 [CHECKOUT PAGE] Current selectedAddOns state:', selectedAddOns);
+    console.log('🔍 [CHECKOUT PAGE] Service data loaded from pending checkout:', !!serviceData);
     
-    // If service data already loaded from initial state, skip URL processing
-    if (serviceData) {
-      console.log('🔍 [CHECKOUT PAGE] ✅ Service data already loaded from pending checkout');
-      return;
-    }
-    
-    // Fallback to URL params if no initial service data
-    if (!serviceId) {
-      console.log('🔍 [CHECKOUT PAGE] ❌ No serviceId in URL, no service data available');
-      return; // No service data available
-    }
-    
-    if (serviceId && Array.isArray(services) && services.length > 0) {
+    // Only process URL params if no service data from pending checkout
+    if (!serviceData && serviceId && Array.isArray(services) && services.length > 0) {
+      console.log('🔍 [CHECKOUT PAGE] Loading service from URL params');
       const service = services.find((s: any) => s.id === serviceId);
-
-      
       if (service) {
         setServiceData(service);
         const servicePrice = price ? parseInt(price) : (service.price || parseInt(service.priceUsd || '0'));
-
         setTotalPrice(servicePrice);
+        
+        if (addons) {
+          setSelectedAddOns(addons.split(',').filter(addon => addon.length > 0));
+        }
       }
     }
-    
-    if (addons) {
-      setSelectedAddOns(addons.split(',').filter(addon => addon.length > 0));
-    }
-  }, [serviceId, services, price, addons]);
+  }, [serviceId, services, price, addons, serviceData]);
 
   // Debug render conditions
   console.log('🔍 [CHECKOUT PAGE] === RENDER CONDITIONS CHECK ===');
