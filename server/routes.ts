@@ -345,10 +345,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Reactivate payment for pending order
   app.post('/api/orders/:orderId/reactivate-payment', authRateLimit('api'), isAuthenticated, async (req: any, res) => {
+    console.log('🚀 PAYMENT-ROUTE: Starting reactivate payment request');
     try {
-      const userId = req.user.id;
+      console.log('🚀 PAYMENT-ROUTE: req.user:', req.user);
+      const userId = req.user?.id || req.user;
       const { orderId } = req.params;
       const clientIP = req.ip || req.connection.remoteAddress;
+      console.log('🚀 PAYMENT-ROUTE: User ID:', userId, 'Order ID:', orderId);
       
       // Security check: additional rate limiting for payment reactivation
       const rateCheck = checkRateLimit('payment_reactivate', clientIP);
