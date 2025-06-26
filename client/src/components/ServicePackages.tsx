@@ -211,22 +211,22 @@ function PricingCalculator({
   }, [service.id, totalPrice, reportPriceUpdate]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <span className="text-sm text-slate-500 line-through">
+        <div className="flex items-center space-x-1">
+          <span className="text-xs text-slate-500 line-through">
             ₦{service.originalPrice.toLocaleString()}
           </span>
-          <span className="font-bold">₦{service.price.toLocaleString()}</span>
+          <span className="font-bold text-sm">₦{service.price.toLocaleString()}</span>
           {savings > 0 && (
-            <Badge variant="destructive" className="text-xs">
+            <Badge variant="destructive" className="text-xs py-0 px-1">
               -{savingsPercentage}%
             </Badge>
           )}
         </div>
       </div>
 
-      <div className="flex items-center space-x-2 p-3 bg-blue-50 rounded-lg">
+      <div className="flex items-center space-x-2 p-2 bg-blue-50 rounded">
         <input
           type="checkbox"
           id={`installment-${service.id}`}
@@ -237,28 +237,22 @@ function PricingCalculator({
         />
         <label
           htmlFor={`installment-${service.id}`}
-          className="text-sm flex-grow"
+          className="text-xs flex-grow"
         >
           Pay in 3 Installments (₦{Math.ceil(totalPrice / 3).toLocaleString()}
           /month)
           {installmentPlan && (
-            <>
-              <span className="text-xs text-red-600 ml-1">(+30% fee)</span>
-              <p className="text-xs text-slate-600 mt-1">
-                First payment: ₦{Math.ceil(totalPrice / 3).toLocaleString()}{" "}
-                <br />
-                Remaining: 2 monthly payments
-              </p>
-            </>
+            <span className="text-xs text-red-600 ml-1">(+30% fee)</span>
           )}
         </label>
-        <CreditCard className="h-4 w-4 text-blue-600 flex-shrink-0" />
+        <CreditCard className="h-3 w-3 text-blue-600 flex-shrink-0" />
       </div>
 
-      <Separator />
-      <div className="flex items-center justify-between text-lg font-bold">
-        <span>Total</span>
-        <span>₦{totalPrice.toLocaleString()}</span>
+      <div className="flex items-center justify-between bg-slate-100 p-2 rounded">
+        <span className="font-semibold text-sm">Total</span>
+        <span className="font-bold text-base">
+          ₦{totalPrice.toLocaleString()}
+        </span>
       </div>
     </div>
   );
@@ -466,8 +460,8 @@ export default function ServicePackages() {
               } rounded-xl overflow-hidden`}
             >
               <CardHeader
-                className={`relative p-4 md:p-6 bg-slate-50 ${
-                  service.recommended ? "pt-10 md:pt-12" : ""
+                className={`relative p-3 md:p-6 bg-slate-50 ${
+                  service.recommended ? "pt-8 md:pt-12" : ""
                 }`}
               >
                 {service.recommended && (
@@ -477,7 +471,7 @@ export default function ServicePackages() {
                   </Badge>
                 )}
                 <div className="flex items-start justify-between">
-                  <CardTitle className="text-lg md:text-xl text-slate-800">
+                  <CardTitle className="text-base md:text-xl text-slate-800">
                     {service.name}
                   </CardTitle>
                   {service.spots <= 3 && service.spots > 0 && (
@@ -490,17 +484,17 @@ export default function ServicePackages() {
                     </Badge>
                   )}
                 </div>
-                <CardDescription className="text-sm text-slate-600 pt-1">
+                <CardDescription className="text-xs md:text-sm text-slate-600">
                   {service.description}
                 </CardDescription>
 
-                <div className="flex items-center space-x-4 text-xs md:text-sm text-slate-500 mt-3">
+                <div className="flex items-center space-x-3 text-xs text-slate-500 mt-2">
                   <div className="flex items-center">
-                    <Clock className="h-3.5 w-3.5 mr-1.5" />
+                    <Clock className="h-3 w-3 mr-1" />
                     {service.duration}
                   </div>
                   <div className="flex items-center">
-                    <Calendar className="h-3.5 w-3.5 mr-1.5" />
+                    <Calendar className="h-3 w-3 mr-1" />
                     By{" "}
                     {new Date(service.deliveryDate).toLocaleDateString(
                       "en-US",
@@ -510,48 +504,48 @@ export default function ServicePackages() {
                 </div>
               </CardHeader>
 
-              <CardContent className="flex-grow space-y-4 p-4 md:p-6 flex flex-col">
+              <CardContent className="flex-grow space-y-2 p-3 md:p-6 flex flex-col">
                 <PricingCalculator
                   service={service}
                   reportPriceUpdate={handlePriceUpdateCallback}
                   currentSelectedAddOns={selectedAddOns[service.id] || []}
                 />
 
-                <div className="space-y-2 pt-2">
-                  <p className="font-medium text-sm text-slate-700">
+                <div className="space-y-1">
+                  <p className="font-medium text-xs text-slate-700">
                     What's included:
                   </p>
-                  <div className="grid grid-cols-1 gap-1.5">
-                    {service.features.slice(0, 4).map((feature, index) => (
+                  <div className="grid grid-cols-1 gap-0.5">
+                    {service.features.slice(0, 3).map((feature, index) => (
                       <div
                         key={index}
-                        className="flex items-center text-sm text-slate-600"
+                        className="flex items-center text-xs text-slate-600"
                       >
-                        <CheckCircle className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
+                        <CheckCircle className="h-3 w-3 text-green-500 mr-1.5 flex-shrink-0" />
                         {feature}
                       </div>
                     ))}
-                    {service.features.length > 4 && (
-                      <p className="text-xs text-slate-500 pl-6">
-                        +{service.features.length - 4} more features
+                    {service.features.length > 3 && (
+                      <p className="text-xs text-slate-500 pl-4">
+                        +{service.features.length - 3} more features
                       </p>
                     )}
                   </div>
                 </div>
 
                 {service.addOns.length > 0 && (
-                  <div className="space-y-2 pt-2">
+                  <div className="space-y-1">
                     <button
                       onClick={() => toggleAddOnsVisibility(service.id)}
-                      className="flex items-center justify-between text-sm font-medium text-blue-600 hover:text-blue-700 w-full p-2 rounded-md hover:bg-blue-50 transition-colors"
+                      className="flex items-center justify-between text-xs font-medium text-blue-600 hover:text-blue-700 w-full p-1.5 rounded-md hover:bg-blue-50 transition-colors"
                       aria-expanded={openAddOns[service.id] || false}
                       aria-controls={`addons-details-${service.id}`}
                     >
-                      <span>Recommended Add-ons</span>
+                      <span>Add-ons</span>
                       {openAddOns[service.id] ? (
-                        <ChevronUp className="h-4 w-4" />
+                        <ChevronUp className="h-3 w-3" />
                       ) : (
-                        <ChevronDown className="h-4 w-4" />
+                        <ChevronDown className="h-3 w-3" />
                       )}
                     </button>
 
@@ -600,55 +594,42 @@ export default function ServicePackages() {
                   </div>
                 )}
 
-                <div className="mt-auto space-y-4 pt-4">
-                  <ROICalculator service={service} />
+                <div className="mt-auto space-y-2 pt-2">
+                  <div className="hidden md:block">
+                    <ROICalculator service={service} />
+                  </div>
 
-                  {service.id === "landing" && service.spots === 2 && (
-                    <Alert className="border-orange-300 bg-orange-50 text-orange-800 rounded-lg">
-                      <AlertTriangle className="h-4 w-4 text-orange-600" />
-                      <AlertDescription className="text-xs md:text-sm">
-                        Only 2 spots available this month! Secure yours now.
-                      </AlertDescription>
-                    </Alert>
+                  {service.spots > 0 && service.spots <= 5 && (
+                    <div className="text-xs text-orange-700 bg-orange-50 p-2 rounded border border-orange-200 flex items-center">
+                      <AlertTriangle className="h-3 w-3 text-orange-600 mr-1 flex-shrink-0" />
+                      Only {service.spots} spots left this month!
+                    </div>
                   )}
-                  {service.spots > 0 &&
-                    service.spots <= 5 &&
-                    !(service.id === "landing" && service.spots === 2) && (
-                      <Alert className="border-orange-300 bg-orange-50 text-orange-800 rounded-lg">
-                        <AlertTriangle className="h-4 w-4 text-orange-600" />
-                        <AlertDescription className="text-xs md:text-sm">
-                          Only {service.spots} spots available this month!
-                          Secure yours now.
-                        </AlertDescription>
-                      </Alert>
-                    )}
 
                   <Button
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white transition-all duration-150 ease-in-out transform hover:scale-105"
-                    size="lg"
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white transition-all duration-150 ease-in-out"
+                    size="sm"
                     onClick={() => {
                       if (!user) {
-                        // Redirect to login if not authenticated
                         setLocation("/auth");
                       } else {
-                        // Navigate to service details or checkout
                         setLocation(`/service/${service.id}`);
                       }
                     }}
                   >
                     Get Started
-                    <ArrowRight className="ml-2 h-4 w-4" />
+                    <ArrowRight className="ml-1 h-3 w-3" />
                   </Button>
 
-                  <div className="flex items-center justify-center space-x-3 text-xs text-slate-500 mt-3">
+                  <div className="flex items-center justify-center space-x-2 text-xs text-slate-500">
                     <div className="flex items-center">
-                      <Shield className="h-3.5 w-3.5 text-green-600 mr-1" />
+                      <Shield className="h-3 w-3 text-green-600 mr-0.5" />
                       <span>30-day guarantee</span>
                     </div>
                     <span className="text-slate-300">•</span>
                     <div className="flex items-center">
-                      <Shield className="h-3.5 w-3.5 text-green-600 mr-1" />
-                      <span>Secure payment</span>
+                      <Shield className="h-3 w-3 text-green-600 mr-0.5" />
+                      <span>Secure</span>
                     </div>
                   </div>
                 </div>
