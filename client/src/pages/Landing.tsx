@@ -305,11 +305,17 @@ export default function Landing() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <Button
                 size="lg"
-                className="bg-blue-600 hover:bg-blue-700 px-8 py-6 text-lg w-auto"
+                className="bg-blue-600 hover:bg-blue-700 px-8 py-6 text-lg w-auto relative"
                 onClick={() => (window.location.href = "/services")}
               >
                 <ShoppingCart className="mr-2 h-5 w-5" />
-                View Packages
+                Buy Packages
+                <Badge
+                  variant="destructive"
+                  className="absolute -top-2 -right-2 text-xs"
+                >
+                  Claim Offer
+                </Badge>
               </Button>
               <Button
                 variant="outline"
@@ -339,8 +345,23 @@ export default function Landing() {
               </div>
             </div>
 
-            {/* Live Project Counter */}
-            <LiveProjectCounter />
+            {/* Success Metrics */}
+            <div className="mt-8">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-12">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-blue-600">500+</div>
+                  <div className="text-sm text-slate-600">Projects Delivered</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-green-600">98%</div>
+                  <div className="text-sm text-slate-600">Client Satisfaction</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-purple-600">24/7</div>
+                  <div className="text-sm text-slate-600">Support Available</div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
