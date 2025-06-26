@@ -306,66 +306,20 @@ export default function AuthPage() {
       toast({ title: "Welcome!", description: "Your account has been created successfully." });
       
       console.log('🚀 [REGISTER SUCCESS] Waiting for session establishment...');
-      // Wait longer for session to be fully established with database
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Wait for session to be established
+      await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // Check for checkout session token first
+      // Check if this is checkout-initiated registration
       const checkoutSessionToken = sessionStorage.getItem('checkoutSessionToken');
-      console.log('🔄 AUTH: Checking for checkout session token:', checkoutSessionToken);
+      const tokenFromUrl = new URLSearchParams(window.location.search).get('checkout');
       
-      if (checkoutSessionToken) {
-        try {
-          console.log('🔄 AUTH: Making authenticated request to fetch checkout session');
-          
-          // Fetch the checkout session data with credentials
-          const response = await fetch(`/api/checkout-sessions/${checkoutSessionToken}`, {
-            credentials: 'include',
-            headers: {
-              'Content-Type': 'application/json'
-            }
-          });
-          
-          console.log('🔄 AUTH: Checkout session fetch response status:', response.status);
-          
-          if (response.ok) {
-            const sessionData = await response.json();
-            console.log('🔄 AUTH: Found checkout session:', sessionData);
-            
-            // Build redirect URL with all the service data
-            const params = new URLSearchParams({
-              service: sessionData.serviceId,
-              price: sessionData.serviceData.price,
-              step: 'payment',
-              checkout: checkoutSessionToken
-            });
-            
-            if (sessionData.selectedAddOns && sessionData.selectedAddOns.length > 0) {
-              params.set('addons', JSON.stringify(sessionData.selectedAddOns));
-            }
-            
-            // Set auto-submit flag for immediate payment
-            sessionStorage.setItem('auto_submit_payment', 'true');
-            console.log('🔄 AUTH: Set auto_submit_payment flag, redirecting to checkout with URL:', `/checkout?${params.toString()}`);
-            
-            // Use a short delay then redirect
-            setTimeout(() => {
-              window.location.href = `/checkout?${params.toString()}`;
-            }, 100);
-            return;
-          } else {
-            console.log('🔄 AUTH: Checkout session fetch failed:', response.status);
-          }
-        } catch (error) {
-          console.error('🔄 AUTH: Error fetching checkout session:', error);
-        }
-        
-        // Clear invalid token
-        sessionStorage.removeItem('checkoutSessionToken');
+      if (checkoutSessionToken || tokenFromUrl) {
+        console.log('🔄 REGISTER: Checkout context detected, will redirect to payment completion');
+        // Let the useEffect handle checkout redirect
+      } else {
+        console.log('🔄 REGISTER: Direct registration detected, will redirect to dashboard');
+        // Let the useEffect handle dashboard redirect
       }
-      
-      // No checkout session, redirect to dashboard
-      console.log('🔄 AUTH: No pending checkout, redirecting to dashboard');
-      setLocation("/dashboard");
     },
     onError: (error: any) => {
       toast({
