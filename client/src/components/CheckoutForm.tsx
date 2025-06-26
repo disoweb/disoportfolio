@@ -319,17 +319,56 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
     
     // Check if we should auto-submit payment (either flag is set OR we have all required data for authenticated user)
     const stepParam = new URLSearchParams(window.location.search).get('step');
-    const shouldAutoSubmit = autoSubmitPayment === 'true' || 
-      (isPostAuthRedirect && sessionData?.contactData && user && stepParam === 'payment');
     
-    console.log('💰 CHECKOUT-FORM: Auto-submit check:', {
-      autoSubmitPayment,
-      isPostAuthRedirect, 
-      hasContactData: !!sessionData?.contactData,
-      hasUser: !!user,
-      stepParam,
-      shouldAutoSubmit
-    });
+    // Check if user is authenticated by making a direct API call
+    const checkAuthAndSubmit = async () => {
+      try {
+        const authResponse = await fetch('/api/auth/user', { credentials: 'include' });
+        const currentUser = await authResponse.json();
+        
+        console.log('💰 CHECKOUT-FORM: Direct auth check result:', {
+          authResponse: authResponse.status,
+          currentUser: currentUser ? { id: currentUser.id, email: currentUser.email } : null
+        });
+        
+        const shouldAutoSubmit = autoSubmitPayment === 'true' || 
+          (stepParam === 'payment' && sessionData?.contactData && currentUser);
+        
+        console.log('💰 CHECKOUT-FORM: Auto-submit check:', {
+          autoSubmitPayment,
+          isPostAuthRedirect, 
+          hasContactData: !!sessionData?.contactData,
+          hasUser: !!user,
+          hasCurrentUser: !!currentUser,
+          stepParam,
+          shouldAutoSubmit
+        });
+        
+        if (shouldAutoSubmit && currentUser && sessionData?.contactData) {
+          console.log('💰 CHECKOUT-FORM: Auto-submitting payment with direct auth check');
+          
+          const paymentData = {
+            serviceId: service.id,
+            contactInfo: sessionData.contactData,
+            totalAmount: totalPrice,
+            selectedAddOns: selectedAddOns
+          };
+          
+          console.log('💰 CHECKOUT-FORM: Payment data:', paymentData);
+          
+          setTimeout(() => {
+            console.log('💰 CHECKOUT-FORM: Calling orderMutation.mutate with direct auth');
+            orderMutation.mutate(paymentData);
+          }, 1000);
+          
+          return;
+        }
+      } catch (error) {
+        console.error('💰 CHECKOUT-FORM: Direct auth check failed:', error);
+      }
+    };
+    
+    checkAuthAndSubmit();
     
     if (shouldAutoSubmit) {
       console.log('💰 CHECKOUT-FORM: Should auto-submit payment - conditions met');
