@@ -114,6 +114,37 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
     }
   }, [contactForm, contactData]);
 
+  // Handle auto-trigger payment after authentication
+  useEffect(() => {
+    const autoTrigger = sessionStorage.getItem('auto_trigger_payment');
+    console.log('🤖 [AUTO TRIGGER] Auto trigger flag:', !!autoTrigger);
+    console.log('🤖 [AUTO TRIGGER] User exists:', !!user);
+    console.log('🤖 [AUTO TRIGGER] Contact data exists:', !!contactData);
+    
+    if (autoTrigger && user && contactData && !orderMutation.isPending) {
+      console.log('🤖 [AUTO TRIGGER] ✅ All conditions met - triggering automatic payment');
+      
+      // Clear the auto-trigger flag immediately
+      sessionStorage.removeItem('auto_trigger_payment');
+      
+      // Show payment loader
+      setShowPaymentLoader(true);
+      
+      // Auto-submit the payment with default timeline
+      const paymentData = {
+        paymentMethod: "paystack" as const,
+        timeline: "standard", // Default timeline for auto-submit
+      };
+      
+      console.log('🤖 [AUTO TRIGGER] Submitting payment with data:', paymentData);
+      
+      // Use setTimeout to ensure state updates are complete
+      setTimeout(() => {
+        orderMutation.mutate(paymentData);
+      }, 500);
+    }
+  }, [user, contactData, orderMutation.isPending]);
+
   const orderMutation = useMutation({
     mutationFn: async (data: PaymentForm & { 
       overrideSelectedAddOns?: string[], 
