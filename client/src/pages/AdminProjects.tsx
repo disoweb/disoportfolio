@@ -44,7 +44,8 @@ import {
   ChevronRight,
   ExternalLink,
   Mail,
-  Phone
+  Phone,
+  Trash2
 } from "lucide-react";
 
 // Helper function to get status badge
@@ -337,7 +338,11 @@ export default function AdminProjects() {
               <Activity className="h-4 w-4 mr-2" />
               Analytics
             </Button>
-            <Button size="sm" className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg shadow-blue-500/25">
+            <Button 
+              size="sm" 
+              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg shadow-blue-500/25"
+              onClick={() => setIsCreateDialogOpen(true)}
+            >
               <Plus className="h-4 w-4 mr-1 sm:mr-2" />
               <span className="hidden sm:inline">New Project</span>
               <span className="sm:hidden">New</span>
@@ -421,6 +426,7 @@ export default function AdminProjects() {
               key={project.id} 
               project={project} 
               onUpdate={handleUpdateProject}
+              onDelete={(projectId) => deleteProjectMutation.mutate(projectId)}
             />
           ))}
         </div>
@@ -513,6 +519,99 @@ export default function AdminProjects() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Create Project Dialog */}
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent className="max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-auto">
+          <DialogHeader>
+            <DialogTitle className="text-base sm:text-lg">
+              Create New Project
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label htmlFor="projectName" className="text-sm">Project Name</Label>
+              <Input
+                placeholder="Enter project name..."
+                value={createForm.projectName}
+                onChange={(e) => setCreateForm(prev => ({ 
+                  ...prev, 
+                  projectName: e.target.value 
+                }))}
+                className="w-full"
+              />
+            </div>
+            <div>
+              <Label htmlFor="userId" className="text-sm">User ID</Label>
+              <Input
+                placeholder="Enter user ID..."
+                value={createForm.userId}
+                onChange={(e) => setCreateForm(prev => ({ 
+                  ...prev, 
+                  userId: e.target.value 
+                }))}
+                className="w-full"
+              />
+            </div>
+            <div>
+              <Label htmlFor="description" className="text-sm">Description</Label>
+              <Textarea
+                placeholder="Project description..."
+                value={createForm.description}
+                onChange={(e) => setCreateForm(prev => ({ 
+                  ...prev, 
+                  description: e.target.value 
+                }))}
+                className="w-full min-h-[80px]"
+              />
+            </div>
+            <div>
+              <Label htmlFor="timelineWeeks" className="text-sm">Timeline (weeks)</Label>
+              <Input
+                type="number"
+                min="1"
+                placeholder="Number of weeks..."
+                value={createForm.timelineWeeks}
+                onChange={(e) => setCreateForm(prev => ({ 
+                  ...prev, 
+                  timelineWeeks: e.target.value 
+                }))}
+                className="w-full"
+              />
+            </div>
+            <div>
+              <Label htmlFor="notes" className="text-sm">Notes</Label>
+              <Textarea
+                placeholder="Additional project notes..."
+                value={createForm.notes}
+                onChange={(e) => setCreateForm(prev => ({ 
+                  ...prev, 
+                  notes: e.target.value 
+                }))}
+                className="w-full min-h-[80px]"
+              />
+            </div>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-2 sm:justify-end sm:space-x-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)} className="w-full sm:w-auto">
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => createProjectMutation.mutate({
+                projectName: createForm.projectName,
+                userId: createForm.userId,
+                description: createForm.description,
+                timelineWeeks: parseInt(createForm.timelineWeeks),
+                notes: createForm.notes
+              })}
+              disabled={createProjectMutation.isPending || !createForm.projectName || !createForm.userId}
+              className="w-full sm:w-auto"
+            >
+              {createProjectMutation.isPending ? "Creating..." : "Create Project"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -563,7 +662,11 @@ function StatsCard({ title, value, icon: Icon, trend, color }: {
   );
 }
 
-function ProjectCard({ project, onUpdate }: { project: Project; onUpdate: (project: Project) => void }) {
+function ProjectCard({ project, onUpdate, onDelete }: { 
+  project: Project; 
+  onUpdate: (project: Project) => void;
+  onDelete?: (projectId: string) => void;
+}) {
   const isOverdue = new Date(project.dueDate) < new Date() && project.status !== "completed";
   
   return (
@@ -596,6 +699,17 @@ function ProjectCard({ project, onUpdate }: { project: Project; onUpdate: (proje
               <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => onUpdate(project)}>
                 <Edit className="h-4 w-4" />
               </Button>
+              
+              {project.status === 'cancelled' && onDelete && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50" 
+                  onClick={() => onDelete(project.id)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
               
               <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                 <MoreVertical className="h-4 w-4" />
