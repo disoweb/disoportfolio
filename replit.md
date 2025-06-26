@@ -135,3 +135,4 @@ Changelog:
 - June 26, 2025. Updated feature cards to display icons horizontally aligned with headings for better visual hierarchy
 - June 26, 2025. Optimized mobile spacing in service packages section by reducing vertical gaps and padding
 - June 26, 2025. Successfully migrated service packages from hardcoded frontend data to complete database-driven architecture with PostgreSQL storage, admin CRUD API endpoints, and dynamic content delivery including real-time pricing, features, and delivery date calculations
+- June 26, 2025. Enhanced user experience with improved scroll positioning for service packages section, toggleable add-ons section like ROI calculator, and removed unprofessional "Limited time offer" alerts from all service cards

@@ -23,10 +23,11 @@ import {
   Star,
   Calculator,
   CreditCard,
+  Plus,
+  ChevronUp,
+  ChevronDown,
   Shield,
   Calendar,
-  ChevronDown,
-  ChevronUp,
   Heart,
 } from "lucide-react";
 
@@ -91,6 +92,7 @@ function PricingCalculator({
   currentSelectedAddOns,
 }: PricingCalculatorProps) {
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
+  const [isAddOnsExpanded, setIsAddOnsExpanded] = useState(false);
 
   const totalPrice = useMemo(() => {
     const addOnsCost = service.addOns
@@ -121,30 +123,50 @@ function PricingCalculator({
       </div>
 
       {service.addOns.length > 0 && (
-        <div className="space-y-2">
-          <span className="text-sm font-medium text-slate-600">Add-ons:</span>
-          {service.addOns.map((addon) => (
-            <div key={addon.name} className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id={`${service.id}-${addon.name}`}
-                  checked={selectedAddOns.includes(addon.name)}
-                  onChange={() => handleAddOnChange(addon.name)}
-                  className="rounded border-slate-300"
-                />
-                <label
-                  htmlFor={`${service.id}-${addon.name}`}
-                  className="text-sm text-slate-700"
-                >
-                  {addon.name}
-                </label>
-              </div>
-              <span className="text-sm font-medium text-slate-600">
-                +₦{addon.price.toLocaleString()}
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-3 rounded-lg border border-blue-200">
+          <button
+            onClick={() => setIsAddOnsExpanded(!isAddOnsExpanded)}
+            className="flex items-center justify-between w-full text-left"
+          >
+            <div className="flex items-center space-x-2">
+              <Plus className="h-4 w-4 text-blue-600" />
+              <span className="text-sm font-medium text-blue-800">
+                Add-ons ({service.addOns.length} available)
               </span>
             </div>
-          ))}
+            {isAddOnsExpanded ? (
+              <ChevronUp className="h-4 w-4 text-blue-600" />
+            ) : (
+              <ChevronDown className="h-4 w-4 text-blue-600" />
+            )}
+          </button>
+
+          {isAddOnsExpanded && (
+            <div className="mt-3 space-y-2">
+              {service.addOns.map((addon) => (
+                <div key={addon.name} className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id={`${service.id}-${addon.name}`}
+                      checked={selectedAddOns.includes(addon.name)}
+                      onChange={() => handleAddOnChange(addon.name)}
+                      className="rounded border-slate-300"
+                    />
+                    <label
+                      htmlFor={`${service.id}-${addon.name}`}
+                      className="text-sm text-slate-700"
+                    >
+                      {addon.name}
+                    </label>
+                  </div>
+                  <span className="text-sm font-medium text-slate-600">
+                    +₦{addon.price.toLocaleString()}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -387,13 +409,13 @@ export default function ServicePackages() {
   }
 
   return (
-    <section className="py-6 bg-slate-50" id="service-packages">
+    <section className="py-12 bg-slate-50" id="service-packages">
       <div className="container mx-auto px-4">
-        <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold text-slate-800 mb-2">
+        <div className="text-center mb-8">
+          <h2 className="text-3xl font-bold text-slate-800 mb-4">
             Choose Your Perfect Package
           </h2>
-          <p className="text-slate-600 max-w-2xl mx-auto text-sm">
+          <p className="text-slate-600 max-w-2xl mx-auto text-base">
             Professional web solutions tailored to your industry needs. Select your industry to see recommended packages.
           </p>
         </div>
@@ -525,14 +547,7 @@ export default function ServicePackages() {
                     )}
                   </Button>
 
-                  {service.spots <= 2 && service.spots > 0 && (
-                    <Alert className="py-2">
-                      <AlertTriangle className="h-4 w-4" />
-                      <AlertDescription className="text-xs">
-                        Only {service.spots} spots remaining! Limited time offer.
-                      </AlertDescription>
-                    </Alert>
-                  )}
+
                 </div>
               </CardContent>
             </Card>
