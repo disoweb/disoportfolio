@@ -355,18 +355,13 @@ export default function ServicePackages() {
   }, [selectedIndustry, servicesData]);
 
   const handlePurchase = (serviceId: string) => {
-    if (!user) {
-      setLocation("/login");
-      return;
-    }
-
     const service = servicesData.find((s) => s.id === serviceId);
     if (!service) return;
 
     const finalPrice = priceUpdates[serviceId] || service.price;
     const addOns = selectedAddOns[serviceId] || [];
 
-    // Navigate to checkout with service details
+    // Navigate to checkout with service details (guest checkout allowed)
     setLocation(`/checkout?service=${serviceId}&price=${finalPrice}&addons=${addOns.join(',')}`);
   };
 
