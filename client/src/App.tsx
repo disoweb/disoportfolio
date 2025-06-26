@@ -29,6 +29,17 @@ function Router() {
 
   useEffect(() => {
     setMounted(true);
+    
+    // Debug and clear any persistent payment flags on app start
+    const paymentFlag = sessionStorage.getItem('payment_in_progress');
+    console.log('🌐 [APP] App mounted, payment_in_progress flag:', paymentFlag);
+    
+    // Clear the flag on fresh app load to prevent persistent loader
+    if (paymentFlag === 'true') {
+      console.log('🌐 [APP] Clearing persistent payment_in_progress flag on app start');
+      sessionStorage.removeItem('payment_in_progress');
+      setPaymentInProgress(false);
+    }
   }, []);
 
   // Clear payment flag if redirected back with clear_payment parameter
@@ -41,10 +52,25 @@ function Router() {
       } else {
         // Check if payment is in progress
         const inProgress = sessionStorage.getItem('payment_in_progress') === 'true';
+        console.log('🌐 [APP] Checking payment_in_progress flag:', inProgress);
         setPaymentInProgress(inProgress);
       }
     }
   }, [isAuthenticated]);
+
+  // Clear payment flag after a timeout to prevent persistent loading
+  useEffect(() => {
+    if (paymentInProgress) {
+      console.log('🌐 [APP] Payment loader active, setting 10-second timeout to clear');
+      const timeout = setTimeout(() => {
+        console.log('🌐 [APP] Timeout reached, clearing payment_in_progress flag');
+        sessionStorage.removeItem('payment_in_progress');
+        setPaymentInProgress(false);
+      }, 10000); // 10 seconds max
+
+      return () => clearTimeout(timeout);
+    }
+  }, [paymentInProgress]);
 
   if (isLoading || !mounted) {
     return (
