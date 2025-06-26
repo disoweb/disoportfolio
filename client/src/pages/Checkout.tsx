@@ -73,15 +73,20 @@ export default function Checkout() {
         // Set total price from URL or calculate based on service + add-ons
         if (price) {
           const servicePrice = parseInt(price, 10);
+          console.log('DEBUG: Using price from URL:', servicePrice);
           setTotalPrice(servicePrice);
         } else {
           // Calculate price from service + addons
           const basePrice = service.price || parseInt(service.priceUsd || '0');
           const addonPrice = selectedAddonsList.reduce((total, addonName) => {
             const addon = service.addOns?.find((a: any) => a.name === addonName);
-            return total + (addon?.price || 0);
+            const addonCost = addon?.price || 0;
+            console.log('DEBUG: Adding addon:', addonName, 'cost:', addonCost);
+            return total + addonCost;
           }, 0);
-          setTotalPrice(basePrice + addonPrice);
+          const calculatedTotal = basePrice + addonPrice;
+          console.log('DEBUG: Calculated total:', basePrice, '+', addonPrice, '=', calculatedTotal);
+          setTotalPrice(calculatedTotal);
         }
       }
     }
@@ -122,13 +127,14 @@ export default function Checkout() {
     );
   }
 
-  // Calculate pricing
+  // Calculate pricing - use totalPrice from URL if provided, otherwise calculate from service + addons
   const basePrice = serviceData?.price || 0;
   const addOnTotal = selectedAddOns.reduce((total, addonName) => {
     const addon = serviceData?.addOns?.find((a: any) => a.name === addonName);
     return total + (addon?.price || 0);
   }, 0);
-  const finalTotal = basePrice + addOnTotal;
+  // Use totalPrice from URL (which includes addons) or calculate manually
+  const finalTotal = totalPrice > 0 ? totalPrice : basePrice + addOnTotal;
 
   return (
     <div className="min-h-screen bg-gray-50">

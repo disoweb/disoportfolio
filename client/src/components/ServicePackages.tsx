@@ -84,14 +84,16 @@ interface PricingCalculatorProps {
   service: Service;
   reportPriceUpdate: (serviceId: string, total: number) => void;
   currentSelectedAddOns: string[];
+  onAddOnsChange: (serviceId: string, addOns: string[]) => void;
 }
 
 function PricingCalculator({
   service,
   reportPriceUpdate,
   currentSelectedAddOns,
+  onAddOnsChange,
 }: PricingCalculatorProps) {
-  const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
+  const [selectedAddOns, setSelectedAddOns] = useState<string[]>(currentSelectedAddOns || []);
   const [isAddOnsExpanded, setIsAddOnsExpanded] = useState(false);
 
   const totalPrice = useMemo(() => {
@@ -106,11 +108,19 @@ function PricingCalculator({
   }, [service.id, totalPrice, reportPriceUpdate]);
 
   const handleAddOnChange = (addonName: string) => {
-    setSelectedAddOns((prev) =>
-      prev.includes(addonName)
+    setSelectedAddOns((prev) => {
+      const newSelection = prev.includes(addonName)
         ? prev.filter((name) => name !== addonName)
-        : [...prev, addonName]
-    );
+        : [...prev, addonName];
+      
+      console.log('DEBUG: PricingCalculator - Add-on changed:', addonName);
+      console.log('DEBUG: PricingCalculator - New selection:', newSelection);
+      
+      // Update parent component's state
+      onAddOnsChange(service.id, newSelection);
+      
+      return newSelection;
+    });
   };
 
   return (
@@ -358,6 +368,14 @@ export default function ServicePackages() {
     const finalPrice = priceUpdates[serviceId] || service.price;
     const addOns = selectedAddOns[serviceId] || [];
 
+    console.log('DEBUG: ServicePackages - Purchase initiated');
+    console.log('DEBUG: ServicePackages - Service ID:', serviceId);
+    console.log('DEBUG: ServicePackages - Final Price:', finalPrice);
+    console.log('DEBUG: ServicePackages - Service Base Price:', service.price);
+    console.log('DEBUG: ServicePackages - Selected Add-ons:', addOns);
+    console.log('DEBUG: ServicePackages - Price Updates:', priceUpdates);
+    console.log('DEBUG: ServicePackages - All Selected Add-ons:', selectedAddOns);
+
     // Navigate to checkout with service details (guest checkout allowed)
     setLocation(`/checkout?service=${serviceId}&price=${finalPrice}&addons=${addOns.join(',')}`);
   };
@@ -518,6 +536,9 @@ export default function ServicePackages() {
                     service={service as any}
                     reportPriceUpdate={reportPriceUpdate}
                     currentSelectedAddOns={selectedAddOns[service.id] || []}
+                    onAddOnsChange={(serviceId, addOns) => {
+                      setSelectedAddOns(prev => ({ ...prev, [serviceId]: addOns }));
+                    }}
                   />
                 )}
 

@@ -369,10 +369,7 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span>{service.name}</span>
-                  <span>₦{(totalPrice - selectedAddOns.reduce((total, addonName) => {
-                    // Calculate addon total for display
-                    return total + 0; // Will be calculated properly below
-                  }, 0)).toLocaleString()}</span>
+                  <span>₦{totalPrice.toLocaleString()}</span>
                 </div>
                 {selectedAddOns.length > 0 && (
                   <>
