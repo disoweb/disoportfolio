@@ -354,9 +354,9 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
           setContactData(sessionData.contactData);
           
           setTimeout(() => {
-            console.log('💰 CHECKOUT-FORM: Calling onPaymentSubmit with direct auth');
-            // Use the existing form submission logic with contact data
-            onPaymentSubmit({
+            console.log('💰 CHECKOUT-FORM: Triggering auto-payment with orderMutation');
+            // Use orderMutation directly to avoid dependency issues
+            orderMutation.mutate({
               paymentMethod: 'paystack',
               timeline: 'standard'
             });
@@ -370,7 +370,7 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
     };
     
     checkAuthAndSubmit();
-  }, [isPostAuthRedirect, sessionData, user, orderMutation, service.id, totalPrice, selectedAddOns, onPaymentSubmit]);
+  }, [isPostAuthRedirect, sessionData, user, service.id, totalPrice, selectedAddOns]);
 
 
 
