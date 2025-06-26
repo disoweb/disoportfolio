@@ -170,24 +170,19 @@ export default function Checkout() {
 
           {/* Checkout Form */}
           <div className="lg:col-span-2 order-1 lg:order-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Project Details</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CheckoutForm 
-                  service={{
-                    id: serviceData.id,
-                    name: serviceData.name,
-                    price: finalTotal.toString(),
-                    description: serviceData.description,
-                  }}
-                  onSuccess={() => {
-                    setLocation('/dashboard');
-                  }}
-                />
-              </CardContent>
-            </Card>
+            <CheckoutForm 
+              service={{
+                id: serviceData.id,
+                name: serviceData.name,
+                price: finalTotal.toString(),
+                description: serviceData.description,
+              }}
+              totalPrice={finalTotal}
+              selectedAddOns={selectedAddOns}
+              onSuccess={() => {
+                setLocation('/dashboard');
+              }}
+            />
           </div>
         </div>
       </div>

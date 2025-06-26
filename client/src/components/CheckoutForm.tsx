@@ -1,36 +1,32 @@
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { X } from "lucide-react";
+import { ArrowLeft, ArrowRight, CreditCard, User } from "lucide-react";
 
-const checkoutSchema = z.object({
+// Step 1: Contact Details Schema
+const contactSchema = z.object({
   fullName: z.string().min(1, "Full name is required"),
   email: z.string().email("Invalid email address"),
-  phone: z.string().optional(),
+  phone: z.string().min(1, "Phone number is required"),
   company: z.string().optional(),
-  projectDescription: z.string().min(10, "Please provide project details"),
-  timeline: z.string().min(1, "Timeline is required"),
+  projectDescription: z.string().min(10, "Please provide project details (minimum 10 characters)"),
 });
 
-type CheckoutForm = z.infer<typeof checkoutSchema>;
+// Step 2: Payment Schema
+const paymentSchema = z.object({
+  paymentMethod: z.literal("paystack", { required_error: "Payment method is required" }),
+});
 
-interface ServicePackage {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  category: 'launch' | 'growth' | 'elite';
-}
+type ContactForm = z.infer<typeof contactSchema>;
+type PaymentForm = z.infer<typeof paymentSchema>;
 
 interface CheckoutFormProps {
   service: {
@@ -39,274 +35,278 @@ interface CheckoutFormProps {
     price: string;
     description: string;
   };
+  totalPrice: number;
+  selectedAddOns: string[];
   onSuccess: () => void;
 }
 
-const timelines = [
-  { value: "2-4weeks", label: "2-4 weeks" },
-  { value: "1-2months", label: "1-2 months" },
-  { value: "3-4months", label: "3-4 months" },
-  { value: "flexible", label: "Flexible" },
-  { value: "asap", label: "ASAP (Rush - +25%)" },
-];
-
-export default function CheckoutForm({ service, onSuccess }: CheckoutFormProps) {
-  const { user } = useAuth();
+export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSuccess }: CheckoutFormProps) {
+  const [currentStep, setCurrentStep] = useState<1 | 2>(1);
+  const [contactData, setContactData] = useState<ContactForm | null>(null);
   const { toast } = useToast();
-  
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    watch,
-    formState: { errors },
-  } = useForm<CheckoutForm>({
-    resolver: zodResolver(checkoutSchema),
+
+  // Step 1: Contact Form
+  const contactForm = useForm<ContactForm>({
+    resolver: zodResolver(contactSchema),
     defaultValues: {
-      fullName: user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : "",
-      email: user?.email || "",
+      fullName: "",
+      email: "",
+      phone: "",
+      company: "",
+      projectDescription: "",
     },
   });
 
-  const timeline = watch("timeline");
-  const isRush = timeline === "asap";
-  
-  // Parse price from string format like "₦150,000"
-  const basePrice = parseFloat(service.price.replace(/[₦,]/g, '')) || 0;
-  const rushFee = isRush ? basePrice * 0.25 : 0;
-  const totalPrice = basePrice + rushFee;
-
-  const createOrderMutation = useMutation({
-    mutationFn: async (data: CheckoutForm & { serviceId: string; totalPrice: number }) => {
-      const response = await apiRequest("POST", "/api/orders", {
-        serviceId: null, // Will be handled by backend for custom services
-        totalPrice: data.totalPrice.toString(),
-        customRequest: `Service: ${service.name}\n${data.projectDescription}\n\nTimeline: ${data.timeline}\nContact: ${data.fullName} (${data.email})${data.phone ? `, ${data.phone}` : ""}${data.company ? `\nCompany: ${data.company}` : ""}`,
-      });
-      return response.json();
-    },
-    onSuccess: (order) => {
-      // Initialize payment with Paystack
-      initializePayment(order);
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error creating order",
-        description: error.message || "Please try again later.",
-        variant: "destructive",
-      });
+  // Step 2: Payment Form
+  const paymentForm = useForm<PaymentForm>({
+    resolver: zodResolver(paymentSchema),
+    defaultValues: {
+      paymentMethod: "paystack",
     },
   });
 
-  const paymentMutation = useMutation({
-    mutationFn: async ({ orderId, amount, email }: { orderId: string; amount: number; email: string }) => {
-      const response = await apiRequest("POST", "/api/payments/initialize", {
-        orderId,
-        amount: amount, // Amount in Naira, backend will handle kobo conversion
-        email,
-      });
-      return response.json();
+  const orderMutation = useMutation({
+    mutationFn: async (data: ContactForm & PaymentForm) => {
+      const orderData = {
+        serviceId: service.id,
+        customerInfo: {
+          fullName: data.fullName,
+          email: data.email,
+          phone: data.phone,
+          company: data.company,
+        },
+        projectDetails: {
+          description: data.projectDescription,
+        },
+        selectedAddOns: selectedAddOns,
+        totalAmount: totalPrice,
+      };
+
+      return await apiRequest("POST", "/api/orders", orderData);
     },
     onSuccess: (data) => {
-      // Redirect to Paystack payment page
-      window.location.href = data.paymentUrl;
+      if (data.paymentUrl) {
+        window.location.href = data.paymentUrl;
+      } else {
+        toast({
+          title: "Order placed successfully!",
+          description: "We'll contact you soon to discuss your project.",
+        });
+        onSuccess();
+      }
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast({
-        title: "Error initializing payment",
-        description: error.message || "Please try again later.",
+        title: "Order failed",
+        description: error.message || "Something went wrong. Please try again.",
         variant: "destructive",
       });
     },
   });
 
-  const initializePayment = (order: any) => {
-    paymentMutation.mutate({
-      orderId: order.id,
-      amount: totalPrice,
-      email: user?.email || watch("email"),
-    });
+  const onContactSubmit = (data: ContactForm) => {
+    setContactData(data);
+    setCurrentStep(2);
   };
 
-  const onSubmit = (data: CheckoutForm) => {
-    createOrderMutation.mutate({
-      ...data,
-      serviceId: service.id,
-      totalPrice,
-    });
+  const onPaymentSubmit = (data: PaymentForm) => {
+    if (contactData) {
+      orderMutation.mutate({ ...contactData, ...data });
+    }
+  };
+
+  const goBackToStep1 = () => {
+    setCurrentStep(1);
   };
 
   return (
-    <Card className="border-0 shadow-none">
-      <CardHeader className="pb-4">
-        <div className="flex justify-between items-start">
-          <div>
-            <CardTitle className="text-2xl font-bold">Complete Your Order</CardTitle>
-            <p className="text-slate-600">
-              Selected Package: <span className="font-semibold text-blue-600">{service.name}</span>
-            </p>
+    <Card className="w-full max-w-2xl mx-auto">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-xl font-semibold">
+            {currentStep === 1 ? "Contact Details" : "Payment"}
+          </CardTitle>
+          <div className="flex items-center space-x-2 text-sm text-gray-500">
+            <div className={`flex items-center ${currentStep === 1 ? 'text-blue-600' : 'text-green-600'}`}>
+              <User className="h-4 w-4 mr-1" />
+              <span>Step 1</span>
+            </div>
+            <ArrowRight className="h-4 w-4" />
+            <div className={`flex items-center ${currentStep === 2 ? 'text-blue-600' : 'text-gray-400'}`}>
+              <CreditCard className="h-4 w-4 mr-1" />
+              <span>Step 2</span>
+            </div>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onSuccess}
-            className="h-8 w-8 p-0"
-          >
-            <X className="h-4 w-4" />
-          </Button>
         </div>
       </CardHeader>
-      
       <CardContent>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          {/* Contact Information */}
-          <div>
-            <h3 className="text-lg font-semibold text-slate-900 mb-4">Contact Information</h3>
-            <div className="grid md:grid-cols-2 gap-4">
+        {/* Order Summary - Always Visible */}
+        <div className="bg-gray-50 p-4 rounded-lg mb-6">
+          <h3 className="font-semibold text-lg mb-2">{service.name}</h3>
+          <p className="text-gray-600 text-sm mb-4">{service.description}</p>
+          {selectedAddOns.length > 0 && (
+            <div className="mb-3">
+              <p className="text-sm font-medium mb-1">Add-ons:</p>
+              <ul className="text-sm text-gray-600">
+                {selectedAddOns.map((addon, index) => (
+                  <li key={index}>• {addon}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <div className="flex justify-between items-center">
+            <span className="text-lg font-semibold">Total:</span>
+            <span className="text-2xl font-bold text-blue-600">
+              ₦{totalPrice.toLocaleString()}
+            </span>
+          </div>
+        </div>
+
+        {/* Step 1: Contact Details */}
+        {currentStep === 1 && (
+          <form onSubmit={contactForm.handleSubmit(onContactSubmit)} className="space-y-6">
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Full Name *</label>
+                  <Input
+                    {...contactForm.register("fullName")}
+                    placeholder="John Doe"
+                  />
+                  {contactForm.formState.errors.fullName && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {contactForm.formState.errors.fullName.message}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">Email *</label>
+                  <Input
+                    {...contactForm.register("email")}
+                    type="email"
+                    placeholder="john@example.com"
+                  />
+                  {contactForm.formState.errors.email && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {contactForm.formState.errors.email.message}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Phone *</label>
+                  <Input
+                    {...contactForm.register("phone")}
+                    placeholder="+234 123 456 7890"
+                  />
+                  {contactForm.formState.errors.phone && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {contactForm.formState.errors.phone.message}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">Company</label>
+                  <Input
+                    {...contactForm.register("company")}
+                    placeholder="Company Name (Optional)"
+                  />
+                </div>
+              </div>
+
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Full Name *
-                </label>
-                <Input
-                  {...register("fullName")}
-                  placeholder="John Smith"
-                  className={errors.fullName ? "border-red-500" : ""}
+                <label className="block text-sm font-medium mb-2">Project Description *</label>
+                <Textarea
+                  {...contactForm.register("projectDescription")}
+                  placeholder="Describe your project requirements, goals, and any specific features you need..."
+                  className="min-h-[100px]"
                 />
-                {errors.fullName && (
-                  <p className="text-red-500 text-sm mt-1">{errors.fullName.message}</p>
+                {contactForm.formState.errors.projectDescription && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {contactForm.formState.errors.projectDescription.message}
+                  </p>
                 )}
               </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Email Address *
-                </label>
-                <Input
-                  {...register("email")}
-                  type="email"
-                  placeholder="john@company.com"
-                  className={errors.email ? "border-red-500" : ""}
-                />
-                {errors.email && (
-                  <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>
-                )}
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Phone Number
-                </label>
-                <Input
-                  {...register("phone")}
-                  type="tel"
-                  placeholder="+1 (555) 123-4567"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Company (Optional)
-                </label>
-                <Input
-                  {...register("company")}
-                  placeholder="Your Company"
-                />
-              </div>
             </div>
-          </div>
 
-          {/* Project Details */}
-          <div>
-            <h3 className="text-lg font-semibold text-slate-900 mb-4">Project Details</h3>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Project Description *
-              </label>
-              <Textarea
-                {...register("projectDescription")}
-                rows={4}
-                placeholder="Describe your project requirements, goals, and any specific features you need..."
-                className={errors.projectDescription ? "border-red-500" : ""}
-              />
-              {errors.projectDescription && (
-                <p className="text-red-500 text-sm mt-1">{errors.projectDescription.message}</p>
-              )}
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Timeline Preference *
-              </label>
-              <Select onValueChange={(value) => setValue("timeline", value)}>
-                <SelectTrigger className={errors.timeline ? "border-red-500" : ""}>
-                  <SelectValue placeholder="Select timeline" />
-                </SelectTrigger>
-                <SelectContent>
-                  {timelines.map((timeline) => (
-                    <SelectItem key={timeline.value} value={timeline.value}>
-                      {timeline.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.timeline && (
-                <p className="text-red-500 text-sm mt-1">{errors.timeline.message}</p>
-              )}
-            </div>
-          </div>
+            <Button type="submit" className="w-full py-3 text-lg">
+              Continue to Payment
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </form>
+        )}
 
-          {/* Order Summary */}
-          <div className="bg-slate-50 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-slate-900 mb-4">Order Summary</h3>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span>{service.name} Package</span>
-                <span>₦{parseInt(service.price).toLocaleString()}</span>
+        {/* Step 2: Payment */}
+        {currentStep === 2 && (
+          <form onSubmit={paymentForm.handleSubmit(onPaymentSubmit)} className="space-y-6">
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Payment Method</h3>
+              
+              <div className="border rounded-lg p-4 bg-blue-50 border-blue-200">
+                <div className="flex items-center space-x-3">
+                  <CreditCard className="h-6 w-6 text-blue-600" />
+                  <div>
+                    <h4 className="font-medium text-blue-900">Secure Payment via Paystack</h4>
+                    <p className="text-sm text-blue-700">
+                      Pay securely with your debit card, bank transfer, or other payment methods
+                    </p>
+                  </div>
+                </div>
               </div>
-              {isRush && (
-                <div className="flex justify-between items-center text-amber-600">
-                  <span>Rush Fee (25%)</span>
-                  <span>+₦{rushFee.toLocaleString()}</span>
+
+              {contactData && (
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h4 className="font-medium mb-2">Contact Information</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-600">
+                    <p><strong>Name:</strong> {contactData.fullName}</p>
+                    <p><strong>Email:</strong> {contactData.email}</p>
+                    <p><strong>Phone:</strong> {contactData.phone}</p>
+                    {contactData.company && <p><strong>Company:</strong> {contactData.company}</p>}
+                  </div>
                 </div>
               )}
-              <Separator />
-              <div className="flex justify-between items-center font-bold text-lg">
-                <span>Total</span>
-                <span className="text-blue-600">₦{totalPrice.toLocaleString()}</span>
-              </div>
             </div>
-          </div>
 
-          {/* Payment Notice */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm text-blue-800">
-              <strong>Secure Payment:</strong> You'll be redirected to Paystack to complete your payment securely. 
-              We accept all major credit cards and bank transfers.
+            <div className="flex space-x-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={goBackToStep1}
+                className="flex-1 py-3"
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back
+              </Button>
+              
+              <Button
+                type="submit"
+                className="flex-1 py-3 text-lg"
+                disabled={orderMutation.isPending}
+              >
+                {orderMutation.isPending ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    Pay ₦{totalPrice.toLocaleString()}
+                    <CreditCard className="ml-2 h-4 w-4" />
+                  </>
+                )}
+              </Button>
+            </div>
+
+            <p className="text-xs text-gray-500 text-center">
+              By proceeding, you agree to our terms of service. 
+              Your payment is processed securely by Paystack.
             </p>
-          </div>
-
-          {/* Form Actions */}
-          <div className="flex space-x-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onSuccess}
-              className="flex-1"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={createOrderMutation.isPending || paymentMutation.isPending}
-              className="flex-1 bg-blue-600 hover:bg-blue-700"
-            >
-              {createOrderMutation.isPending || paymentMutation.isPending 
-                ? "Processing..." 
-                : "Proceed to Payment"
-              }
-            </Button>
-          </div>
-        </form>
+          </form>
+        )}
       </CardContent>
     </Card>
   );
