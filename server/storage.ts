@@ -190,8 +190,6 @@ export class DatabaseStorage implements IStorage {
     
     return {
       ...service,
-      price: parseInt(service.priceUsd),
-      originalPrice: service.originalPriceUsd ? parseInt(service.originalPriceUsd) : undefined,
       features: typeof service.features === 'string' ? JSON.parse(service.features) : service.features,
       industry: typeof service.industry === 'string' ? JSON.parse(service.industry) : service.industry,
       addOns: JSON.parse(service.addOns)
@@ -222,7 +220,7 @@ export class DatabaseStorage implements IStorage {
 
   async createService(service: InsertService): Promise<Service> {
     const serviceData = {
-      id: service.id || crypto.randomUUID(),
+      id: crypto.randomUUID(),
       name: service.name,
       description: service.description,
       priceUsd: service.priceUsd,
@@ -331,11 +329,6 @@ export class DatabaseStorage implements IStorage {
           firstName: users.firstName,
           lastName: users.lastName,
           email: users.email,
-        },
-        order: {
-          service: {
-            name: services.name,
-          },
         },
       })
       .from(projects)
@@ -545,9 +538,9 @@ export class DatabaseStorage implements IStorage {
           orderId: order.id,
           userId: order.userId,
           projectName: serviceName,
-          description: order.customRequest || 'Project created from service order',
+          notes: order.customRequest || 'Project created from service order',
           status: 'active',
-          startDate: startDate.toISOString(),
+          startDate: startDate.toISOString().split('T')[0],
           dueDate: estimatedEndDate.toISOString(),
           timelineWeeks,
           progressPercentage: 0,
@@ -561,7 +554,6 @@ export class DatabaseStorage implements IStorage {
             startDate: startDate.toISOString(),
             dueDate: estimatedEndDate.toISOString(),
             timelineWeeks,
-            updatedAt: new Date(),
           })
           .where(eq(projects.id, existingProject[0].id));
       }

@@ -36,7 +36,7 @@ export default function Checkout() {
     console.log('🔍 [CHECKOUT PAGE] URL serviceId:', serviceId);
     console.log('🔍 [CHECKOUT PAGE] URL price:', price);
     console.log('🔍 [CHECKOUT PAGE] URL addons:', addons);
-    console.log('🔍 [CHECKOUT PAGE] Services loaded:', services.length);
+    console.log('🔍 [CHECKOUT PAGE] Services loaded:', Array.isArray(services) ? services.length : 'not array');
     
     // Check for pending checkout data if no URL params
     if (!serviceId) {
@@ -55,19 +55,19 @@ export default function Checkout() {
             return; // Exit early since we got data from pending checkout
           }
         } catch (error) {
-          console.error('🔍 [CHECKOUT PAGE] Error parsing pending checkout:', error);
+
         }
       }
     }
     
-    if (serviceId && services.length > 0) {
-      const service = (services as any[]).find((s: any) => s.id === serviceId);
-      console.log('🔍 [CHECKOUT PAGE] Found service by ID:', service);
+    if (serviceId && Array.isArray(services) && services.length > 0) {
+      const service = services.find((s: any) => s.id === serviceId);
+
       
       if (service) {
         setServiceData(service);
         const servicePrice = price ? parseInt(price) : (service.price || parseInt(service.priceUsd || '0'));
-        console.log('🔍 [CHECKOUT PAGE] Setting totalPrice:', servicePrice);
+
         setTotalPrice(servicePrice);
       }
     }

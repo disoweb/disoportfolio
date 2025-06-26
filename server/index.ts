@@ -27,13 +27,13 @@ app.post("/api/auth/logout", validateContentType, (req, res) => {
   }
   
   // Check if user is actually logged in
-  if (!req.session || !req.session.passport || !req.session.passport.user) {
+  if (!req.session || !(req.session as any).passport || !(req.session as any).passport.user) {
     clearSessionSecurely(res);
     return res.json({ message: "Already logged out" });
   }
 
   // Store user ID for audit logging
-  const userId = req.session.passport.user;
+  const userId = (req.session as any).passport.user;
   
   // Destroy session securely
   req.session.destroy((err) => {

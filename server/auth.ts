@@ -330,7 +330,7 @@ export async function setupAuth(app: Express) {
 
       // Manually set session instead of using req.login to avoid passport issues
       if (req.session) {
-        req.session.passport = { user: user.id };
+        (req.session as any).passport = { user: user.id };
         req.session.save((saveErr) => {
           if (saveErr) {
             auditLog('login_session_error', user.id, { error: saveErr.message, clientIP });
@@ -353,11 +353,11 @@ export async function setupAuth(app: Express) {
   app.get("/api/auth/user", async (req, res) => {
     try {
       // Check session directly for user
-      if (req.session && req.session.passport && req.session.passport.user) {
-        const user = await storage.getUser(req.session.passport.user);
+      if (req.session && (req.session as any).passport && (req.session as any).passport.user) {
+        const user = await storage.getUser((req.session as any).passport.user);
         if (user) {
           const sanitizedUser = { ...user };
-          delete sanitizedUser.password;
+          delete (sanitizedUser as any).password;
           return res.json(sanitizedUser);
         }
       }

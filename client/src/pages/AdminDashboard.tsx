@@ -907,7 +907,7 @@ export default function AdminDashboard() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  {orders && orders.length > 0 ? (
+                  {Array.isArray(orders) && orders.length > 0 ? (
                     <div className="space-y-4">
                       {orders.slice(0, 5).map((order: any) => (
                         <div key={order.id} className="flex items-center justify-between p-3 border rounded-lg">
@@ -939,7 +939,7 @@ export default function AdminDashboard() {
                   <CardTitle>Project Status</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {projects && projects.length > 0 ? (
+                  {Array.isArray(projects) && projects.length > 0 ? (
                     <div className="space-y-4">
                       {['Discovery', 'Design', 'Development', 'Testing', 'Deployed'].map((status) => {
                         const count = projects.filter((p: any) => p.currentStage === status).length;
@@ -977,7 +977,7 @@ export default function AdminDashboard() {
                 <CardTitle>All Orders</CardTitle>
               </CardHeader>
               <CardContent>
-                {orders && orders.length > 0 ? (
+                {Array.isArray(orders) && orders.length > 0 ? (
                   <div className="overflow-x-auto">
                     <table className="w-full">
                       <thead>
@@ -1056,7 +1056,7 @@ export default function AdminDashboard() {
               </div>
 
               {/* Projects Grid */}
-              {projects && projects.length > 0 ? (
+              {Array.isArray(projects) && projects.length > 0 ? (
                 <div className="grid gap-6">
                   {projects
                     .filter((project: any) => {
@@ -1403,7 +1403,7 @@ function ProjectUpdateDialog({
         window.location.reload();
       }
     } catch (error) {
-      console.error('Error updating project:', error);
+
     } finally {
       setIsSubmitting(false);
     }

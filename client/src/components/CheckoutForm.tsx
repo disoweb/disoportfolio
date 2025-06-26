@@ -103,13 +103,9 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
 
   // Restore contact data on component mount
   useEffect(() => {
-    console.log('🔍 [CHECKOUT FORM] Restore data effect triggered');
     const storedContactData = getStoredFormData('checkout_contact_data');
-    console.log('🔍 [CHECKOUT FORM] storedContactData:', storedContactData);
-    console.log('🔍 [CHECKOUT FORM] contactData:', contactData);
     
     if (storedContactData && !contactData) {
-      console.log('🔍 [CHECKOUT FORM] Restoring contact data from localStorage');
       contactForm.reset(storedContactData);
       setContactData(storedContactData);
       setCurrentStep(2);
@@ -135,24 +131,16 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
         totalAmount: totalPrice,
       };
 
-      console.log('🚀 [ORDER MUTATION] Sending order data:', orderData);
-      
       try {
         const response = await apiRequest("POST", "/api/orders", orderData);
         const responseData = await response.json();
-        console.log('🚀 [ORDER MUTATION] Order response received:', responseData);
         return responseData;
       } catch (error) {
-        console.error('🚀 [ORDER MUTATION] Order failed:', error);
-        throw error;
+        throw new Error(error instanceof Error ? error.message : 'Failed to create order');
       }
     },
     onSuccess: (data) => {
-      console.log('🚀 [ORDER SUCCESS] Order response data:', data);
-      console.log('🚀 [ORDER SUCCESS] Payment URL:', data?.paymentUrl);
-      
       if (data && data.paymentUrl) {
-        console.log('🚀 [ORDER SUCCESS] Redirecting to payment URL:', data.paymentUrl);
         // Clear any pending checkout data since we're proceeding to payment
         localStorage.removeItem('checkout_contact_data');
         sessionStorage.removeItem('pendingCheckout');
@@ -160,7 +148,6 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
         // Redirect to Paystack
         window.location.href = data.paymentUrl;
       } else {
-        console.log('🚀 [ORDER SUCCESS] No payment URL, showing success message');
         toast({
           title: "Order placed successfully!",
           description: "We'll contact you soon to discuss your project.",
@@ -179,40 +166,25 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
 
   // Handle pending checkout completion after authentication
   useEffect(() => {
-    console.log('🚀 [AUTH EFFECT] Authentication state changed');
-    console.log('🚀 [AUTH EFFECT] - User authenticated:', !!user);
-    console.log('🚀 [AUTH EFFECT] - User email:', user?.email);
-    console.log('🚀 [AUTH EFFECT] - Order mutation pending:', orderMutation.isPending);
-    console.log('🚀 [AUTH EFFECT] - Current step:', currentStep);
-    
     // Prevent auto-submit if already processing
     if (user && !orderMutation.isPending) {
-      console.log('🚀 [AUTH EFFECT] User is authenticated, checking for pending checkout');
       const pendingCheckout = sessionStorage.getItem('pendingCheckout');
-      console.log('🚀 [AUTH EFFECT] Raw sessionStorage pendingCheckout:', pendingCheckout);
       
       if (pendingCheckout) {
         try {
           const checkoutData = JSON.parse(pendingCheckout);
-          console.log('🔍 [AUTH EFFECT] Parsed checkout data:', checkoutData);
           
           // Remove pending checkout immediately to prevent race conditions
           sessionStorage.removeItem('pendingCheckout');
-          console.log('🔍 [AUTH EFFECT] Removed pending checkout to prevent duplicates');
           
           // Restore the checkout state
           if (checkoutData.contactData) {
-            console.log('🔍 [AUTH EFFECT] Restoring checkout state');
             setContactData(checkoutData.contactData);
             setCurrentStep(2);
             
             // Auto-submit the payment after ensuring user is properly authenticated
             setTimeout(() => {
-              console.log('🔍 [AUTH EFFECT] Auto-submitting payment');
-              console.log('🔍 [AUTH EFFECT] Current user from useAuth:', user);
-              
               if (!user || !user.email) {
-                console.error('🔍 [AUTH EFFECT] User not authenticated, aborting auto-submit');
                 toast({
                   title: "Authentication Error",
                   description: "Please log in again to complete your order.",
@@ -224,20 +196,17 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
               
               // Check if mutation is already running
               if (orderMutation.isPending) {
-                console.log('🔍 [AUTH EFFECT] Order already pending, skipping auto-submit');
                 return;
               }
               
               // Ensure email is populated from authenticated user if missing
               const contactDataToUse = { ...checkoutData.contactData };
               if (!contactDataToUse.email && user.email) {
-                console.log('🔍 [AUTH EFFECT] Populating missing email from user:', user.email);
                 contactDataToUse.email = user.email;
               }
               
               // Validate that we have all required fields
               if (!contactDataToUse.fullName || !contactDataToUse.email || !contactDataToUse.projectDescription) {
-                console.error('🔍 [AUTH EFFECT] Missing required contact data:', contactDataToUse);
                 toast({
                   title: "Incomplete Information",
                   description: "Please fill out all required contact information.",
@@ -252,16 +221,12 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
                 paymentMethod: "paystack" as const,
                 timeline: checkoutData.paymentData?.timeline || "2-4 weeks"
               };
-              console.log('🔍 [AUTH EFFECT] Combined data for order:', combinedData);
               orderMutation.mutate(combinedData);
             }, 500);
           }
         } catch (error) {
-          console.error('🔍 [AUTH EFFECT] Error restoring pending checkout:', error);
           sessionStorage.removeItem('pendingCheckout');
         }
-      } else {
-        console.log('🔍 [AUTH EFFECT] No pending checkout found');
       }
     }
   }, [user, orderMutation.isPending, currentStep, setLocation, toast]);
@@ -276,14 +241,11 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
   const onPaymentSubmit = (data: PaymentForm) => {
     if (!contactData) return;
     
-    console.log('🔍 [CHECKOUT DEBUG] Payment submit initiated');
-    console.log('🔍 [CHECKOUT DEBUG] User authenticated:', !!user);
-    console.log('🔍 [CHECKOUT DEBUG] Contact data:', contactData);
-    console.log('🔍 [CHECKOUT DEBUG] Payment data:', data);
+
     
     // Check if user is authenticated
     if (!user) {
-      console.log('🔍 [CHECKOUT DEBUG] User not authenticated, storing checkout data and redirecting');
+
       
       // Store all checkout data in sessionStorage for later restoration
       const checkoutData = {
@@ -296,17 +258,17 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
         timestamp: Date.now()
       };
       
-      console.log('🔍 [CHECKOUT DEBUG] Storing checkout data:', checkoutData);
+
       sessionStorage.setItem('pendingCheckout', JSON.stringify(checkoutData));
       
       // Redirect to auth page
-      console.log('🔍 [CHECKOUT DEBUG] Redirecting to authentication');
+
       setLocation('/auth');
       return;
     }
     
     // User is authenticated, proceed with order
-    console.log('🔍 [CHECKOUT DEBUG] User authenticated, proceeding with order submission');
+
     
     // Ensure email is populated from authenticated user if missing
     const finalContactData = { ...contactData };
@@ -319,7 +281,7 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
       ...data 
     };
     
-    console.log('🔍 [CHECKOUT DEBUG] Final combined data:', combinedData);
+
     orderMutation.mutate(combinedData);
   };
 

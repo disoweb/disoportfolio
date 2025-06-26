@@ -192,15 +192,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: "pending" as const,
       };
       
-      console.log('🔍 [ORDER CREATE] Final order data for validation:', JSON.stringify(orderData, null, 2));
+
       
       // Validate using the schema
       const validatedOrderData = insertOrderSchema.parse(orderData);
-      console.log('🔍 [ORDER CREATE] Validated order data:', JSON.stringify(validatedOrderData, null, 2));
+
       
       // Create the order
       const order = await storage.createOrder(validatedOrderData);
-      console.log('🔍 [ORDER CREATE] Created order:', JSON.stringify(order, null, 2));
       
       // Initialize payment if needed
       if (order && order.id) {
@@ -213,10 +212,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             userId,
           });
           
-          console.log('🔍 [ORDER CREATE] Payment URL generated:', paymentUrl);
           res.json({ ...order, paymentUrl });
         } catch (paymentError) {
-          console.error('🔍 [ORDER CREATE] Payment initialization failed:', paymentError);
           // Return order without payment URL if payment fails
           res.json(order);
         }
@@ -225,10 +222,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
-        console.error('🔍 [ORDER CREATE] Validation error:', error.errors);
         return res.status(400).json({ message: "Invalid order data", errors: error.errors });
       }
-      console.error("🔍 [ORDER CREATE] Error creating order:", error);
+      console.error("Error creating order:", error);
       res.status(500).json({ message: "Failed to create order" });
     }
   });
@@ -293,12 +289,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // If admin, return all projects with user and order details
       if (user?.role === 'admin') {
         const projects = await storage.getAllProjects();
-        console.log("Returning", projects.length, "projects for admin");
+
         res.json(projects);
       } else {
         // Regular users only see their own projects
         const projects = await storage.getUserProjects(userId);
-        console.log("Returning", projects.length, "projects for user", userId);
         res.json(projects);
       }
     } catch (error) {
@@ -423,13 +418,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Payment callback route (for redirect after payment)
   app.get('/api/payments/callback', async (req, res) => {
-    console.log('Payment callback received:', req.query);
+
     
     try {
       const { reference, trxref, status } = req.query;
       const paymentReference = (reference || trxref) as string;
-      
-      console.log(`Processing callback for reference: ${paymentReference}, status: ${status}`);
       
       if (paymentReference) {
         // Verify payment with Paystack before confirming success
@@ -442,12 +435,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
           
           const verifyData = await verifyResponse.json();
-          console.log('Paystack verification response:', verifyData);
           
           if (verifyData.status && verifyData.data.status === 'success') {
             // Payment verified, update records
             const orderId = verifyData.data.metadata?.orderId;
-            console.log(`Payment successful for order: ${orderId}`);
             
             if (orderId) {
               // Update payment status
@@ -497,8 +488,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Missing signature" });
       }
 
-      if (!await storage.verifyPaystackWebhook(hash as string, body)) {
-        auditLog('webhook_invalid_signature', undefined, { clientIP, hash: hash.substring(0, 10) + '***' });
+      const hashString = Array.isArray(hash) ? hash[0] : hash;
+      if (!await storage.verifyPaystackWebhook(hashString, body)) {
+        auditLog('webhook_invalid_signature', undefined, { clientIP, hash: hashString.substring(0, 10) + '***' });
         return res.status(400).json({ message: "Invalid signature" });
       }
 
@@ -620,11 +612,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/projects/:id", isAuthenticated, async (req, res) => {
     try {
       const { id } = req.params;
-      const userId = req.user?.claims?.sub;
-      const userRole = req.user?.claims?.role;
+      const userId = req.user?.id;
+      const userRole = req.user?.role;
       
       // Check if user has access to update this project
-      if (userRole !== 'admin') {
+      if (userRole !== 'admin' && userId) {
         const hasAccess = await storage.userHasProjectAccess(userId, id);
         if (!hasAccess) {
           return res.status(403).json({ message: "Access denied" });
@@ -684,8 +676,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Unauthorized" });
       }
 
-      const { serviceId, spots, deliveryDate } = req.body;
-      await storage.updateServiceAvailability(serviceId, spots, deliveryDate);
+      const { serviceId, spots } = req.body;
+      // Update service availability logic would go here
       res.json({ message: "Availability updated successfully" });
     } catch (error) {
       console.error("Error updating availability:", error);

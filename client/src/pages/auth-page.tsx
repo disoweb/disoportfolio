@@ -50,20 +50,19 @@ export default function AuthPage() {
   useEffect(() => {
     if (!isLoading && user && !redirectHandled) {
       const pendingCheckout = sessionStorage.getItem('pendingCheckout');
-      console.log('🚀 [AUTH PAGE] User authenticated, checking pending checkout:', user.email);
-      console.log('🚀 [AUTH PAGE] Raw pendingCheckout:', pendingCheckout);
+
       
       if (pendingCheckout) {
         try {
           const checkoutData = JSON.parse(pendingCheckout);
-          console.log('🚀 [AUTH PAGE] Found valid pending checkout, redirecting:', checkoutData);
+
           
           const returnUrl = checkoutData.returnUrl || '/checkout';
-          console.log('🚀 [AUTH PAGE] Redirecting to checkout:', returnUrl);
+
           setRedirectHandled(true);
           setLocation(returnUrl);
         } catch (error) {
-          console.error('🚀 [AUTH PAGE] Invalid pending checkout data:', error);
+
           sessionStorage.removeItem('pendingCheckout');
           setRedirectHandled(true);
           setLocation("/");

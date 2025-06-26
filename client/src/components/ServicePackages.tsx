@@ -309,7 +309,7 @@ export default function ServicePackages() {
             industry: parseArrayField(service.industry)
           };
         } catch (err) {
-          console.error('Error transforming service:', service, err);
+
           return null;
         }
       }).filter(Boolean);
@@ -326,11 +326,11 @@ export default function ServicePackages() {
     restaurant: ["ecommerce-app", "landing-page"],
   };
 
-  const recommendedServices = useMemo((): Service[] => {
-    const baseServicesWithDynamicRecommended = servicesData.map((s) => ({
+  const recommendedServices = useMemo(() => {
+    const baseServicesWithDynamicRecommended = servicesData?.map((s) => ({
       ...s,
       recommended: false,
-    }));
+    })) || [];
     
     if (selectedIndustry === "all") {
       return baseServicesWithDynamicRecommended
@@ -346,13 +346,13 @@ export default function ServicePackages() {
     return baseServicesWithDynamicRecommended
       .map((service) => ({
         ...service,
-        recommended: recommendedIds.includes(service.id),
+        recommended: service.id ? recommendedIds.includes(service.id) : false,
       }))
       .sort((a, b) => (b.recommended ? 1 : 0) - (a.recommended ? 1 : 0));
   }, [selectedIndustry, servicesData]);
 
   const handlePurchase = (serviceId: string) => {
-    const service = servicesData.find((s) => s.id === serviceId);
+    const service = servicesData.find((s) => s?.id === serviceId);
     if (!service) return;
 
     const finalPrice = priceUpdates[serviceId] || service.price;
@@ -388,7 +388,7 @@ export default function ServicePackages() {
   }
 
   if (error) {
-    console.error('Services query error:', error);
+
     return (
       <section className="py-6 bg-slate-50">
         <div className="container mx-auto px-4">
@@ -478,11 +478,11 @@ export default function ServicePackages() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <span className="text-xl font-bold text-blue-600">
-                      ₦{service.price.toLocaleString()}
+                      ₦{(service.price || 0).toLocaleString()}
                     </span>
-                    {service.originalPrice > service.price && (
+                    {service.originalPrice && service.originalPrice > (service.price || 0) && (
                       <span className="text-sm text-slate-500 line-through">
-                        ₦{service.originalPrice.toLocaleString()}
+                        ₦{(service.originalPrice || 0).toLocaleString()}
                       </span>
                     )}
                   </div>
@@ -499,13 +499,13 @@ export default function ServicePackages() {
                     What's included:
                   </h4>
                   <ul className="space-y-1">
-                    {service.features.slice(0, 4).map((feature, index) => (
+                    {(service.features || []).slice(0, 4).map((feature, index) => (
                       <li key={index} className="flex items-center text-xs text-slate-600">
                         <CheckCircle className="h-3 w-3 text-green-500 mr-2 flex-shrink-0" />
                         {feature}
                       </li>
                     ))}
-                    {service.features.length > 4 && (
+                    {service.features && service.features.length > 4 && (
                       <li className="text-xs text-slate-500 pl-5">
                         +{service.features.length - 4} more features
                       </li>
@@ -513,15 +513,15 @@ export default function ServicePackages() {
                   </ul>
                 </div>
 
-                {service.addOns.length > 0 && (
+                {service.addOns && service.addOns.length > 0 && (
                   <PricingCalculator
-                    service={service}
+                    service={service as any}
                     reportPriceUpdate={reportPriceUpdate}
                     currentSelectedAddOns={selectedAddOns[service.id] || []}
                   />
                 )}
 
-                <ROICalculator service={service} />
+                <ROICalculator service={service as any} />
 
                 <div className="space-y-2">
                   <Button
