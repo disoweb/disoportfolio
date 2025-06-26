@@ -191,13 +191,16 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
 
   // Handle pending checkout completion after authentication
   useEffect(() => {
+    console.log('🔄 [USE EFFECT] Auth flow useEffect triggered - user:', !!user, 'isPending:', orderMutation.isPending);
     // Prevent auto-submit if already processing
     if (user && !orderMutation.isPending) {
       const pendingCheckout = sessionStorage.getItem('pendingCheckout');
+      console.log('🔄 [USE EFFECT] Pending checkout found:', !!pendingCheckout);
       
       if (pendingCheckout) {
         try {
           const checkoutData = JSON.parse(pendingCheckout);
+          console.log('🔄 [USE EFFECT] Parsed checkout data:', checkoutData);
           
           // Remove pending checkout immediately to prevent race conditions
           sessionStorage.removeItem('pendingCheckout');
@@ -212,14 +215,17 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
             console.log('🔄 [AUTO-SUBMIT] Stored selectedAddOns:', checkoutData.selectedAddOns);
             console.log('🔄 [AUTO-SUBMIT] Stored totalPrice:', checkoutData.totalPrice);
             
+            // Show loader immediately before any async operations
+            console.log('🔄 [AUTO-SUBMIT] Setting PaymentLoader to true BEFORE timeout');
+            setShowPaymentLoader(true);
+            
             // Auto-submit the payment after ensuring user is properly authenticated
             setTimeout(() => {
               console.log('🔄 [AUTO-SUBMIT] Starting auto-submit process after authentication');
               console.log('🔄 [AUTO-SUBMIT] User data:', user);
               console.log('🔄 [AUTO-SUBMIT] Selected addons:', selectedAddOns);
               console.log('🔄 [AUTO-SUBMIT] Total price:', totalPrice);
-              // Show loader immediately when starting auto-submit process
-              setShowPaymentLoader(true);
+              console.log('🔄 [AUTO-SUBMIT] PaymentLoader should be visible now');
               if (!user || !user.email) {
                 toast({
                   title: "Authentication Error",
@@ -252,8 +258,8 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
                 return;
               }
               
-              // Show loading screen immediately
-              setShowPaymentLoader(true);
+              // PaymentLoader is already showing, just log for debugging
+              console.log('🔄 [AUTO-SUBMIT] PaymentLoader state should already be true');
               
               // Prepare and submit the payment data immediately
               const combinedData = { 
@@ -267,9 +273,11 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
               console.log('🔄 [AUTO-SUBMIT] Using selectedAddOns from checkout data:', checkoutData.selectedAddOns || []);
               console.log('🔄 [AUTO-SUBMIT] Using totalPrice from checkout data:', checkoutData.totalPrice || totalPrice);
               console.log('🔄 [AUTO-SUBMIT] Submitting order mutation with data:', combinedData);
-              console.log('🔄 [AUTO-SUBMIT] Order mutation pending status:', orderMutation.isPending);
+              console.log('🔄 [AUTO-SUBMIT] Order mutation pending status before mutate:', orderMutation.isPending);
+              console.log('🔄 [AUTO-SUBMIT] PaymentLoader state before mutate:', showPaymentLoader);
               orderMutation.mutate(combinedData);
-            }, 1000); // Increased delay to ensure all state is set
+              console.log('🔄 [AUTO-SUBMIT] Order mutation called, isPending after mutate:', orderMutation.isPending);
+            }, 500); // Reduced delay to minimize dashboard flash
           }
         } catch (error) {
           sessionStorage.removeItem('pendingCheckout');
@@ -326,8 +334,9 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
     orderMutation.mutate(combinedData);
   };
 
-  // Show payment loader when processing payment
-  if (showPaymentLoader) {
+  // Show payment loader when processing payment - this should take priority over everything
+  if (showPaymentLoader || orderMutation.isPending) {
+    console.log('🔄 [RENDER] Showing PaymentLoader - showPaymentLoader:', showPaymentLoader, 'isPending:', orderMutation.isPending);
     return (
       <PaymentLoader
         serviceName={service.name}
