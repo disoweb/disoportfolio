@@ -136,21 +136,48 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
         totalAmount: data.overrideTotalAmount || totalPrice,
       };
 
-      // Verify authentication before submitting order
-      const authCheck = await fetch("/api/auth/user", { 
-        credentials: "include",
-        headers: {
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        }
-      });
+      // Enhanced authentication verification for post-auth users
+      const authCompleted = sessionStorage.getItem('auth_completed');
+      const authTimestamp = sessionStorage.getItem('auth_timestamp');
       
-      if (!authCheck.ok || authCheck.status === 401) {
-        throw new Error("Authentication required - please log in again");
+      // If user just completed auth, add extra verification time
+      if (authCompleted === 'true' && authTimestamp) {
+        const timeSinceAuth = Date.now() - parseInt(authTimestamp);
+        if (timeSinceAuth < 5000) { // Within 5 seconds of auth completion
+          // Wait for session to fully stabilize
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+        // Clear the auth flags after use
+        sessionStorage.removeItem('auth_completed');
+        sessionStorage.removeItem('auth_timestamp');
       }
       
-      const userData = await authCheck.json();
-      if (!userData || !userData.id) {
+      // Multiple verification attempts for recently authenticated users
+      let authVerified = false;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const authCheck = await fetch("/api/auth/user", { 
+          credentials: "include",
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        });
+        
+        if (authCheck.ok) {
+          const userData = await authCheck.json();
+          if (userData && userData.id) {
+            authVerified = true;
+            break;
+          }
+        }
+        
+        // Progressive delay between attempts
+        if (attempt < 2) {
+          await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1)));
+        }
+      }
+      
+      if (!authVerified) {
         throw new Error("Authentication required - please log in again");
       }
       
@@ -361,10 +388,31 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
   const onPaymentSubmit = (data: PaymentForm) => {
     if (!contactData) return;
     
-    // Always proceed with payment if we're at step 2 - user must be authenticated to reach this step
-    // The authentication check happens at component mount and in useEffect
+    // Check if user is authenticated before proceeding with payment
+    if (!user) {
+      // Store comprehensive pending checkout data for after authentication
+      const pendingCheckout = {
+        service,
+        totalPrice,
+        selectedAddOns,
+        contactData,
+        paymentData: data,
+        returnUrl: '/checkout',
+        timestamp: Date.now()
+      };
+      
+      sessionStorage.setItem('pendingCheckout', JSON.stringify(pendingCheckout));
+      
+      // Clear any existing auth flags to ensure fresh session tracking
+      sessionStorage.removeItem('auth_completed');
+      sessionStorage.removeItem('auth_timestamp');
+      
+      // Redirect to auth page
+      setLocation('/auth');
+      return;
+    }
     
-    // Show loader immediately and proceed with payment
+    // User is authenticated, proceed with payment
     setShowPaymentLoader(true);
     
     // Prepare the final data

@@ -50,19 +50,23 @@ export default function AuthPage() {
   useEffect(() => {
     if (!isLoading && user && !redirectHandled) {
       const pendingCheckout = sessionStorage.getItem('pendingCheckout');
-
       
       if (pendingCheckout) {
         try {
           const checkoutData = JSON.parse(pendingCheckout);
-
-          
           const returnUrl = checkoutData.returnUrl || '/checkout';
-
+          
+          // Add session stabilization flag for post-auth checkout
+          sessionStorage.setItem('auth_completed', 'true');
+          sessionStorage.setItem('auth_timestamp', Date.now().toString());
+          
           setRedirectHandled(true);
-          setLocation(returnUrl);
+          
+          // Small delay to ensure session is fully established
+          setTimeout(() => {
+            setLocation(returnUrl);
+          }, 500);
         } catch (error) {
-
           sessionStorage.removeItem('pendingCheckout');
           setRedirectHandled(true);
           setLocation("/");
