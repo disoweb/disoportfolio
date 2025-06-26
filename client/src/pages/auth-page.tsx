@@ -48,10 +48,15 @@ export default function AuthPage() {
   if (!isLoading && user) {
     const pendingCheckout = sessionStorage.getItem('pendingCheckout');
     if (pendingCheckout) {
-      sessionStorage.removeItem('pendingCheckout');
-      const checkoutData = JSON.parse(pendingCheckout);
-      // Redirect back to checkout with the stored data
-      setLocation(checkoutData.returnUrl || '/checkout');
+      try {
+        const checkoutData = JSON.parse(pendingCheckout);
+        // Redirect back to checkout with the stored data (don't remove from sessionStorage here - let checkout component handle it)
+        setLocation(checkoutData.returnUrl || '/checkout');
+      } catch (error) {
+        console.error('Error parsing pending checkout:', error);
+        sessionStorage.removeItem('pendingCheckout');
+        setLocation("/dashboard");
+      }
     } else {
       setLocation("/dashboard");
     }

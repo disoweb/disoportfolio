@@ -160,6 +160,34 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
     },
   });
 
+  // Handle pending checkout completion after authentication
+  useEffect(() => {
+    if (user) {
+      const pendingCheckout = sessionStorage.getItem('pendingCheckout');
+      if (pendingCheckout) {
+        try {
+          const checkoutData = JSON.parse(pendingCheckout);
+          sessionStorage.removeItem('pendingCheckout');
+          
+          // Restore the checkout state
+          if (checkoutData.contactData) {
+            setContactData(checkoutData.contactData);
+            setCurrentStep(2);
+            
+            // Auto-submit the payment after a brief delay to ensure state is set
+            setTimeout(() => {
+              const combinedData = { ...checkoutData.contactData, paymentMethod: "paystack" };
+              orderMutation.mutate(combinedData);
+            }, 500);
+          }
+        } catch (error) {
+          console.error('Error restoring pending checkout:', error);
+          sessionStorage.removeItem('pendingCheckout');
+        }
+      }
+    }
+  }, [user, orderMutation]);
+
   const onContactSubmit = (data: ContactForm) => {
     // Store contact data persistently
     storeFormData('checkout_contact_data', data);
