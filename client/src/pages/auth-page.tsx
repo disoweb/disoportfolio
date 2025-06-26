@@ -119,19 +119,25 @@ export default function AuthPage() {
       
       // Check for pending checkout and redirect appropriately
       const pendingCheckout = sessionStorage.getItem('pendingCheckout');
+      console.log('🚀 [LOGIN SUCCESS] === AUTH PAGE LOGIN SUCCESS ===');
       console.log('🚀 [LOGIN SUCCESS] Checking for pending checkout in sessionStorage');
+      console.log('🚀 [LOGIN SUCCESS] pendingCheckout exists:', !!pendingCheckout);
       console.log('🚀 [LOGIN SUCCESS] pendingCheckout raw value:', pendingCheckout);
       
       if (pendingCheckout) {
         try {
           const checkoutData = JSON.parse(pendingCheckout);
-          console.log('🚀 [LOGIN SUCCESS] Successfully parsed pending checkout data:', checkoutData);
-          console.log('🚀 [LOGIN SUCCESS] Setting payment in progress and staying on current page for auto-payment');
+          console.log('🚀 [LOGIN SUCCESS] ✅ Successfully parsed pending checkout data:', checkoutData);
+          console.log('🚀 [LOGIN SUCCESS] Service data in checkout:', checkoutData.service);
+          console.log('🚀 [LOGIN SUCCESS] Contact data in checkout:', checkoutData.contactData);
+          console.log('🚀 [LOGIN SUCCESS] Total price in checkout:', checkoutData.totalPrice);
+          console.log('🚀 [LOGIN SUCCESS] Selected addons in checkout:', checkoutData.selectedAddOns);
           
           // Set payment flag and redirect to checkout for auto-payment
           sessionStorage.setItem('payment_in_progress', 'true');
+          console.log('🚀 [LOGIN SUCCESS] ✅ Set payment_in_progress flag');
           
-          console.log('🚀 [LOGIN SUCCESS] Redirecting to checkout for auto-payment processing');
+          console.log('🚀 [LOGIN SUCCESS] ✅ Redirecting to checkout for auto-payment processing');
           setTimeout(() => {
             setLocation('/checkout');
           }, 100);

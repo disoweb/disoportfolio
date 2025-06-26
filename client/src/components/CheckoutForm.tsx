@@ -196,19 +196,32 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
   // Handle auto-payment after authentication - only when on checkout page
   useEffect(() => {
     const currentPath = window.location.pathname;
+    console.log('🔄 [CHECKOUT FORM] === AUTO-PAYMENT USEEFFECT START ===');
+    console.log('🔄 [CHECKOUT FORM] Current path:', currentPath);
+    console.log('🔄 [CHECKOUT FORM] User exists:', !!user);
+    console.log('🔄 [CHECKOUT FORM] Order mutation pending:', orderMutation.isPending);
+    
     if (currentPath !== '/checkout' || !user || orderMutation.isPending) {
+      console.log('🔄 [CHECKOUT FORM] ❌ Exiting early - conditions not met');
       return;
     }
     
     const pendingCheckout = sessionStorage.getItem('pendingCheckout');
+    console.log('🔄 [CHECKOUT FORM] Pending checkout exists:', !!pendingCheckout);
+    console.log('🔄 [CHECKOUT FORM] Pending checkout raw:', pendingCheckout);
+    
     if (pendingCheckout) {
       try {
         const checkoutData = JSON.parse(pendingCheckout);
-        console.log('🔄 [AUTO-SUBMIT] Processing pending checkout after authentication');
-        
-        // Don't remove pending checkout until after payment succeeds
+        console.log('🔄 [CHECKOUT FORM] ✅ Parsed pending checkout data:', checkoutData);
+        console.log('🔄 [CHECKOUT FORM] Contact data exists:', !!checkoutData.contactData);
+        console.log('🔄 [CHECKOUT FORM] Service data exists:', !!checkoutData.service);
+        console.log('🔄 [CHECKOUT FORM] Selected addons:', checkoutData.selectedAddOns);
+        console.log('🔄 [CHECKOUT FORM] Total price:', checkoutData.totalPrice);
         
         if (checkoutData.contactData) {
+          console.log('🔄 [CHECKOUT FORM] ✅ Starting auto-payment process');
+          
           // Show payment loader immediately
           setShowPaymentLoader(true);
           sessionStorage.setItem('payment_in_progress', 'true');
@@ -227,14 +240,18 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
               overrideTotalAmount: checkoutData.totalPrice || totalPrice
             };
             
-            console.log('🔄 [AUTO-SUBMIT] Submitting order with stored data');
+            console.log('🔄 [CHECKOUT FORM] ✅ Submitting order with combined data:', combinedData);
             orderMutation.mutate(combinedData);
           }, 100);
+        } else {
+          console.log('🔄 [CHECKOUT FORM] ❌ No contact data in pending checkout');
         }
       } catch (error) {
-        console.error('Error processing pending checkout:', error);
+        console.error('🔄 [CHECKOUT FORM] ❌ Error processing pending checkout:', error);
         sessionStorage.removeItem('pendingCheckout');
       }
+    } else {
+      console.log('🔄 [CHECKOUT FORM] ❌ No pending checkout found');
     }
   }, [user, orderMutation.isPending, totalPrice]);
 

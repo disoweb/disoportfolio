@@ -32,33 +32,48 @@ export default function Checkout() {
     // Scroll to top when component mounts
     window.scrollTo(0, 0);
     
-    console.log('🔍 [CHECKOUT PAGE] useEffect triggered');
+    console.log('🔍 [CHECKOUT PAGE] === CHECKOUT PAGE USEEFFECT START ===');
     console.log('🔍 [CHECKOUT PAGE] URL serviceId:', serviceId);
     console.log('🔍 [CHECKOUT PAGE] URL price:', price);
     console.log('🔍 [CHECKOUT PAGE] URL addons:', addons);
     console.log('🔍 [CHECKOUT PAGE] Services loaded:', Array.isArray(services) ? services.length : 'not array');
+    console.log('🔍 [CHECKOUT PAGE] Current serviceData state:', serviceData);
+    console.log('🔍 [CHECKOUT PAGE] Current totalPrice state:', totalPrice);
+    console.log('🔍 [CHECKOUT PAGE] Current selectedAddOns state:', selectedAddOns);
     
     // Always check for pending checkout data first (handles post-auth flow)
     const pendingCheckout = sessionStorage.getItem('pendingCheckout');
+    console.log('🔍 [CHECKOUT PAGE] Pending checkout raw:', pendingCheckout);
+    
     if (pendingCheckout) {
       try {
         const checkoutData = JSON.parse(pendingCheckout);
-        console.log('🔍 [CHECKOUT PAGE] Found pending checkout, using its data:', checkoutData);
+        console.log('🔍 [CHECKOUT PAGE] ✅ Found pending checkout data:', checkoutData);
+        console.log('🔍 [CHECKOUT PAGE] Pending checkout service:', checkoutData.service);
+        console.log('🔍 [CHECKOUT PAGE] Pending checkout totalPrice:', checkoutData.totalPrice);
+        console.log('🔍 [CHECKOUT PAGE] Pending checkout selectedAddOns:', checkoutData.selectedAddOns);
         
         if (checkoutData.service) {
+          console.log('🔍 [CHECKOUT PAGE] ✅ Setting service data from pending checkout');
           setServiceData(checkoutData.service);
           setTotalPrice(checkoutData.totalPrice);
           setSelectedAddOns(checkoutData.selectedAddOns || []);
+          console.log('🔍 [CHECKOUT PAGE] ✅ Service data set, exiting useEffect early');
           return; // Exit early since we got data from pending checkout
+        } else {
+          console.log('🔍 [CHECKOUT PAGE] ❌ No service in pending checkout data');
         }
       } catch (error) {
-        console.error('Error parsing pending checkout:', error);
+        console.error('🔍 [CHECKOUT PAGE] ❌ Error parsing pending checkout:', error);
         sessionStorage.removeItem('pendingCheckout');
       }
+    } else {
+      console.log('🔍 [CHECKOUT PAGE] ❌ No pending checkout found in sessionStorage');
     }
     
     // Fallback to URL params if no pending checkout
     if (!serviceId) {
+      console.log('🔍 [CHECKOUT PAGE] ❌ No serviceId in URL, no service data available');
       return; // No service data available
     }
     
@@ -79,7 +94,14 @@ export default function Checkout() {
     }
   }, [serviceId, services, price, addons]);
 
+  // Debug render conditions
+  console.log('🔍 [CHECKOUT PAGE] === RENDER CONDITIONS CHECK ===');
+  console.log('🔍 [CHECKOUT PAGE] serviceId from URL:', serviceId);
+  console.log('🔍 [CHECKOUT PAGE] serviceData state:', serviceData);
+  console.log('🔍 [CHECKOUT PAGE] Will show Service Not Found?', !serviceId && !serviceData);
+
   if (!serviceId && !serviceData) {
+    console.log('🔍 [CHECKOUT PAGE] ❌ Showing Service Not Found page');
     return (
       <div className="min-h-screen bg-gray-50">
         <Navigation />
