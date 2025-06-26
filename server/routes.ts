@@ -143,30 +143,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/orders', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      const user = await storage.getUser(userId);
-      
       const orderData = insertOrderSchema.parse({
         ...req.body,
         userId,
       });
-      
       const order = await storage.createOrder(orderData);
-      
-      // Initialize payment with Paystack
-      try {
-        const paymentUrl = await storage.initializePayment({
-          orderId: order.id,
-          amount: Number(order.totalPrice),
-          email: user?.email || req.body.customerInfo?.email,
-          userId: userId
-        });
-        
-        res.json({ ...order, paymentUrl });
-      } catch (paymentError) {
-        console.error("Payment initialization failed:", paymentError);
-        // Return order without payment URL if payment fails
-        res.json(order);
-      }
+      res.json(order);
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid order data", errors: error.errors });

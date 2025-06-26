@@ -295,22 +295,9 @@ export async function setupAuth(app: Express) {
   });
 
   app.post("/api/auth/logout", (req, res, next) => {
-    if (!req.user) {
-      return res.json({ message: "Already logged out" });
-    }
-    
     req.logout((err) => {
-      if (err) {
-        console.error("Logout error:", err);
-        return res.status(500).json({ message: "Logout failed" });
-      }
-      req.session.destroy((sessionErr) => {
-        if (sessionErr) {
-          console.error("Session destroy error:", sessionErr);
-        }
-        res.clearCookie('connect.sid');
-        res.json({ message: "Logged out successfully" });
-      });
+      if (err) return next(err);
+      res.json({ message: "Logged out successfully" });
     });
   });
 
