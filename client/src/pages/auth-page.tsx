@@ -62,10 +62,8 @@ export default function AuthPage() {
           
           setRedirectHandled(true);
           
-          // Small delay to ensure session is fully established
-          setTimeout(() => {
-            setLocation(returnUrl);
-          }, 500);
+          // Immediate redirect to checkout with restored form data
+          setLocation(returnUrl);
         } catch (error) {
           sessionStorage.removeItem('pendingCheckout');
           setRedirectHandled(true);
