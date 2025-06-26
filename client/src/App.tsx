@@ -21,6 +21,7 @@ import TransactionHistory from "@/pages/TransactionHistory";
 import AdminDashboard from "@/pages/AdminDashboard";
 import AdminProjects from "@/pages/AdminProjects";
 import AdminProjectsTest from "@/pages/AdminProjectsTest";
+import AdminProjectsSimple from "@/pages/AdminProjectsSimple";
 import AdminServices from "@/pages/AdminServices";
 import AdminLogin from "@/pages/AdminLogin";
 import Checkout from "@/pages/Checkout";
@@ -127,7 +128,7 @@ function Router() {
         <Route path="/auth" component={AuthPage} />
         <Route path="/admin" component={AdminLogin} />
         <Route path="/admin-dashboard" component={AdminDashboard} />
-        <Route path="/admin/projects" component={AdminProjectsTest} />
+        <Route path="/admin/projects" component={AdminProjectsSimple} />
         <Route path="/admin/services" component={AdminServices} />
         <Route path="/dashboard" component={ClientDashboard} />
         <Route path="/active-projects" component={ActiveProjects} />
