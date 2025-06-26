@@ -46,29 +46,49 @@ export default function AuthPage() {
   const [redirectHandled, setRedirectHandled] = useState(false);
 
   // Handle pending checkout completion and redirect if already logged in
-  // Only auto-redirect if we haven't already handled it
   useEffect(() => {
     if (!isLoading && user && !redirectHandled) {
       const pendingCheckout = sessionStorage.getItem('pendingCheckout');
-
+      
+      console.log('🔐 [AUTH PAGE] User authenticated, checking pending checkout:', !!pendingCheckout);
       
       if (pendingCheckout) {
         try {
           const checkoutData = JSON.parse(pendingCheckout);
-
+          console.log('🔐 [AUTH PAGE] Checkout data found:', checkoutData);
           
-          const returnUrl = checkoutData.returnUrl || '/checkout';
-
-          setRedirectHandled(true);
-          setLocation(returnUrl);
+          // Check if this is a completed form (has all required data for payment)
+          const hasCompletedForm = checkoutData.service && 
+                                 checkoutData.contactInfo && 
+                                 checkoutData.projectDetails && 
+                                 checkoutData.totalPrice;
+          
+          if (hasCompletedForm) {
+            console.log('🔐 [AUTH PAGE] ✅ Form is completed, triggering direct payment submission');
+            
+            // Set payment in progress flag
+            sessionStorage.setItem('payment_in_progress', 'true');
+            
+            // Redirect to checkout with auto-submit flag
+            sessionStorage.setItem('auto_submit_payment', 'true');
+            setRedirectHandled(true);
+            setLocation('/checkout');
+          } else {
+            console.log('🔐 [AUTH PAGE] ❌ Form incomplete, redirecting to checkout form');
+            // Form is incomplete, redirect to checkout to complete it
+            const returnUrl = checkoutData.returnUrl || '/checkout';
+            setRedirectHandled(true);
+            setLocation(returnUrl);
+          }
         } catch (error) {
-
+          console.error('🔐 [AUTH PAGE] Error parsing checkout data:', error);
           sessionStorage.removeItem('pendingCheckout');
           setRedirectHandled(true);
           setLocation("/");
         }
       } else {
         // No pending checkout, redirect to dashboard
+        console.log('🔐 [AUTH PAGE] No pending checkout, redirecting to dashboard');
         setRedirectHandled(true);
         setLocation("/dashboard");
       }
