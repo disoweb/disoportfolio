@@ -82,7 +82,12 @@ export interface IStorage {
   }): Promise<void>;
   handleQuoteRequest(data: any): Promise<void>;
 
-
+  // Checkout session management
+  createCheckoutSession(session: InsertCheckoutSession): Promise<CheckoutSession>;
+  getCheckoutSession(sessionToken: string): Promise<CheckoutSession | undefined>;
+  updateCheckoutSession(sessionToken: string, updates: Partial<InsertCheckoutSession>): Promise<CheckoutSession>;
+  deleteCheckoutSession(sessionToken: string): Promise<void>;
+  cleanupExpiredCheckoutSessions(): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {

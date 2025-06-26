@@ -285,34 +285,56 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
     
     // Check if user is authenticated before proceeding with payment
     if (!user) {
-      // Store comprehensive pending checkout data with service information
-      const pendingCheckout = {
-        service: {
+      // Create checkout session in database
+      const createSessionData = {
+        serviceId: service.id,
+        serviceData: {
           id: service.id,
           name: service.name,
           price: service.price,
           description: service.description
         },
-        totalPrice,
-        selectedAddOns,
         contactData,
-        paymentData: data,
-        returnUrl: '/checkout',
-        timestamp: Date.now()
+        selectedAddOns,
+        totalPrice,
+        userId: null
       };
+
+      // Create database session
+      fetch("/api/checkout-sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(createSessionData),
+      })
+      .then(res => res.json())
+      .then(result => {
+        if (result.sessionToken) {
+          // Store session token for auth redirect
+          sessionStorage.setItem('checkoutSessionToken', result.sessionToken);
+          
+          // Clear any existing auth flags
+          sessionStorage.removeItem('auth_completed');
+          sessionStorage.removeItem('auth_timestamp');
+          
+          // Redirect to auth with session token
+          setLocation(`/auth?checkout=${result.sessionToken}`);
+        } else {
+          toast({
+            title: "Error",
+            description: "Failed to create checkout session. Please try again.",
+            variant: "destructive",
+          });
+        }
+      })
+      .catch(error => {
+        console.error('Error creating checkout session:', error);
+        toast({
+          title: "Error", 
+          description: "Failed to create checkout session. Please try again.",
+          variant: "destructive",
+        });
+      });
       
-      sessionStorage.setItem('pendingCheckout', JSON.stringify(pendingCheckout));
-      
-      // Clear any existing auth flags to ensure fresh session tracking
-      sessionStorage.removeItem('auth_completed');
-      sessionStorage.removeItem('auth_timestamp');
-      
-      // Store a simple session ID for URL-based recovery
-      const sessionId = `checkout_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      sessionStorage.setItem('checkoutSessionId', sessionId);
-      
-      // Redirect to auth page with session identifier
-      setLocation(`/auth?checkout=${sessionId}`);
       return;
     }
     

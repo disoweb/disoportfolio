@@ -40,31 +40,36 @@ export default function Checkout() {
       checkout: checkoutParam
     });
     
-    // First priority: Restore from pending checkout if available
-    const pendingCheckout = sessionStorage.getItem('pendingCheckout');
-    if (pendingCheckout && !serviceData) {
-      try {
-        const checkoutData = JSON.parse(pendingCheckout);
-        console.log('Checkout page - Restoring from pending checkout:', checkoutData);
-        
-        if (checkoutData.service) {
-          // Transform service data to ensure price field compatibility
-          const transformedService = {
-            ...checkoutData.service,
-            price: checkoutData.service.price || parseInt(checkoutData.service.priceUsd || '0')
-          };
+    // First priority: Restore from database checkout session if available
+    const sessionToken = sessionStorage.getItem('checkoutSessionToken') || checkoutParam;
+    if (sessionToken && !serviceData) {
+      console.log('Checkout page - Fetching session from database:', sessionToken);
+      
+      fetch(`/api/checkout-sessions/${sessionToken}`)
+      .then(res => res.json())
+      .then(sessionData => {
+        if (sessionData && !sessionData.error) {
+          console.log('Checkout page - Restored from database session:', sessionData);
           
-          setServiceData(transformedService);
-          setTotalPrice(checkoutData.totalPrice || 0);
-          setSelectedAddOns(checkoutData.selectedAddOns || []);
-          
-          console.log('Checkout page - Successfully restored service data');
-          return;
+          const service = sessionData.serviceData;
+          if (service) {
+            setServiceData({
+              ...service,
+              price: service.price || parseInt(service.priceUsd || '0')
+            });
+            setTotalPrice(sessionData.totalPrice || 0);
+            setSelectedAddOns(sessionData.selectedAddOns || []);
+            
+            console.log('Checkout page - Successfully restored service data from database');
+          }
+        } else {
+          console.log('Checkout page - No valid session found, trying URL params');
         }
-      } catch (error) {
-        console.error('Checkout page - Error parsing pending checkout:', error);
-        sessionStorage.removeItem('pendingCheckout');
-      }
+      })
+      .catch(error => {
+        console.error('Checkout page - Error fetching checkout session:', error);
+        sessionStorage.removeItem('checkoutSessionToken');
+      });
     }
     
     // Second priority: Load service from URL parameters and API

@@ -48,47 +48,60 @@ export default function AuthPage() {
   // Handle pending checkout completion and redirect if already logged in
   useEffect(() => {
     if (!isLoading && user && !redirectHandled) {
-      const pendingCheckout = sessionStorage.getItem('pendingCheckout');
       const urlParams = new URLSearchParams(window.location.search);
       const checkoutParam = urlParams.get('checkout');
+      const sessionToken = sessionStorage.getItem('checkoutSessionToken');
       
       console.log('Auth page - User authenticated, checking for checkout data');
-      console.log('Auth page - Pending checkout:', pendingCheckout ? 'Found' : 'Not found');
       console.log('Auth page - Checkout URL param:', checkoutParam);
+      console.log('Auth page - Session token:', sessionToken);
       
-      if (pendingCheckout) {
-        try {
-          const checkoutData = JSON.parse(pendingCheckout);
-          
-          // Add session stabilization flags
-          sessionStorage.setItem('auth_completed', 'true');
-          sessionStorage.setItem('auth_timestamp', Date.now().toString());
-          
-          setRedirectHandled(true);
-          
-          // Build reliable checkout URL with all necessary parameters
-          if (checkoutData.service && checkoutData.service.id) {
+      const tokenToUse = checkoutParam || sessionToken;
+      
+      if (tokenToUse) {
+        // Fetch checkout session from database
+        fetch(`/api/checkout-sessions/${tokenToUse}`)
+        .then(res => res.json())
+        .then(sessionData => {
+          if (sessionData && !sessionData.error) {
+            console.log('Auth page - Found checkout session:', sessionData);
+            
+            // Update session with user ID
+            fetch(`/api/checkout-sessions/${tokenToUse}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ userId: user.id }),
+            }).catch(console.error);
+            
+            // Add session stabilization flags
+            sessionStorage.setItem('auth_completed', 'true');
+            sessionStorage.setItem('auth_timestamp', Date.now().toString());
+            
+            setRedirectHandled(true);
+            
+            // Build checkout URL with session token
             const params = new URLSearchParams({
-              service: checkoutData.service.id,
-              price: checkoutData.totalPrice?.toString() || checkoutData.service.price || '0',
-              addons: (checkoutData.selectedAddOns || []).join(','),
-              checkout: checkoutParam || 'auth-redirect'
+              service: sessionData.serviceId,
+              checkout: tokenToUse
             });
             
-            console.log('Auth page - Redirecting to checkout with params:', params.toString());
+            console.log('Auth page - Redirecting to checkout with session:', tokenToUse);
             setLocation(`/checkout?${params.toString()}`);
           } else {
-            console.log('Auth page - No service data, redirecting to checkout base');
-            setLocation('/checkout');
+            console.log('Auth page - No valid checkout session found');
+            sessionStorage.removeItem('checkoutSessionToken');
+            setRedirectHandled(true);
+            setLocation("/dashboard");
           }
-        } catch (error) {
-          console.error('Auth page - Error parsing checkout data:', error);
-          sessionStorage.removeItem('pendingCheckout');
+        })
+        .catch(error => {
+          console.error('Auth page - Error fetching checkout session:', error);
+          sessionStorage.removeItem('checkoutSessionToken');
           setRedirectHandled(true);
-          setLocation("/");
-        }
+          setLocation("/dashboard");
+        });
       } else {
-        // No pending checkout, redirect to dashboard
+        // No checkout session, redirect to dashboard
         setRedirectHandled(true);
         setLocation("/dashboard");
       }

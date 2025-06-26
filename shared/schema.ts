@@ -171,15 +171,16 @@ export const auditLogs = pgTable("audit_logs", {
 // Checkout sessions table for reliable data persistence
 export const checkoutSessions = pgTable("checkout_sessions", {
   id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-  sessionId: varchar("session_id").notNull(), // Browser session ID or temporary ID
+  sessionToken: varchar("session_token").notNull().unique(), // Unique session identifier
   serviceId: varchar("service_id").notNull(),
   serviceData: jsonb("service_data").notNull(), // Complete service object
   contactData: jsonb("contact_data"), // Contact form data
   selectedAddOns: jsonb("selected_add_ons").default("[]"), // Array of selected add-ons
   totalPrice: integer("total_price").notNull(),
+  userId: varchar("user_id"), // Optional - set after authentication
   isCompleted: boolean("is_completed").default(false),
   createdAt: timestamp("created_at").defaultNow(),
-  expiresAt: timestamp("expires_at").notNull(), // Auto-expire after 1 hour
+  expiresAt: timestamp("expires_at").notNull(), // Auto-expire after 2 hours
 });
 
 // Relations
