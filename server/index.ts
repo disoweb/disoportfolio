@@ -6,6 +6,23 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Add logout route before any auth middleware to avoid passport conflicts
+app.post("/api/auth/logout", (req, res) => {
+  if (req.session) {
+    req.session.destroy((err) => {
+      if (err) {
+        console.error('Session destroy error:', err);
+        return res.status(500).json({ message: "Error destroying session" });
+      }
+      res.clearCookie('connect.sid');
+      res.json({ message: "Logged out successfully" });
+    });
+  } else {
+    res.clearCookie('connect.sid');
+    res.json({ message: "Logged out successfully" });
+  }
+});
+
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;

@@ -294,13 +294,6 @@ export async function setupAuth(app: Express) {
     })(req, res, next);
   });
 
-  app.post("/api/auth/logout", (req, res, next) => {
-    req.logout((err) => {
-      if (err) return next(err);
-      res.json({ message: "Logged out successfully" });
-    });
-  });
-
   app.get("/api/auth/user", async (req, res) => {
     try {
       // Check session directly for user
