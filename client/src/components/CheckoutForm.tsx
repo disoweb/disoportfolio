@@ -183,12 +183,8 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
       }
 
       try {
-        const response = await apiRequest("/api/orders", {
-          method: "POST",
-          body: orderData,
-        });
-
-        return response;
+        const response = await apiRequest("POST", "/api/orders", orderData);
+        return await response.json();
       } catch (error) {
         throw new Error(error instanceof Error ? error.message : 'Failed to create order');
       }
