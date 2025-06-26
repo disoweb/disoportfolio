@@ -6,11 +6,18 @@ import type { User } from "@shared/schema";
 export function useAuth() {
   const { toast } = useToast();
   
-  const { data: user, isLoading } = useQuery<User | null>({
+  const { data: user, isLoading, error } = useQuery<User | null>({
     queryKey: ["/api/auth/user"],
     retry: false,
     refetchOnWindowFocus: true,
     staleTime: 0,
+  });
+
+  console.log('🔐 AUTH-HOOK: useAuth called', {
+    user,
+    isLoading,
+    error,
+    isAuthenticated: !!user
   });
 
   const logoutMutation = useMutation({

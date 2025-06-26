@@ -306,6 +306,16 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
       console.log('💰 CHECKOUT-FORM: Waiting for sessionData to load');
       return;
     }
+
+    // Add delay to ensure authentication state is fully loaded
+    setTimeout(() => {
+      console.log('💰 CHECKOUT-FORM: Delayed auth check:', {
+        user: !!user,
+        userDetails: user ? { id: user.id, email: user.email } : null,
+        sessionData: !!sessionData,
+        contactData: !!sessionData?.contactData
+      });
+    }, 500);
     
     // Check if we should auto-submit payment (either flag is set OR we have all required data for authenticated user)
     const stepParam = new URLSearchParams(window.location.search).get('step');
