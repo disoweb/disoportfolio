@@ -12,6 +12,7 @@ interface ProjectTimerProps {
     startDate: string;
     dueDate: string;
     timelineWeeks: number;
+    timelineDays?: number;
     progressPercentage: number;
     createdAt: string;
   };
@@ -74,6 +75,15 @@ export default function ProjectTimer({ project }: ProjectTimerProps) {
     }
   };
 
+  const getTimelineDisplay = () => {
+    // If timelineDays is available and <= 7 days, show in days
+    if (project.timelineDays && project.timelineDays <= 7) {
+      return `${project.timelineDays} day${project.timelineDays !== 1 ? 's' : ''}`;
+    }
+    // Otherwise show in weeks
+    return `${project.timelineWeeks} week${project.timelineWeeks !== 1 ? 's' : ''}`;
+  };
+
   const startDate = new Date(project.startDate);
   const endDate = new Date(project.dueDate);
   const totalDuration = endDate.getTime() - startDate.getTime();
@@ -122,7 +132,7 @@ export default function ProjectTimer({ project }: ProjectTimerProps) {
           </div>
 
           {/* Timeline */}
-          <div className="grid grid-cols-2 gap-4 text-sm">
+          <div className="grid grid-cols-3 gap-3 text-sm">
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-slate-500" />
               <div>
@@ -132,6 +142,13 @@ export default function ProjectTimer({ project }: ProjectTimerProps) {
             </div>
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4 text-slate-500" />
+              <div>
+                <p className="text-slate-500">Timeline</p>
+                <p className="font-medium">{getTimelineDisplay()}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-slate-500" />
               <div>
                 <p className="text-slate-500">Due Date</p>
                 <p className="font-medium">{endDate.toLocaleDateString()}</p>

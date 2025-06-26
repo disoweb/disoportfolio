@@ -408,15 +408,16 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  parseServiceDuration(duration: string | null): number {
-    if (!duration) return 4; // Default 4 weeks
+  parseServiceDuration(duration: string | null): { weeks: number; days: number } {
+    if (!duration) return { weeks: 4, days: 28 }; // Default 4 weeks
     
     // Extract numbers from duration string like "2-3 weeks", "1 week", "4-6 weeks"
     const weeksMatch = duration.match(/(\d+)(?:-(\d+))?\s*weeks?/i);
     if (weeksMatch) {
       const min = parseInt(weeksMatch[1]);
       const max = weeksMatch[2] ? parseInt(weeksMatch[2]) : min;
-      return Math.round((min + max) / 2); // Return average
+      const avgWeeks = Math.round((min + max) / 2);
+      return { weeks: avgWeeks, days: avgWeeks * 7 };
     }
     
     // Extract numbers from duration string like "3-5 days", "4 days", "1-2 days"
@@ -425,17 +426,17 @@ export class DatabaseStorage implements IStorage {
       const min = parseInt(daysMatch[1]);
       const max = daysMatch[2] ? parseInt(daysMatch[2]) : min;
       const avgDays = Math.round((min + max) / 2);
-      // Convert days to weeks (7 days = 1 week, but minimum 0.5 weeks for short projects)
-      return Math.max(avgDays / 7, 0.5);
+      return { weeks: Math.ceil(avgDays / 7), days: avgDays };
     }
     
     // If no match, try to extract just numbers (assume weeks)
     const numberMatch = duration.match(/(\d+)/);
     if (numberMatch) {
-      return parseInt(numberMatch[1]);
+      const weeks = parseInt(numberMatch[1]);
+      return { weeks, days: weeks * 7 };
     }
     
-    return 4; // Default fallback
+    return { weeks: 4, days: 28 }; // Default fallback
   }
 
   private extractProjectDataFromOrder(order: any): any {
@@ -444,7 +445,9 @@ export class DatabaseStorage implements IStorage {
     const dueDate = new Date(startDate);
     
     // Calculate timeline based on service duration or custom timeline
-    let timelineWeeks = this.parseServiceDuration(order.serviceDuration);
+    const timeline = this.parseServiceDuration(order.serviceDuration);
+    let timelineWeeks = timeline.weeks;
+    let timelineDays = timeline.days;
     let projectName = order.serviceName || 'Custom Project';
     let notes = '';
     let currentStage = 'Discovery';
@@ -475,9 +478,10 @@ export class DatabaseStorage implements IStorage {
         const timelineMatch = customText.match(/Timeline:\s*([^\n]+)/i);
         if (timelineMatch) {
           const customTimeline = timelineMatch[1].trim();
-          const customWeeks = this.parseCustomTimeline(customTimeline);
-          if (customWeeks > 0) {
-            timelineWeeks = customWeeks;
+          const customTimelineData = this.parseCustomTimeline(customTimeline);
+          if (customTimelineData > 0) {
+            timelineWeeks = customTimelineData;
+            timelineDays = customTimelineData * 7;
           }
         }
         
@@ -487,7 +491,7 @@ export class DatabaseStorage implements IStorage {
     }
     
     // Calculate progress based on actual time elapsed since order
-    const totalDays = timelineWeeks * 7;
+    const totalDays = timelineDays;
     const daysSinceStart = Math.floor((Date.now() - startDate.getTime()) / (1000 * 60 * 60 * 24));
     const timeProgress = Math.min(Math.round((daysSinceStart / totalDays) * 100), 95);
     
@@ -503,8 +507,8 @@ export class DatabaseStorage implements IStorage {
     else if (progressPercentage < 90) currentStage = 'Testing';
     else currentStage = 'Launch';
     
-    // Set due date to exact timestamp (order time + timeline weeks)
-    dueDate.setDate(dueDate.getDate() + (timelineWeeks * 7));
+    // Set due date to exact timestamp (order time + timeline days)
+    dueDate.setDate(dueDate.getDate() + timelineDays);
     
     return {
       orderId: order.id,
@@ -514,6 +518,7 @@ export class DatabaseStorage implements IStorage {
       notes: notes,
       progressPercentage: progressPercentage,
       timelineWeeks: timelineWeeks,
+      timelineDays: timelineDays,
       status: 'active',
       startDate: startDate, // Store full timestamp
       dueDate: dueDate, // Store full timestamp for accurate countdown
@@ -824,7 +829,8 @@ export class DatabaseStorage implements IStorage {
       const serviceName = order.customRequest?.split('\n')[0]?.replace('Service: ', '') || 'Custom Project';
       const startDate = new Date();
       const estimatedEndDate = new Date();
-      estimatedEndDate.setDate(startDate.getDate() + (timelineWeeks * 7));
+      const timelineDays = timelineWeeks * 7;
+      estimatedEndDate.setDate(startDate.getDate() + timelineDays);
 
       // Check if project already exists
       const existingProject = await db
@@ -840,9 +846,10 @@ export class DatabaseStorage implements IStorage {
           projectName: serviceName,
           notes: order.customRequest || 'Project created from service order',
           status: 'active',
-          startDate: startDate.toISOString().split('T')[0],
-          dueDate: estimatedEndDate.toISOString(),
+          startDate: startDate,
+          dueDate: estimatedEndDate,
           timelineWeeks,
+          timelineDays: timelineDays,
           progressPercentage: 0,
         });
       } else {
@@ -851,9 +858,10 @@ export class DatabaseStorage implements IStorage {
           .update(projects)
           .set({
             status: 'active',
-            startDate: startDate.toISOString(),
-            dueDate: estimatedEndDate.toISOString(),
+            startDate: startDate,
+            dueDate: estimatedEndDate,
             timelineWeeks,
+            timelineDays: timelineDays,
           })
           .where(eq(projects.id, existingProject[0].id));
       }

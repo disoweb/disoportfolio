@@ -96,6 +96,7 @@ export const projects = pgTable("projects", {
   dueDate: timestamp("due_date"),
   status: projectStatusEnum("status").default("not_started"),
   timelineWeeks: integer("timeline_weeks").default(4),
+  timelineDays: integer("timeline_days"), // Total days for the project
   progressPercentage: integer("progress_percentage").default(0),
   createdAt: timestamp("created_at").defaultNow(),
 });
