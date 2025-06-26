@@ -501,7 +501,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { id } = req.params;
-      const project = await storage.updateProject(id, req.body);
+      
+      // Convert date strings to Date objects if they exist
+      const updates = { ...req.body };
+      if (updates.dueDate && typeof updates.dueDate === 'string') {
+        updates.dueDate = new Date(updates.dueDate);
+      }
+      if (updates.startDate && typeof updates.startDate === 'string') {
+        updates.startDate = new Date(updates.startDate);
+      }
+      
+      const project = await storage.updateProject(id, updates);
       res.json(project);
     } catch (error) {
       console.error("Error updating project:", error);
@@ -746,7 +756,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { id } = req.params;
-      const updates = req.body;
+      
+      // Convert date strings to Date objects if they exist
+      const updates = { ...req.body };
+      if (updates.dueDate && typeof updates.dueDate === 'string') {
+        updates.dueDate = new Date(updates.dueDate);
+      }
+      if (updates.startDate && typeof updates.startDate === 'string') {
+        updates.startDate = new Date(updates.startDate);
+      }
       
       const updatedProject = await storage.updateProject(id, updates);
       res.json(updatedProject);
