@@ -142,6 +142,11 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
         throw new Error("Authentication required - please log in again");
       }
       
+      const userData = await authCheck.json();
+      if (!userData || !userData.id) {
+        throw new Error("Authentication required - please log in again");
+      }
+      
       try {
         const response = await apiRequest("POST", "/api/orders", orderData);
         if (!response.ok) {

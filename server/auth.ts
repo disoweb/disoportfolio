@@ -71,8 +71,8 @@ export async function setupAuth(app: Express) {
 
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || 'dev-secret-key-for-replit-development',
-    resave: false,
-    saveUninitialized: false,
+    resave: true,
+    saveUninitialized: true,
     store: sessionStore,
     cookie: {
       secure: false,
@@ -341,12 +341,16 @@ export async function setupAuth(app: Express) {
           // Set user ID directly in session without passport wrapper
           (req.session as any).userId = user.id;
           
+          // Force immediate session save and regeneration
           req.session.save((saveErr) => {
             if (saveErr) {
               console.error('Session save error:', saveErr);
               auditLog('login_session_error', user.id, { error: saveErr.message, clientIP });
               return res.status(500).json({ message: "Login failed" });
             }
+            
+            // Set userId directly without regeneration to avoid session issues
+            (req.session as any).userId = user.id;
             
             const sanitizedUser = { ...user };
             delete (sanitizedUser as any).password;
