@@ -459,30 +459,28 @@ export default function ServicePackages() {
                   : "shadow-lg"
               } rounded-xl overflow-hidden`}
             >
-              <CardHeader
-                className={`relative p-3 md:p-6 bg-slate-50 ${
-                  service.recommended ? "pt-8 md:pt-12" : ""
-                }`}
-              >
-                {service.recommended && (
-                  <Badge className="absolute top-3 left-1/2 -translate-x-1/2 z-10 bg-blue-600 text-white px-3 py-1 rounded-full text-xs">
-                    <Star className="h-3 w-3 mr-1" />
-                    Recommended
-                  </Badge>
-                )}
+              <CardHeader className="relative p-3 md:p-6 bg-slate-50">
                 <div className="flex items-start justify-between">
                   <CardTitle className="text-base md:text-xl text-slate-800">
                     {service.name}
                   </CardTitle>
-                  {service.spots <= 3 && service.spots > 0 && (
-                    <Badge
-                      variant="destructive"
-                      className="text-xs whitespace-nowrap ml-2"
-                    >
-                      <AlertTriangle className="h-3 w-3 mr-1" />
-                      {service.spots} left
-                    </Badge>
-                  )}
+                  <div className="flex items-center space-x-2">
+                    {service.recommended && (
+                      <Badge className="bg-blue-600 text-white text-xs">
+                        <Star className="h-3 w-3 mr-1" />
+                        Recommended
+                      </Badge>
+                    )}
+                    {service.spots <= 3 && service.spots > 0 && (
+                      <Badge
+                        variant="destructive"
+                        className="text-xs whitespace-nowrap"
+                      >
+                        <AlertTriangle className="h-3 w-3 mr-1" />
+                        {service.spots} left
+                      </Badge>
+                    )}
+                  </div>
                 </div>
                 <CardDescription className="text-xs md:text-sm text-slate-600">
                   {service.description}
@@ -541,7 +539,7 @@ export default function ServicePackages() {
                       aria-expanded={openAddOns[service.id] || false}
                       aria-controls={`addons-details-${service.id}`}
                     >
-                      <span>Add-ons</span>
+                      <span>Select Addon</span>
                       {openAddOns[service.id] ? (
                         <ChevronUp className="h-3 w-3" />
                       ) : (
