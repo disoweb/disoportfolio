@@ -17,8 +17,6 @@ export default function Checkout() {
   const [totalPrice, setTotalPrice] = useState<number>(0);
   const { user } = useAuth();
 
-  // Parse URL parameters
-  const urlParams = new URLSearchParams(window.location.search);
   const serviceId = urlParams.get('service');
   const price = urlParams.get('price');
   const addons = urlParams.get('addons');
@@ -59,6 +57,18 @@ export default function Checkout() {
             });
             setTotalPrice(sessionData.totalPrice || 0);
             setSelectedAddOns(sessionData.selectedAddOns || []);
+            
+            // If we have contact data from the session, restore it and go to payment step
+            if (sessionData.contactData) {
+              setContactData(sessionData.contactData);
+              
+              // Check if user is authenticated and ready for payment
+              if (user && (stepParam === 'payment' || isReadyForPayment)) {
+                setCurrentStep('payment');
+                sessionStorage.removeItem('checkout_ready_for_payment'); // Clear flag
+                console.log('Checkout page - User authenticated, moving to payment step');
+              }
+            }
             
             console.log('Checkout page - Successfully restored service data from database');
           }

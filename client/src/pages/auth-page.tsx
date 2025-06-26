@@ -76,16 +76,18 @@ export default function AuthPage() {
             // Add session stabilization flags
             sessionStorage.setItem('auth_completed', 'true');
             sessionStorage.setItem('auth_timestamp', Date.now().toString());
+            sessionStorage.setItem('checkout_ready_for_payment', 'true');
             
             setRedirectHandled(true);
             
-            // Build checkout URL with session token
+            // Build checkout URL with session token to go directly to payment step
             const params = new URLSearchParams({
               service: sessionData.serviceId,
-              checkout: tokenToUse
+              checkout: tokenToUse,
+              step: 'payment' // Direct to payment step
             });
             
-            console.log('Auth page - Redirecting to checkout with session:', tokenToUse);
+            console.log('Auth page - Redirecting to payment step with session:', tokenToUse);
             setLocation(`/checkout?${params.toString()}`);
           } else {
             console.log('Auth page - No valid checkout session found');
