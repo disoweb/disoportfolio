@@ -168,14 +168,79 @@ export default function AuthPage() {
           console.log('🚀 [LOGIN SUCCESS] Total price in checkout:', checkoutData.totalPrice);
           console.log('🚀 [LOGIN SUCCESS] Selected addons in checkout:', checkoutData.selectedAddOns);
           
-          // Set payment flag and redirect to checkout for auto-payment
-          sessionStorage.setItem('payment_in_progress', 'true');
-          console.log('🚀 [LOGIN SUCCESS] ✅ Set payment_in_progress flag');
+          // Check if we have complete data for direct payment submission
+          const hasCompleteData = checkoutData.service && 
+                                 checkoutData.contactData && 
+                                 checkoutData.totalPrice;
           
-          console.log('🚀 [LOGIN SUCCESS] ✅ Redirecting to checkout for auto-payment processing');
-          setTimeout(() => {
-            setLocation('/checkout');
-          }, 100);
+          if (hasCompleteData) {
+            console.log('🚀 [LOGIN SUCCESS] Complete data found - submitting payment directly');
+            
+            // Clear pending checkout immediately
+            sessionStorage.removeItem('pendingCheckout');
+            sessionStorage.setItem('payment_in_progress', 'true');
+            
+            // Prepare order data for direct submission
+            const orderData = {
+              serviceId: checkoutData.service.id,
+              contactInfo: {
+                fullName: checkoutData.contactData.fullName,
+                email: checkoutData.contactData.email,
+                phone: checkoutData.contactData.phone,
+                company: checkoutData.contactData.company || "",
+              },
+              projectDetails: {
+                description: checkoutData.contactData.projectDescription,
+              },
+              selectedAddOns: checkoutData.selectedAddOns || [],
+              totalAmount: checkoutData.totalPrice,
+            };
+            
+            console.log('🚀 [LOGIN SUCCESS] Submitting order directly:', orderData);
+            
+            // Submit order directly using fetch to bypass component state issues
+            fetch('/api/orders', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              credentials: 'include', // Include cookies for authentication
+              body: JSON.stringify(orderData),
+            })
+            .then(response => {
+              if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+              }
+              return response.json();
+            })
+            .then(data => {
+              console.log('🚀 [LOGIN SUCCESS] Order created successfully:', data);
+              if (data.paymentUrl) {
+                console.log('🚀 [LOGIN SUCCESS] Redirecting to Paystack:', data.paymentUrl);
+                // Direct redirect to Paystack
+                setTimeout(() => {
+                  window.location.href = data.paymentUrl;
+                }, 100);
+              } else {
+                console.error('🚀 [LOGIN SUCCESS] No payment URL in response');
+                sessionStorage.removeItem('payment_in_progress');
+                setLocation('/checkout');
+              }
+            })
+            .catch(error => {
+              console.error('🚀 [LOGIN SUCCESS] Order submission failed:', error);
+              sessionStorage.removeItem('payment_in_progress');
+              setLocation('/checkout');
+            });
+            
+            return; // Exit early, don't proceed with normal redirect
+          } else {
+            console.log('🚀 [LOGIN SUCCESS] Incomplete data - redirecting to checkout form');
+            sessionStorage.setItem('payment_in_progress', 'true');
+            setTimeout(() => {
+              setLocation('/checkout');
+            }, 100);
+          }
         } catch (error) {
           console.error('🚀 [LOGIN SUCCESS] Error parsing pending checkout data:', error);
           console.log('🚀 [LOGIN SUCCESS] Fallback redirect to dashboard');
