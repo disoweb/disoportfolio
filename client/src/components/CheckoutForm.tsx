@@ -297,16 +297,16 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
       hasContactData: !!sessionData?.contactData,
       hasUser: !!user,
       stepParam: new URLSearchParams(window.location.search).get('step'),
-      orderMutationExists: !!orderMutation
+      orderMutationExists: !!orderMutation,
+      userDetails: user ? { id: user.id, email: user.email } : null
     });
     
-    if (autoSubmitPayment === 'true') {
-      console.log('💰 CHECKOUT-FORM: auto_submit_payment flag is TRUE');
-      
-      if (!isPostAuthRedirect) {
-        console.log('❌ CHECKOUT-FORM: isPostAuthRedirect is FALSE');
-        return;
-      }
+    // Check if we should auto-submit payment (either flag is set OR we have all required data for authenticated user)
+    const shouldAutoSubmit = autoSubmitPayment === 'true' || 
+      (isPostAuthRedirect && sessionData?.contactData && user && new URLSearchParams(window.location.search).get('step') === 'payment');
+    
+    if (shouldAutoSubmit) {
+      console.log('💰 CHECKOUT-FORM: Should auto-submit payment - conditions met');
       
       if (!sessionData?.contactData) {
         console.log('❌ CHECKOUT-FORM: No contact data in sessionData');

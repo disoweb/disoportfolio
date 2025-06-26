@@ -87,7 +87,9 @@ export default function Checkout() {
               service: service.name,
               totalPrice: fetchedSessionData.totalPrice,
               hasContactData: !!fetchedSessionData.contactData,
-              isPostAuthRedirect: stepParam === 'payment' && !!user
+              isPostAuthRedirect: stepParam === 'payment' && !!user,
+              user: !!user,
+              stepParam
             });
           }
         } else {
