@@ -22,8 +22,9 @@ export default function ProjectTimer({ project }: ProjectTimerProps) {
     days: number;
     hours: number;
     minutes: number;
+    seconds: number;
     isOverdue: boolean;
-  }>({ days: 0, hours: 0, minutes: 0, isOverdue: false });
+  }>({ days: 0, hours: 0, minutes: 0, seconds: 0, isOverdue: false });
 
   React.useEffect(() => {
     const calculateTimeRemaining = () => {
@@ -37,15 +38,16 @@ export default function ProjectTimer({ project }: ProjectTimerProps) {
       }
       
       if (timeDiff <= 0) {
-        setTimeRemaining({ days: 0, hours: 0, minutes: 0, isOverdue: true });
+        setTimeRemaining({ days: 0, hours: 0, minutes: 0, seconds: 0, isOverdue: true });
         return;
       }
 
       const days = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
       const hours = Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
       const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
 
-      setTimeRemaining({ days, hours, minutes, isOverdue: false });
+      setTimeRemaining({ days, hours, minutes, seconds, isOverdue: false });
     };
 
     calculateTimeRemaining();
@@ -165,6 +167,10 @@ export default function ProjectTimer({ project }: ProjectTimerProps) {
                 <div className="text-center">
                   <div className="text-xl font-bold text-slate-900">{timeRemaining.minutes}</div>
                   <div className="text-xs text-slate-500">Minutes</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-xl font-bold text-slate-900">{timeRemaining.seconds}</div>
+                  <div className="text-xs text-slate-500">Seconds</div>
                 </div>
               </div>
             )}
