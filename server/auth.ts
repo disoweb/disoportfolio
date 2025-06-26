@@ -375,16 +375,48 @@ export async function setupAuth(app: Express) {
 
   app.get("/api/auth/user", async (req, res) => {
     try {
-      // Check custom session userId instead of passport
+      console.log('=== Authentication Check (auth.ts) ===');
+      console.log('Session ID:', req.sessionID);
+      console.log('Session passport:', (req.session as any)?.passport);
+      console.log('User from session:', (req.session as any)?.passport?.user);
+      console.log('req.user:', req.user);
+      console.log('req.isAuthenticated():', req.isAuthenticated?.());
+      console.log('Custom session userId:', (req.session as any)?.userId);
+      
+      // Check multiple sources for user authentication
+      let userId = null;
+      
+      // Check custom session userId first
       if (req.session && (req.session as any).userId) {
-        const userId = (req.session as any).userId;
+        userId = (req.session as any).userId;
+        console.log('Found userId in custom session:', userId);
+      }
+      // Check passport session
+      else if ((req.session as any)?.passport?.user) {
+        const sessionUser = (req.session as any).passport.user;
+        userId = sessionUser.id || sessionUser;
+        console.log('Found userId in passport session:', userId);
+      }
+      // Check req.user
+      else if (req.user) {
+        userId = (req.user as any).id || req.user;
+        console.log('Found userId in req.user:', userId);
+      }
+      
+      if (userId) {
         const user = await storage.getUser(userId);
+        console.log('User found in database:', user?.email);
+        
         if (user) {
           const sanitizedUser = { ...user };
           delete (sanitizedUser as any).password;
+          console.log('=== End Authentication Check (auth.ts) ===');
           return res.json(sanitizedUser);
         }
       }
+      
+      console.log('No authenticated user found');
+      console.log('=== End Authentication Check (auth.ts) ===');
       res.json(null);
     } catch (error) {
       console.error('Get user error:', error);
