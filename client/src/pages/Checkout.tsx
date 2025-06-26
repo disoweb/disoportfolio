@@ -32,21 +32,17 @@ export default function Checkout() {
     // Scroll to top when component mounts
     window.scrollTo(0, 0);
     
-    console.log('🔍 [CHECKOUT PAGE] useEffect triggered');
-    console.log('🔍 [CHECKOUT PAGE] URL serviceId:', serviceId);
-    console.log('🔍 [CHECKOUT PAGE] URL price:', price);
-    console.log('🔍 [CHECKOUT PAGE] URL addons:', addons);
-    console.log('🔍 [CHECKOUT PAGE] Services loaded:', Array.isArray(services) ? services.length : 'not array');
+
     
     // Check for pending checkout data if no URL params
     if (!serviceId) {
       const pendingCheckout = sessionStorage.getItem('pendingCheckout');
-      console.log('🔍 [CHECKOUT PAGE] No serviceId in URL, checking pending checkout:', pendingCheckout);
+
       
       if (pendingCheckout) {
         try {
           const checkoutData = JSON.parse(pendingCheckout);
-          console.log('🔍 [CHECKOUT PAGE] Found pending checkout, using its data:', checkoutData);
+
           
           if (checkoutData.service) {
             setServiceData(checkoutData.service);
@@ -62,18 +58,31 @@ export default function Checkout() {
     
     if (serviceId && Array.isArray(services) && services.length > 0) {
       const service = services.find((s: any) => s.id === serviceId);
-
       
       if (service) {
         setServiceData(service);
-        const servicePrice = price ? parseInt(price) : (service.price || parseInt(service.priceUsd || '0'));
-
-        setTotalPrice(servicePrice);
+        
+        // Parse add-ons from URL first
+        let selectedAddonsList: string[] = [];
+        if (addons) {
+          selectedAddonsList = addons.split(',').filter(addon => addon.length > 0);
+          setSelectedAddOns(selectedAddonsList);
+        }
+        
+        // Set total price from URL or calculate based on service + add-ons
+        if (price) {
+          const servicePrice = parseInt(price, 10);
+          setTotalPrice(servicePrice);
+        } else {
+          // Calculate price from service + addons
+          const basePrice = service.price || parseInt(service.priceUsd || '0');
+          const addonPrice = selectedAddonsList.reduce((total, addonName) => {
+            const addon = service.addOns?.find((a: any) => a.name === addonName);
+            return total + (addon?.price || 0);
+          }, 0);
+          setTotalPrice(basePrice + addonPrice);
+        }
       }
-    }
-    
-    if (addons) {
-      setSelectedAddOns(addons.split(',').filter(addon => addon.length > 0));
     }
   }, [serviceId, services, price, addons]);
 

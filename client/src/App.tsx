@@ -38,11 +38,11 @@ function Router() {
     
     // Debug and clear any persistent payment flags on app start
     const paymentFlag = sessionStorage.getItem('payment_in_progress');
-    console.log('🌐 [APP] App mounted, payment_in_progress flag:', paymentFlag);
+
     
     // Clear the flag on fresh app load to prevent persistent loader
     if (paymentFlag === 'true') {
-      console.log('🌐 [APP] Clearing persistent payment_in_progress flag on app start');
+
       sessionStorage.removeItem('payment_in_progress');
       setPaymentInProgress(false);
     }
@@ -61,7 +61,7 @@ function Router() {
         const inProgress = sessionStorage.getItem('payment_in_progress') === 'true';
         const pendingCheckout = sessionStorage.getItem('pendingCheckout');
         
-        console.log('🌐 [APP] Checking payment states - inProgress:', inProgress, 'pendingCheckout:', !!pendingCheckout, 'authenticated:', isAuthenticated);
+
         
         // Set payment loader if payment is in progress or authenticated user has pending checkout
         if (inProgress || (isAuthenticated && pendingCheckout)) {
@@ -78,9 +78,9 @@ function Router() {
   // Clear payment flag after a timeout to prevent persistent loading
   useEffect(() => {
     if (paymentInProgress) {
-      console.log('🌐 [APP] Payment loader active, setting 15-second timeout to clear');
+
       const timeout = setTimeout(() => {
-        console.log('🌐 [APP] Timeout reached, clearing payment_in_progress flag');
+
         sessionStorage.removeItem('payment_in_progress');
         sessionStorage.removeItem('pendingCheckout');
         setPaymentInProgress(false);
@@ -104,7 +104,7 @@ function Router() {
   
   // Priority render: payment loader before anything else
   if (shouldShowPaymentLoader) {
-    console.log('🌐 [APP] Rendering global payment loader to prevent dashboard flash');
+
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
