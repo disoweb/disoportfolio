@@ -62,9 +62,15 @@ export default function ClientDashboard() {
       return await apiRequest('POST', `/api/orders/${orderId}/reactivate-payment`);
     },
     onSuccess: (response: any) => {
-      if (response.paymentUrl) {
+      if (response?.paymentUrl) {
         // Redirect to Paystack payment page
         window.location.href = response.paymentUrl;
+      } else {
+        toast({
+          title: "Payment Issue",
+          description: "Payment URL not received. Please try again.",
+          variant: "destructive",
+        });
       }
     },
     onError: (error: Error) => {
@@ -320,7 +326,7 @@ export default function ClientDashboard() {
                           
                           {/* Action Buttons for Pending Orders */}
                           {order.status === 'pending' && (
-                            <div className="mt-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="mt-3 flex gap-2">
                               <Button
                                 size="sm"
                                 variant="default"
