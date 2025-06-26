@@ -87,10 +87,17 @@ export default function AuthPage() {
               step: 'payment' // Direct to payment step
             });
             
-            console.log('Auth page - Redirecting to auto-payment with session:', tokenToUse);
+            console.log('🔄 AUTH: Redirecting to auto-payment with session:', tokenToUse);
+            console.log('🔄 AUTH: Setting auto_submit_payment flag to true');
             
             // Set flag for auto-payment and redirect immediately
             sessionStorage.setItem('auto_submit_payment', 'true');
+            
+            console.log('🔄 AUTH: Redirecting to:', `/checkout?${params.toString()}`);
+            console.log('🔄 AUTH: sessionStorage after setting flag:', {
+              auto_submit_payment: sessionStorage.getItem('auto_submit_payment'),
+              checkoutSessionToken: sessionStorage.getItem('checkoutSessionToken')
+            });
             
             // Use window.location.href for immediate redirect to ensure it works
             window.location.href = `/checkout?${params.toString()}`;

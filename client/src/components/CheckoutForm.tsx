@@ -190,7 +190,12 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
       }
     },
     onSuccess: (data) => {
+      console.log('🎉 ORDER-SUCCESS: Payment order created successfully');
+      console.log('🎉 ORDER-SUCCESS: Response data:', data);
+      
       if (data && data.paymentUrl) {
+        console.log('🎉 ORDER-SUCCESS: Payment URL received:', data.paymentUrl);
+        
         // Clear stored form data and pending checkout on successful order
         localStorage.removeItem('checkout_contact_data');
         sessionStorage.removeItem('pendingCheckout');
@@ -200,12 +205,16 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
         // Clear payment loader state
         sessionStorage.removeItem('payment_in_progress');
         
-        console.log('Order created successfully, redirecting to Paystack:', data.paymentUrl);
+        console.log('🎉 ORDER-SUCCESS: Cleaned up session storage');
+        console.log('🎉 ORDER-SUCCESS: Redirecting to Paystack...');
         
         // Immediate redirect to Paystack
         window.location.href = data.paymentUrl;
         
         onSuccess();
+      } else {
+        console.error('❌ ORDER-ERROR: No payment URL in response');
+        console.error('❌ ORDER-ERROR: Full response:', data);
       }
     },
     onError: (error) => {
@@ -276,16 +285,43 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
   // Check for post-authentication auto-payment
   useEffect(() => {
     const autoSubmitPayment = sessionStorage.getItem('auto_submit_payment');
-    console.log('CheckoutForm - Auto-payment check:', {
+    console.log('💰 CHECKOUT-FORM: Auto-payment useEffect triggered');
+    console.log('💰 CHECKOUT-FORM: Conditions check:', {
       autoSubmitPayment,
       isPostAuthRedirect,
-      hasSessionData: !!sessionData?.contactData,
+      hasSessionData: !!sessionData,
+      hasContactData: !!sessionData?.contactData,
       hasUser: !!user,
-      stepParam: new URLSearchParams(window.location.search).get('step')
+      stepParam: new URLSearchParams(window.location.search).get('step'),
+      orderMutationExists: !!orderMutation
     });
     
-    if (autoSubmitPayment === 'true' && isPostAuthRedirect && sessionData?.contactData && user) {
-      console.log('CheckoutForm - Auto-submitting payment after authentication');
+    if (autoSubmitPayment === 'true') {
+      console.log('💰 CHECKOUT-FORM: auto_submit_payment flag is TRUE');
+      
+      if (!isPostAuthRedirect) {
+        console.log('❌ CHECKOUT-FORM: isPostAuthRedirect is FALSE');
+        return;
+      }
+      
+      if (!sessionData?.contactData) {
+        console.log('❌ CHECKOUT-FORM: No contact data in sessionData');
+        return;
+      }
+      
+      if (!user) {
+        console.log('❌ CHECKOUT-FORM: No user authenticated');
+        return;
+      }
+      
+      console.log('✅ CHECKOUT-FORM: All conditions met - Auto-submitting payment');
+      console.log('💰 CHECKOUT-FORM: Contact data:', sessionData.contactData);
+      console.log('💰 CHECKOUT-FORM: Session data:', {
+        serviceId: sessionData.serviceId,
+        totalPrice: sessionData.totalPrice,
+        selectedAddOns: sessionData.selectedAddOns
+      });
+      
       setContactData(sessionData.contactData);
       setShowPaymentLoader(true);
       sessionStorage.setItem('payment_in_progress', 'true');
@@ -299,11 +335,14 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
         overrideTotalAmount: sessionData.totalPrice
       };
       
-      console.log('CheckoutForm - Submitting payment data:', paymentData);
+      console.log('💰 CHECKOUT-FORM: Preparing payment submission with data:', paymentData);
       
       setTimeout(() => {
+        console.log('💰 CHECKOUT-FORM: Calling orderMutation.mutate');
         orderMutation.mutate(paymentData);
       }, 1000);
+    } else {
+      console.log('💰 CHECKOUT-FORM: auto_submit_payment flag is not true:', autoSubmitPayment);
     }
   }, [isPostAuthRedirect, sessionData, user, orderMutation]);
 
