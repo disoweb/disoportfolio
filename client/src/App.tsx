@@ -50,7 +50,7 @@ function Router() {
         sessionStorage.removeItem('payment_in_progress');
         setPaymentInProgress(false);
       } else {
-        // Check if payment is in progress
+        // Only check if payment is explicitly in progress
         const inProgress = sessionStorage.getItem('payment_in_progress') === 'true';
         console.log('🌐 [APP] Checking payment_in_progress flag:', inProgress);
         setPaymentInProgress(inProgress);
@@ -61,12 +61,13 @@ function Router() {
   // Clear payment flag after a timeout to prevent persistent loading
   useEffect(() => {
     if (paymentInProgress) {
-      console.log('🌐 [APP] Payment loader active, setting 10-second timeout to clear');
+      console.log('🌐 [APP] Payment loader active, setting 15-second timeout to clear');
       const timeout = setTimeout(() => {
         console.log('🌐 [APP] Timeout reached, clearing payment_in_progress flag');
         sessionStorage.removeItem('payment_in_progress');
+        sessionStorage.removeItem('pendingCheckout');
         setPaymentInProgress(false);
-      }, 10000); // 10 seconds max
+      }, 15000); // 15 seconds max for payment processing
 
       return () => clearTimeout(timeout);
     }
@@ -82,6 +83,7 @@ function Router() {
 
   // Show payment loader to prevent dashboard flash during payment processing
   if (paymentInProgress) {
+    console.log('🌐 [APP] Rendering global payment loader');
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">

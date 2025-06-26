@@ -222,6 +222,9 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
             // Set global payment flag to prevent dashboard flash
             sessionStorage.setItem('payment_in_progress', 'true');
             
+            // Force re-render by updating window location slightly
+            window.history.replaceState({}, '', window.location.pathname + '?payment=processing');
+            
             // Auto-submit the payment after ensuring user is properly authenticated
             setTimeout(() => {
               console.log('🔄 [AUTO-SUBMIT] Starting auto-submit process after authentication');
@@ -280,7 +283,7 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
               console.log('🔄 [AUTO-SUBMIT] PaymentLoader state before mutate:', showPaymentLoader);
               orderMutation.mutate(combinedData);
               console.log('🔄 [AUTO-SUBMIT] Order mutation called, isPending after mutate:', orderMutation.isPending);
-            }, 100); // Minimal delay to ensure PaymentLoader renders first
+            }, 50); // Minimal delay to ensure PaymentLoader renders first
           }
         } catch (error) {
           sessionStorage.removeItem('pendingCheckout');
