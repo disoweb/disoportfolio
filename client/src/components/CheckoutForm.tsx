@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { CreditCard, ArrowLeft, User, Mail, Phone, Building2, FileText } from "lucide-react";
+import PaymentLoader from "@/components/PaymentLoader";
 
 const contactSchema = z.object({
   fullName: z.string().min(2, "Full name must be at least 2 characters"),
@@ -47,6 +48,7 @@ interface CheckoutFormProps {
 export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSuccess }: CheckoutFormProps) {
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
   const [contactData, setContactData] = useState<ContactForm | null>(null);
+  const [showPaymentLoader, setShowPaymentLoader] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const [, setLocation] = useLocation();
@@ -145,8 +147,13 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
         localStorage.removeItem('checkout_contact_data');
         sessionStorage.removeItem('pendingCheckout');
         
-        // Redirect to Paystack
-        window.location.href = data.paymentUrl;
+        // Show payment loader instead of immediate redirect
+        setShowPaymentLoader(true);
+        
+        // Redirect to Paystack after loader completes
+        setTimeout(() => {
+          window.location.href = data.paymentUrl;
+        }, 3500); // Give loader time to complete animation
       } else {
         toast({
           title: "Order placed successfully!",
@@ -284,6 +291,20 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
 
     orderMutation.mutate(combinedData);
   };
+
+  // Show payment loader when processing payment
+  if (showPaymentLoader) {
+    return (
+      <PaymentLoader
+        serviceName={service.name}
+        amount={totalPrice}
+        onComplete={() => {
+          // This will be called when the loader animation completes
+          // The actual redirect happens in the timeout above
+        }}
+      />
+    );
+  }
 
   return (
     <Card className="w-full max-w-2xl mx-auto">

@@ -717,15 +717,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Add missing /api/client/stats endpoint
-  app.get('/api/client/stats', async (req, res) => {
+  app.get('/api/client/stats', isAuthenticated, async (req: any, res) => {
     try {
-      // Return mock stats for now - can be enhanced later
+      const userId = req.user.id;
+      
+      // Get user's orders to count paid orders as active projects
+      const userOrders = await storage.getUserOrders(userId);
+      const paidOrders = userOrders.filter((order: any) => order.status === 'paid');
+      
+      // Get actual projects
+      const userProjects = await storage.getUserProjects(userId);
+      const completedProjects = userProjects.filter((project: any) => project.status === 'completed');
+      
       const stats = {
-        activeProjects: 0,
-        completedProjects: 0,
-        totalSpent: 0,
-        newMessages: 0
+        activeProjects: paidOrders.length, // Paid orders count as active projects
+        completedProjects: completedProjects.length,
+        totalSpent: paidOrders.reduce((sum: number, order: any) => {
+          const price = typeof order.totalPrice === 'string' ? parseInt(order.totalPrice) : (order.totalPrice || 0);
+          return sum + price;
+        }, 0),
+        newMessages: 0 // Can be enhanced later with actual message count
       };
+      
       res.json(stats);
     } catch (error) {
       console.error("Error fetching client stats:", error);

@@ -99,7 +99,7 @@ export default function OrderDetailsModal({ order, isOpen, onClose }: OrderDetai
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md mx-auto max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-sm sm:max-w-md mx-auto max-h-[85vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader className="text-left">
           <DialogTitle className="text-xl font-bold text-slate-900 flex items-center gap-2">
             <FileText className="h-5 w-5" />
@@ -107,7 +107,7 @@ export default function OrderDetailsModal({ order, isOpen, onClose }: OrderDetai
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6 overflow-y-auto flex-1 px-1">
           {/* Status & Service */}
           <Card>
             <CardContent className="p-4">
@@ -215,7 +215,7 @@ export default function OrderDetailsModal({ order, isOpen, onClose }: OrderDetai
           )}
 
           {/* Action Buttons */}
-          <div className="flex gap-3 pt-2">
+          <div className="flex gap-2 sm:gap-3 pt-2 border-t bg-white sticky bottom-0">
             <Button
               onClick={contactSupport}
               className="flex-1 flex items-center gap-2"
