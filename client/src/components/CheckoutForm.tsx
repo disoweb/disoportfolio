@@ -136,16 +136,33 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
         totalAmount: data.overrideTotalAmount || totalPrice,
       };
 
-      // Verify authentication before submitting order
-      const authCheck = await fetch("/api/auth/user", { credentials: "include" });
+      // Verify authentication before submitting order - with debug info
+      console.log('Checking authentication before order submission...');
+      const authCheck = await fetch("/api/auth/user", { 
+        credentials: "include",
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
+      
+      console.log('Auth check response status:', authCheck.status);
+      console.log('Auth check response ok:', authCheck.ok);
+      
       if (!authCheck.ok || authCheck.status === 401) {
+        console.error('Authentication check failed');
         throw new Error("Authentication required - please log in again");
       }
       
       const userData = await authCheck.json();
+      console.log('User data from auth check:', userData);
+      
       if (!userData || !userData.id) {
+        console.error('No user data or user ID found');
         throw new Error("Authentication required - please log in again");
       }
+      
+      console.log('Authentication verified, proceeding with order submission...');
       
       try {
         const response = await apiRequest("POST", "/api/orders", orderData);

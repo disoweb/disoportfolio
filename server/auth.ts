@@ -78,7 +78,9 @@ export async function setupAuth(app: Express) {
       secure: false,
       httpOnly: true,
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      sameSite: 'lax'
+      sameSite: 'lax',
+      domain: undefined, // Let browser determine domain
+      path: '/' // Ensure cookie is available for all paths
     },
     name: 'connect.sid'
   };
@@ -465,18 +467,37 @@ export async function setupAuth(app: Express) {
 
 export const isAuthenticated = async (req: any, res: any, next: any) => {
   try {
+    // Debug logging for troubleshooting
+    if (req.url === '/api/orders') {
+      console.log('=== Authentication Check for ORDER ===');
+      console.log('Request URL:', req.url);
+      console.log('Session ID:', req.sessionID);
+      console.log('Session exists:', !!req.session);
+      console.log('Cookie header:', req.headers.cookie);
+      if (req.session) {
+        console.log('Session userId:', (req.session as any).userId);
+        console.log('Session passport:', (req.session as any).passport);
+        console.log('Full session:', JSON.stringify(req.session, null, 2));
+      }
+    }
+    
     // Check custom session userId first (from our login system)
     if (req.session && (req.session as any).userId) {
       const userId = (req.session as any).userId;
+      console.log('Found userId in session:', userId);
       const user = await storage.getUser(userId);
       if (user) {
+        console.log('User found in database:', user.email);
         req.user = user;
         return next();
+      } else {
+        console.log('User not found in database for userId:', userId);
       }
     }
 
     // Fallback check for passport session
     if (req.session && req.session.passport && req.session.passport.user) {
+      console.log('Found passport session:', req.session.passport.user);
       const user = await storage.getUser(req.session.passport.user);
       if (user) {
         req.user = user;
@@ -486,9 +507,14 @@ export const isAuthenticated = async (req: any, res: any, next: any) => {
     
     // Final fallback for req.user
     if (req.user) {
+      console.log('Using existing req.user');
       return next();
     }
     
+    console.log('Authentication failed - no valid session found');
+    if (req.url === '/api/orders') {
+      console.log('=== End Authentication Check ===');
+    }
     return res.status(401).json({ message: "Authentication required" });
   } catch (error) {
     console.error('Authentication error:', error);
