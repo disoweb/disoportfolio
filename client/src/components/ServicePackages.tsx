@@ -320,13 +320,13 @@ export default function ServicePackages() {
   });
 
   const industryRecommendations: Record<string, string[]> = {
-    tech: ["webapp", "landing"],
-    retail: ["ecommerce", "landing"],
-    consulting: ["landing", "webapp"],
-    healthcare: ["webapp", "landing", "hospital-management"],
-    finance: ["webapp", "landing"],
-    education: ["webapp", "landing"],
-    restaurant: ["ecommerce", "landing"],
+    tech: ["webapp", "landing-page"],
+    retail: ["ecommerce-app", "landing-page"],
+    consulting: ["landing-page", "webapp"],
+    healthcare: ["webapp", "landing-page", "hospital-management"],
+    finance: ["webapp", "landing-page"],
+    education: ["webapp", "landing-page"],
+    restaurant: ["ecommerce-app", "landing-page"],
   };
 
   const recommendedServices = useMemo((): Service[] => {

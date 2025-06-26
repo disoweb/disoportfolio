@@ -30,11 +30,16 @@ export default function Checkout() {
     // Scroll to top when component mounts
     window.scrollTo(0, 0);
     
+    console.log('Checkout page debug:', { serviceId, price, addons, servicesLength: services.length });
+    
     if (serviceId && services.length > 0) {
       const service = (services as any[]).find((s: any) => s.id === serviceId);
+      console.log('Found service:', service);
       if (service) {
         setServiceData(service);
         setTotalPrice(price ? parseInt(price) : service.price);
+      } else {
+        console.log('Service not found. Available services:', (services as any[]).map(s => s.id));
       }
     }
     
