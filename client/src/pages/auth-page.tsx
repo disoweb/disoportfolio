@@ -68,9 +68,9 @@ export default function AuthPage() {
           setLocation("/");
         }
       } else {
-        // No pending checkout, redirect to home page (authenticated users go to dashboard)
+        // No pending checkout, redirect to dashboard
         setRedirectHandled(true);
-        setLocation("/");
+        setLocation("/dashboard");
       }
     }
   }, [user, isLoading, redirectHandled, setLocation]);
@@ -132,12 +132,12 @@ export default function AuthPage() {
         } catch (error) {
           console.error('🚀 [LOGIN SUCCESS] Error parsing pending checkout data:', error);
           console.log('🚀 [LOGIN SUCCESS] Fallback redirect to dashboard');
-          setLocation("/");
+          setLocation("/dashboard");
         }
       } else {
         console.log('🚀 [LOGIN SUCCESS] No pending checkout found in sessionStorage');
-        console.log('🚀 [LOGIN SUCCESS] Redirecting to home page');
-        setLocation("/");
+        console.log('🚀 [LOGIN SUCCESS] Redirecting to dashboard');
+        setLocation("/dashboard");
       }
     },
     onError: (error: any) => {

@@ -134,10 +134,14 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
       };
 
       try {
+        console.log('🔄 [ORDER MUTATION] Sending order data to server:', orderData);
         const response = await apiRequest("POST", "/api/orders", orderData);
         const responseData = await response.json();
+        console.log('🔄 [ORDER MUTATION] Server response received:', responseData);
+        console.log('🔄 [ORDER MUTATION] Payment URL in response:', responseData.paymentUrl);
         return responseData;
       } catch (error) {
+        console.error('🔄 [ORDER MUTATION] Error creating order:', error);
         throw new Error(error instanceof Error ? error.message : 'Failed to create order');
       }
     },
@@ -203,6 +207,7 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
             // Auto-submit the payment after ensuring user is properly authenticated
             setTimeout(() => {
               console.log('🔄 [AUTO-SUBMIT] Starting auto-submit process after authentication');
+              console.log('🔄 [AUTO-SUBMIT] User data:', user);
               // Show loader immediately when starting auto-submit process
               setShowPaymentLoader(true);
               if (!user || !user.email) {
@@ -247,8 +252,9 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
                 timeline: checkoutData.paymentData?.timeline || "2-4 weeks"
               };
               console.log('🔄 [AUTO-SUBMIT] Submitting order mutation with data:', combinedData);
+              console.log('🔄 [AUTO-SUBMIT] Order mutation pending status:', orderMutation.isPending);
               orderMutation.mutate(combinedData);
-            }, 500);
+            }, 1000); // Increased delay to ensure all state is set
           }
         } catch (error) {
           sessionStorage.removeItem('pendingCheckout');
