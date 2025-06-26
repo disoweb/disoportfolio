@@ -208,8 +208,7 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
           const checkoutData = JSON.parse(pendingCheckout);
           console.log('🔍 [AUTH EFFECT] Parsed checkout data:', checkoutData);
           
-          sessionStorage.removeItem('pendingCheckout');
-          console.log('🔍 [AUTH EFFECT] Removed pending checkout from storage');
+          console.log('🔍 [AUTH EFFECT] Found pending checkout, will remove after processing');
           
           // Restore the checkout state
           if (checkoutData.contactData) {
@@ -264,6 +263,10 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
                 };
                 console.log('🔍 [AUTH EFFECT] Combined data for order:', combinedData);
                 orderMutation.mutate(combinedData);
+                
+                // Remove pending checkout data after successful submission
+                sessionStorage.removeItem('pendingCheckout');
+                console.log('🔍 [AUTH EFFECT] Removed pending checkout from storage after order submission');
                 
               } catch (error) {
                 console.error('🔍 [AUTH EFFECT] Auth check failed:', error);
