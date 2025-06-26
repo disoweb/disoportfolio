@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -43,33 +43,38 @@ export default function AuthPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { user, isLoading } = useAuth();
+  const [redirectHandled, setRedirectHandled] = useState(false);
 
   // Handle pending checkout completion and redirect if already logged in
-  if (!isLoading && user) {
-    const pendingCheckout = sessionStorage.getItem('pendingCheckout');
-    console.log('🔍 [AUTH PAGE] User is authenticated:', user.email);
-    console.log('🔍 [AUTH PAGE] Checking for pending checkout:', pendingCheckout);
-    
-    if (pendingCheckout) {
-      try {
-        const checkoutData = JSON.parse(pendingCheckout);
-        console.log('🔍 [AUTH PAGE] Found pending checkout data:', checkoutData);
-        
-        // Redirect back to checkout with the stored data (don't remove from sessionStorage here - let checkout component handle it)
-        const returnUrl = checkoutData.returnUrl || '/checkout';
-        console.log('🔍 [AUTH PAGE] Redirecting to:', returnUrl);
-        setLocation(returnUrl);
-      } catch (error) {
-        console.error('🔍 [AUTH PAGE] Error parsing pending checkout:', error);
-        sessionStorage.removeItem('pendingCheckout');
-        setLocation("/dashboard");
+  // Only auto-redirect if we haven't already handled it
+  useEffect(() => {
+    if (!isLoading && user && !redirectHandled) {
+      const pendingCheckout = sessionStorage.getItem('pendingCheckout');
+      console.log('🚀 [AUTH PAGE] User authenticated, checking pending checkout:', user.email);
+      console.log('🚀 [AUTH PAGE] Raw pendingCheckout:', pendingCheckout);
+      
+      if (pendingCheckout) {
+        try {
+          const checkoutData = JSON.parse(pendingCheckout);
+          console.log('🚀 [AUTH PAGE] Found valid pending checkout, redirecting:', checkoutData);
+          
+          const returnUrl = checkoutData.returnUrl || '/checkout';
+          console.log('🚀 [AUTH PAGE] Redirecting to checkout:', returnUrl);
+          setRedirectHandled(true);
+          setLocation(returnUrl);
+        } catch (error) {
+          console.error('🚀 [AUTH PAGE] Invalid pending checkout data:', error);
+          sessionStorage.removeItem('pendingCheckout');
+          setRedirectHandled(true);
+          setLocation("/");
+        }
+      } else {
+        console.log('🚀 [AUTH PAGE] No pending checkout found, redirecting to dashboard');
+        setRedirectHandled(true);
+        setLocation("/");
       }
-    } else {
-      console.log('🔍 [AUTH PAGE] No pending checkout, redirecting to dashboard');
-      setLocation("/dashboard");
     }
-    return null;
-  }
+  }, [user, isLoading, redirectHandled, setLocation]);
 
   const loginForm = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
