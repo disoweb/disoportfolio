@@ -286,7 +286,7 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
     }
   }, [user, orderMutation.isPending, setLocation, toast]);
 
-  // Check for post-authentication auto-payment
+  // Check for post-authentication auto-payment  
   useEffect(() => {
     const autoSubmitPayment = sessionStorage.getItem('auto_submit_payment');
     console.log('💰 CHECKOUT-FORM: Auto-payment useEffect triggered');
@@ -300,6 +300,12 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
       orderMutationExists: !!orderMutation,
       userDetails: user ? { id: user.id, email: user.email } : null
     });
+
+    // Wait for sessionData to be available before making auto-payment decision
+    if (!sessionData) {
+      console.log('💰 CHECKOUT-FORM: Waiting for sessionData to load');
+      return;
+    }
     
     // Check if we should auto-submit payment (either flag is set OR we have all required data for authenticated user)
     const stepParam = new URLSearchParams(window.location.search).get('step');
