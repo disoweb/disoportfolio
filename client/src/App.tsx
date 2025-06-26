@@ -66,6 +66,10 @@ function Router() {
         // Set payment loader if payment is in progress or authenticated user has pending checkout
         if (inProgress || (isAuthenticated && pendingCheckout)) {
           setPaymentInProgress(true);
+          // Ensure immediate auto-submission for authenticated users with pending data
+          if (isAuthenticated && pendingCheckout && !inProgress) {
+            sessionStorage.setItem('payment_in_progress', 'true');
+          }
         }
       }
     }
@@ -94,7 +98,7 @@ function Router() {
     );
   }
 
-  // Check for immediate payment conditions - prioritize payment loader
+  // Check for immediate payment conditions
   const pendingCheckout = typeof window !== 'undefined' && sessionStorage.getItem('pendingCheckout');
   const shouldShowPaymentLoader = paymentInProgress || (isAuthenticated && pendingCheckout);
   
