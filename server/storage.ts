@@ -363,16 +363,28 @@ export class DatabaseStorage implements IStorage {
     }
 
     // Initialize payment using existing order data
-    console.log('🔄 Reactivating payment for order:', existingOrder.id, 'Amount:', existingOrder.totalPrice);
-    const paymentUrl = await this.initializePayment({
+    console.log('🔄 REACTIVATE: Starting payment for order:', existingOrder.id, 'Amount:', existingOrder.totalPrice);
+    console.log('🔄 REACTIVATE: Payment params:', {
       orderId: existingOrder.id,
       amount: parseInt(existingOrder.totalPrice),
       email: user.email,
       userId: existingOrder.userId,
     });
 
-    console.log('💳 Payment URL generated:', paymentUrl);
-    return paymentUrl;
+    try {
+      const paymentUrl = await this.initializePayment({
+        orderId: existingOrder.id,
+        amount: parseInt(existingOrder.totalPrice),
+        email: user.email,
+        userId: existingOrder.userId,
+      });
+
+      console.log('💳 REACTIVATE: Payment URL generated successfully:', paymentUrl);
+      return paymentUrl;
+    } catch (error) {
+      console.log('❌ REACTIVATE: Error in initializePayment:', error);
+      throw error;
+    }
   }
 
   // Project operations
@@ -485,13 +497,18 @@ export class DatabaseStorage implements IStorage {
     email: string;
     userId: string;
   }): Promise<string> {
+    console.log('💳 INIT-PAYMENT: Starting with params:', params);
+    
     const paystackSecretKey = process.env.PAYSTACK_SECRET_KEY;
+    console.log('💳 INIT-PAYMENT: Paystack key exists:', !!paystackSecretKey);
     if (!paystackSecretKey) {
       throw new Error("Payment service not configured");
     }
 
     // Validate parameters
+    console.log('💳 INIT-PAYMENT: Validating parameters...');
     if (!params.orderId || !params.email || !params.userId || params.amount <= 0) {
+      console.log('❌ INIT-PAYMENT: Invalid parameters:', params);
       throw new Error('Invalid payment parameters');
     }
 
@@ -500,6 +517,20 @@ export class DatabaseStorage implements IStorage {
       .substr(2, 9)}`;
 
     try {
+      const requestBody = {
+        email: params.email,
+        amount: params.amount * 100, // Convert to kobo
+        reference,
+        callback_url: `https://${process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost:5000'}/api/payments/callback`,
+        currency: "NGN",
+        metadata: {
+          orderId: params.orderId,
+          userId: params.userId,
+        },
+      };
+      console.log('💳 INIT-PAYMENT: Request body:', requestBody);
+      console.log('💳 INIT-PAYMENT: Making fetch request...');
+
       const response = await fetch(
         "https://api.paystack.co/transaction/initialize",
         {
@@ -508,17 +539,7 @@ export class DatabaseStorage implements IStorage {
             Authorization: `Bearer ${paystackSecretKey}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            email: params.email,
-            amount: params.amount * 100, // Convert to kobo
-            reference,
-            callback_url: `https://${process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost:5000'}/api/payments/callback`,
-            currency: "NGN",
-            metadata: {
-              orderId: params.orderId,
-              userId: params.userId,
-            },
-          }),
+          body: JSON.stringify(requestBody),
         },
       );
 
