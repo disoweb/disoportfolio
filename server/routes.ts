@@ -803,6 +803,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Checkout session routes
+  app.post("/api/checkout-sessions", async (req, res) => {
+    try {
+      const sessionData = req.body;
+      console.log('Creating checkout session with data:', sessionData);
+      
+      // Generate unique session token
+      const sessionToken = `checkout_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Set expiration to 2 hours from now
+      const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
+      
+      const checkoutSession = await storage.createCheckoutSession({
+        sessionToken,
+        serviceId: sessionData.serviceId,
+        serviceData: sessionData.serviceData,
+        contactData: sessionData.contactData || null,
+        selectedAddOns: sessionData.selectedAddOns || [],
+        totalPrice: sessionData.totalPrice,
+        userId: sessionData.userId || null,
+        expiresAt,
+      });
+      
+      console.log('Created checkout session:', checkoutSession);
+      res.json({ sessionToken: checkoutSession.sessionToken });
+    } catch (error) {
+      console.error("Error creating checkout session:", error);
+      res.status(500).json({ error: "Failed to create checkout session" });
+    }
+  });
+
+  app.get("/api/checkout-sessions/:sessionToken", async (req, res) => {
+    try {
+      const { sessionToken } = req.params;
+      const session = await storage.getCheckoutSession(sessionToken);
+      
+      if (!session) {
+        return res.status(404).json({ error: "Checkout session not found" });
+      }
+      
+      // Check if session has expired
+      if (new Date() > session.expiresAt) {
+        await storage.deleteCheckoutSession(sessionToken);
+        return res.status(410).json({ error: "Checkout session expired" });
+      }
+      
+      res.json(session);
+    } catch (error) {
+      console.error("Error fetching checkout session:", error);
+      res.status(500).json({ error: "Failed to fetch checkout session" });
+    }
+  });
+
+  app.put("/api/checkout-sessions/:sessionToken", async (req, res) => {
+    try {
+      const { sessionToken } = req.params;
+      const updates = req.body;
+      
+      const updatedSession = await storage.updateCheckoutSession(sessionToken, updates);
+      res.json(updatedSession);
+    } catch (error) {
+      console.error("Error updating checkout session:", error);
+      res.status(500).json({ error: "Failed to update checkout session" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

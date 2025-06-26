@@ -10,6 +10,7 @@ import {
   notifications,
   supportRequests,
   auditLogs,
+  checkoutSessions,
   type User,
   type UpsertUser,
   type Service,
@@ -24,6 +25,8 @@ import {
   type InsertPayment,
   type SupportRequest,
   type InsertSupportRequest,
+  type CheckoutSession,
+  type InsertCheckoutSession,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, count, sum, sql } from "drizzle-orm";
@@ -714,6 +717,80 @@ export class DatabaseStorage implements IStorage {
     // Store the quote request without audit log for now
     // TODO: Create a separate quotes table for better data management
     console.log("Quote request submission:", data);
+  }
+
+  // Checkout session management
+  async createCheckoutSession(session: InsertCheckoutSession): Promise<CheckoutSession> {
+    console.log('DatabaseStorage: Creating checkout session:', session);
+    try {
+      const [newSession] = await db
+        .insert(checkoutSessions)
+        .values(session)
+        .returning();
+      console.log('DatabaseStorage: Created session:', newSession);
+      return newSession;
+    } catch (error) {
+      console.error('DatabaseStorage: Error creating session:', error);
+      throw error;
+    }
+  }
+
+  async getCheckoutSession(sessionToken: string): Promise<CheckoutSession | undefined> {
+    console.log('DatabaseStorage: Getting session:', sessionToken);
+    try {
+      const [session] = await db
+        .select()
+        .from(checkoutSessions)
+        .where(eq(checkoutSessions.sessionToken, sessionToken));
+      console.log('DatabaseStorage: Found session:', session);
+      return session;
+    } catch (error) {
+      console.error('DatabaseStorage: Error getting session:', error);
+      throw error;
+    }
+  }
+
+  async updateCheckoutSession(sessionToken: string, updates: Partial<InsertCheckoutSession>): Promise<CheckoutSession> {
+    console.log('DatabaseStorage: Updating session:', sessionToken, updates);
+    try {
+      const [updatedSession] = await db
+        .update(checkoutSessions)
+        .set(updates)
+        .where(eq(checkoutSessions.sessionToken, sessionToken))
+        .returning();
+      console.log('DatabaseStorage: Updated session:', updatedSession);
+      return updatedSession;
+    } catch (error) {
+      console.error('DatabaseStorage: Error updating session:', error);
+      throw error;
+    }
+  }
+
+  async deleteCheckoutSession(sessionToken: string): Promise<void> {
+    console.log('DatabaseStorage: Deleting session:', sessionToken);
+    try {
+      await db
+        .delete(checkoutSessions)
+        .where(eq(checkoutSessions.sessionToken, sessionToken));
+      console.log('DatabaseStorage: Session deleted');
+    } catch (error) {
+      console.error('DatabaseStorage: Error deleting session:', error);
+      throw error;
+    }
+  }
+
+  async cleanupExpiredCheckoutSessions(): Promise<void> {
+    console.log('DatabaseStorage: Cleaning up expired sessions');
+    try {
+      const now = new Date();
+      await db
+        .delete(checkoutSessions)
+        .where(lt(checkoutSessions.expiresAt, now));
+      console.log('DatabaseStorage: Expired sessions cleaned up');
+    } catch (error) {
+      console.error('DatabaseStorage: Error cleaning up sessions:', error);
+      throw error;
+    }
   }
 
   async getWorkloadStatus(): Promise<any> {
