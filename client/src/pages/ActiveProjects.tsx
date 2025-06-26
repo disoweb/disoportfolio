@@ -8,13 +8,19 @@ import Navigation from '@/components/Navigation';
 import ProjectTimer from '@/components/ProjectTimer';
 
 export default function ActiveProjects() {
-  const { data: projects, isLoading } = useQuery({
+  const { data: allProjects, isLoading } = useQuery({
     queryKey: ["/api/projects"],
   });
 
   const { data: stats } = useQuery({
     queryKey: ["/api/client/stats"],
   });
+
+  // Filter for only active projects
+  const projects = React.useMemo(() => {
+    if (!allProjects) return [];
+    return allProjects.filter((project: any) => project.status === 'active');
+  }, [allProjects]);
 
   if (isLoading) {
     return (
