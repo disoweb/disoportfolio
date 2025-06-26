@@ -57,12 +57,12 @@ function Router() {
   return (
     <Switch>
       <>
-        <Route path="/" component={!isAuthenticated ? Landing : (paymentInProgress ? () => null : Home)} />
+        <Route path="/" component={!isAuthenticated ? Landing : Home} />
         <Route path="/auth" component={AuthPage} />
         <Route path="/admin" component={AdminLogin} />
         <Route path="/admin-dashboard" component={AdminDashboard} />
         <Route path="/admin/projects" component={AdminProjects} />
-        <Route path="/dashboard" component={paymentInProgress ? () => null : ClientDashboard} />
+        <Route path="/dashboard" component={ClientDashboard} />
         <Route path="/services" component={Services} />
         <Route path="/service/:id" component={ServiceDetails} />
         <Route path="/checkout" component={Checkout} />

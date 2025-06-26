@@ -68,7 +68,7 @@ export default function AuthPage() {
           setLocation("/");
         }
       } else {
-        console.log('🚀 [AUTH PAGE] No pending checkout found, redirecting to dashboard');
+        // No pending checkout, redirect to home page (authenticated users go to dashboard)
         setRedirectHandled(true);
         setLocation("/");
       }
@@ -136,7 +136,7 @@ export default function AuthPage() {
         }
       } else {
         console.log('🚀 [LOGIN SUCCESS] No pending checkout found in sessionStorage');
-        console.log('🚀 [LOGIN SUCCESS] Redirecting to dashboard');
+        console.log('🚀 [LOGIN SUCCESS] Redirecting to home page');
         setLocation("/");
       }
     },
