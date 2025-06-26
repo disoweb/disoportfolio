@@ -164,16 +164,45 @@ export default function AuthPage() {
       // Wait a moment for session to be fully established
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      // Check for pending checkout and redirect appropriately
-      const pendingCheckout = sessionStorage.getItem('pendingCheckout');
-
+      // Check for checkout token in URL parameters first (priority)
+      const urlParams = new URLSearchParams(window.location.search);
+      const checkoutToken = urlParams.get('checkout');
+      const serviceId = urlParams.get('service');
+      const price = urlParams.get('price');
+      const addons = urlParams.get('addons');
       
+      console.log('🔄 AUTH: Post-login redirect check:', {
+        checkoutToken,
+        serviceId,
+        price,
+        addons
+      });
+      
+      if (checkoutToken && serviceId) {
+        // User came from checkout flow - redirect to payment step with auto-submit
+        console.log('🔄 AUTH: Checkout token found, setting up auto-payment redirect');
+        
+        sessionStorage.setItem('auto_submit_payment', 'true');
+        console.log('🔄 AUTH: Set auto_submit_payment flag to true');
+        
+        const addonsParam = addons ? `&addons=${addons}` : '';
+        const redirectUrl = `/checkout?service=${serviceId}&price=${price}&step=payment&checkout=${checkoutToken}${addonsParam}`;
+        
+        console.log('🔄 AUTH: Redirecting to payment step:', redirectUrl);
+        
+        setTimeout(() => {
+          setLocation(redirectUrl);
+        }, 100);
+        return;
+      }
+      
+      // Fallback: Check for pending checkout
+      const pendingCheckout = sessionStorage.getItem('pendingCheckout');
       if (pendingCheckout) {
         try {
           const checkoutData = JSON.parse(pendingCheckout);
           const redirectUrl = checkoutData.returnUrl || '/checkout';
           
-          // Add a small delay to ensure authentication state is fully set
           setTimeout(() => {
             setLocation(redirectUrl);
           }, 100);

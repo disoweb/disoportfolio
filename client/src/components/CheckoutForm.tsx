@@ -334,18 +334,24 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
         const shouldAutoSubmit = autoSubmitPayment === 'true' || 
           (stepParam === 'payment' && sessionData?.contactData && currentUser);
         
-        console.log('💰 CHECKOUT-FORM: Auto-submit check:', {
+        console.log('💰 CHECKOUT-FORM: Auto-submit decision logic:', {
           autoSubmitPayment,
-          isPostAuthRedirect, 
+          stepParam,
+          hasSessionData: !!sessionData,
           hasContactData: !!sessionData?.contactData,
           hasUser: !!user,
           hasCurrentUser: !!currentUser,
-          stepParam,
-          shouldAutoSubmit
+          shouldAutoSubmit,
+          conditions: {
+            flagSet: autoSubmitPayment === 'true',
+            stepIsPayment: stepParam === 'payment',
+            hasContact: !!sessionData?.contactData,
+            authenticated: !!currentUser
+          }
         });
         
         if (shouldAutoSubmit && currentUser && sessionData?.contactData) {
-          console.log('💰 CHECKOUT-FORM: Auto-submitting payment with direct auth check');
+          console.log('💰 CHECKOUT-FORM: ✅ ALL CONDITIONS MET - Auto-submitting payment');
           
           // Clear the auto-submit flag to prevent multiple submissions
           sessionStorage.removeItem('auto_submit_payment');
@@ -353,16 +359,20 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
           // Pre-populate form with session data
           setContactData(sessionData.contactData);
           
-          setTimeout(() => {
-            console.log('💰 CHECKOUT-FORM: Triggering auto-payment with orderMutation');
-            // Use orderMutation directly to avoid dependency issues
-            orderMutation.mutate({
-              paymentMethod: 'paystack',
-              timeline: 'standard'
-            });
-          }, 1000);
+          // Trigger auto-payment immediately
+          console.log('💰 CHECKOUT-FORM: Triggering orderMutation with contact data:', sessionData.contactData);
+          orderMutation.mutate({
+            paymentMethod: 'paystack',
+            timeline: 'standard'
+          });
           
           return;
+        } else {
+          console.log('💰 CHECKOUT-FORM: ❌ Auto-submit conditions NOT met:', {
+            reason: !shouldAutoSubmit ? 'shouldAutoSubmit=false' : 
+                    !currentUser ? 'no currentUser' : 
+                    !sessionData?.contactData ? 'no contactData' : 'unknown'
+          });
         }
       } catch (error) {
         console.error('💰 CHECKOUT-FORM: Direct auth check failed:', error);
