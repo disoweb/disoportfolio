@@ -65,7 +65,17 @@ export default function ClientDashboard() {
   const reactivatePaymentMutation = useMutation({
     mutationFn: async (orderId: string) => {
       setProcessingOrderId(orderId);
-      return await apiRequest('POST', `/api/orders/${orderId}/reactivate-payment`);
+      console.log('🚀 FRONTEND: Starting payment reactivation for order:', orderId);
+      try {
+        const response = await apiRequest('POST', `/api/orders/${orderId}/reactivate-payment`);
+        console.log('🚀 FRONTEND: Raw response received:', response);
+        const jsonResponse = await response.json();
+        console.log('🚀 FRONTEND: Parsed response:', jsonResponse);
+        return jsonResponse;
+      } catch (error) {
+        console.log('❌ FRONTEND: API request error:', error);
+        throw error;
+      }
     },
     onSuccess: (response: any) => {
       setProcessingOrderId(null);
