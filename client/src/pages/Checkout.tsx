@@ -150,7 +150,9 @@ export default function Checkout() {
           totalPrice={finalTotal}
           selectedAddOns={selectedAddOns}
           onSuccess={() => {
-            setLocation('/dashboard');
+            // Don't redirect here - let CheckoutForm handle the flow
+            // If payment URL exists, CheckoutForm will show loader and redirect to Paystack
+            // If no payment URL, CheckoutForm will show success message
           }}
         />
       </div>

@@ -142,7 +142,9 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
       }
     },
     onSuccess: (data) => {
+      console.log('✅ [ORDER SUCCESS] Order mutation successful, response data:', data);
       if (data && data.paymentUrl) {
+        console.log('✅ [ORDER SUCCESS] Payment URL found, showing loader and redirecting to Paystack');
         // Clear any pending checkout data since we're proceeding to payment
         localStorage.removeItem('checkout_contact_data');
         sessionStorage.removeItem('pendingCheckout');
@@ -153,16 +155,19 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
         // Set a flag to prevent any other redirects
         sessionStorage.setItem('payment_in_progress', 'true');
         
+        console.log('✅ [ORDER SUCCESS] Redirecting to Paystack URL:', data.paymentUrl);
         // Redirect to Paystack immediately - loader will persist until page loads
         setTimeout(() => {
           window.location.href = data.paymentUrl;
         }, 100); // Minimal delay to ensure loader renders
       } else {
+        console.log('✅ [ORDER SUCCESS] No payment URL, showing success message');
         toast({
           title: "Order placed successfully!",
           description: "We'll contact you soon to discuss your project.",
         });
-        onSuccess();
+        // For non-payment orders, don't call onSuccess which might redirect
+        // Just show a success message and stay on page
       }
     },
     onError: (error) => {
@@ -197,6 +202,7 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
             
             // Auto-submit the payment after ensuring user is properly authenticated
             setTimeout(() => {
+              console.log('🔄 [AUTO-SUBMIT] Starting auto-submit process after authentication');
               // Show loader immediately when starting auto-submit process
               setShowPaymentLoader(true);
               if (!user || !user.email) {
@@ -240,6 +246,7 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
                 paymentMethod: "paystack" as const,
                 timeline: checkoutData.paymentData?.timeline || "2-4 weeks"
               };
+              console.log('🔄 [AUTO-SUBMIT] Submitting order mutation with data:', combinedData);
               orderMutation.mutate(combinedData);
             }, 500);
           }
