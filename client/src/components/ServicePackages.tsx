@@ -290,10 +290,9 @@ export default function ServicePackages() {
   const { data: servicesData = [], isLoading, error } = useQuery({
     queryKey: ['/api/services'],
     select: (data: any[]) => {
-      console.log('Raw services data:', data);
       return data.map((service: any) => {
         try {
-          const transformed = {
+          return {
             id: service.id,
             name: service.name,
             description: service.description,
@@ -309,8 +308,6 @@ export default function ServicePackages() {
             category: service.category,
             industry: parseArrayField(service.industry)
           };
-          console.log('Transformed service:', transformed);
-          return transformed;
         } catch (err) {
           console.error('Error transforming service:', service, err);
           return null;
