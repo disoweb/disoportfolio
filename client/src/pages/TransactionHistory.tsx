@@ -72,23 +72,22 @@ export default function TransactionHistory() {
           });
         }
         
-        // Check for exact word matches or meaningful partial matches (3+ chars)
+        // Check for word boundary matches to prevent false positives
         const hasMatch = searchFields.some(field => {
-          if (query.length < 3) {
-            // For short queries, require exact word match
-            const wordMatch = field.split(' ').some(word => word === query);
-            if (wordMatch && query === 'good') {
-              console.log(`✓ Word match found in: "${field}"`);
-            }
-            return wordMatch;
-          } else {
-            // For longer queries, allow substring matching
-            const substringMatch = field.includes(query);
-            if (substringMatch && query === 'good') {
-              console.log(`✓ Substring match found in: "${field}"`);
-            }
-            return substringMatch;
+          // Split field into words and check for exact word matches
+          const words = field.toLowerCase().split(/\s+|[^\w]/);
+          const exactWordMatch = words.some(word => word === query);
+          
+          // For longer queries (6+ chars), also allow substring matching
+          const substringMatch = query.length >= 6 && field.includes(query);
+          
+          const foundMatch = exactWordMatch || substringMatch;
+          
+          if (foundMatch && query === 'good') {
+            console.log(`✓ Match found in: "${field}" (words: ${words.join(', ')}, exact: ${exactWordMatch}, substring: ${substringMatch})`);
           }
+          
+          return foundMatch;
         });
         
         return hasMatch;
