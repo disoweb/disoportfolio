@@ -27,6 +27,9 @@ export default function Checkout() {
   });
 
   useEffect(() => {
+    // Scroll to top when component mounts
+    window.scrollTo(0, 0);
+    
     if (serviceId && services.length > 0) {
       const service = (services as any[]).find((s: any) => s.id === serviceId);
       if (service) {
