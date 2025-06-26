@@ -387,9 +387,9 @@ export default function Landing() {
                 size="lg"
                 className="bg-blue-600 hover:bg-blue-700 px-8 py-6 text-lg w-auto relative"
                 onClick={() => {
-                  const servicesSection = document.getElementById('services-section');
-                  if (servicesSection) {
-                    servicesSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  const industrySection = document.getElementById('industry-selection');
+                  if (industrySection) {
+                    industrySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
                   }
                 }}
               >
