@@ -260,8 +260,27 @@ export class DatabaseStorage implements IStorage {
 
   async getUserOrders(userId: string): Promise<Order[]> {
     return await db
-      .select()
+      .select({
+        id: orders.id,
+        userId: orders.userId,
+        serviceId: orders.serviceId,
+        customRequest: orders.customRequest,
+        totalPrice: orders.totalPrice,
+        status: orders.status,
+        paymentId: orders.paymentId,
+        createdAt: orders.createdAt,
+        // Include service information
+        serviceName: services.name,
+        serviceCategory: services.category,
+        // Include user information for display
+        contactName: sql`COALESCE(${users.firstName} || ' ' || ${users.lastName}, ${users.email})`.as('contactName'),
+        contactEmail: users.email,
+        contactPhone: users.phone,
+        companyName: users.companyName,
+      })
       .from(orders)
+      .leftJoin(users, eq(orders.userId, users.id))
+      .leftJoin(services, eq(orders.serviceId, services.id))
       .where(eq(orders.userId, userId))
       .orderBy(desc(orders.createdAt));
   }

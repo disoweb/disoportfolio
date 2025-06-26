@@ -3,14 +3,16 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ArrowLeft, Calendar, DollarSign, Package, Filter, ChevronLeft, ChevronRight, Eye, ShoppingCart, CreditCard } from 'lucide-react';
+import { ArrowLeft, Calendar, DollarSign, Package, Filter, ChevronLeft, ChevronRight, Eye, ShoppingCart, CreditCard, Search, User, Building } from 'lucide-react';
 import { Link } from 'wouter';
 import Navigation from '@/components/Navigation';
 
 export default function TransactionHistory() {
   const [statusFilter, setStatusFilter] = React.useState<'all' | 'paid' | 'pending' | 'cancelled'>('all');
+  const [searchQuery, setSearchQuery] = React.useState('');
   const [currentPage, setCurrentPage] = React.useState(1);
   const [itemsPerPage] = React.useState(8); // Reduced for better mobile experience
   const [selectedOrder, setSelectedOrder] = React.useState<any>(null);
@@ -24,12 +26,38 @@ export default function TransactionHistory() {
     queryKey: ["/api/client/stats"],
   });
 
-  // Filter orders based on status
+  // Filter orders based on status and search query
   const filteredOrders = React.useMemo(() => {
     if (!orders) return [];
-    if (statusFilter === 'all') return orders;
-    return (orders as any[]).filter((order: any) => order.status === statusFilter);
-  }, [orders, statusFilter]);
+    
+    let filtered = orders as any[];
+    
+    // Filter by status
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter((order: any) => order.status === statusFilter);
+    }
+    
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      filtered = filtered.filter((order: any) => {
+        const searchFields = [
+          order.contactName?.toLowerCase() || '',
+          order.contactEmail?.toLowerCase() || '',
+          order.companyName?.toLowerCase() || '',
+          order.serviceName?.toLowerCase() || '',
+          order.customRequest?.toLowerCase() || '',
+          order.id?.toLowerCase() || '',
+          order.id?.slice(-6)?.toLowerCase() || '', // Short order ID
+          order.id?.slice(-8)?.toLowerCase() || '', // Medium order ID
+        ];
+        
+        return searchFields.some(field => field.includes(query));
+      });
+    }
+    
+    return filtered;
+  }, [orders, statusFilter, searchQuery]);
 
   // Pagination logic
   const totalPages = Math.ceil(((filteredOrders as any[])?.length || 0) / itemsPerPage);
@@ -39,10 +67,10 @@ export default function TransactionHistory() {
     return (filteredOrders as any[]).slice(startIndex, endIndex);
   }, [filteredOrders, startIndex, endIndex]);
 
-  // Reset to page 1 when filter changes
+  // Reset to page 1 when filter or search changes
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [statusFilter]);
+  }, [statusFilter, searchQuery]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString();
@@ -124,9 +152,31 @@ export default function TransactionHistory() {
           </Card>
         </div>
 
-        {/* Compact Filter Controls */}
+        {/* Enhanced Filter and Search Controls */}
         <Card className="mb-6">
-          <CardContent className="p-4">
+          <CardContent className="p-4 space-y-4">
+            {/* Search Bar */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Search by name, company, service, or order ID..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 w-full"
+              />
+              {searchQuery && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+                  onClick={() => setSearchQuery('')}
+                >
+                  ×
+                </Button>
+              )}
+            </div>
+            
+            {/* Filter Controls */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
               <div className="flex items-center gap-2">
                 <Filter className="h-4 w-4 text-slate-600" />
@@ -144,6 +194,13 @@ export default function TransactionHistory() {
                 </SelectContent>
               </Select>
             </div>
+            
+            {/* Search Results Info */}
+            {searchQuery && (
+              <div className="text-sm text-slate-600">
+                Found {filteredOrders.length} result{filteredOrders.length !== 1 ? 's' : ''} for "{searchQuery}"
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -194,9 +251,25 @@ export default function TransactionHistory() {
                       </Badge>
                     </div>
 
+                    {/* Customer Information */}
+                    <div className="mb-3 p-2 bg-slate-50 rounded-lg">
+                      <div className="flex items-center gap-2 mb-1">
+                        <User className="h-3 w-3 text-slate-500" />
+                        <span className="font-medium text-slate-900 text-sm">
+                          {order.contactName || order.contactEmail || 'Unknown Customer'}
+                        </span>
+                      </div>
+                      {order.companyName && (
+                        <div className="flex items-center gap-2">
+                          <Building className="h-3 w-3 text-slate-500" />
+                          <span className="text-xs text-slate-600">{order.companyName}</span>
+                        </div>
+                      )}
+                    </div>
+
                     {/* Service Name */}
                     <h3 className="font-semibold text-slate-900 mb-2 group-hover:text-blue-600 transition-colors">
-                      {order.serviceName || 'Custom Service'}
+                      {order.serviceName || order.customRequest || 'Custom Service'}
                     </h3>
 
                     {/* Order Details */}
@@ -412,32 +485,43 @@ export default function TransactionHistory() {
                   </div>
                 )}
 
-                {/* Contact Information */}
-                {(selectedOrder.contactName || selectedOrder.contactEmail || selectedOrder.contactPhone) && (
-                  <div>
-                    <h3 className="font-semibold text-slate-900 mb-3">Contact Information</h3>
-                    <div className="space-y-2">
-                      {selectedOrder.contactName && (
-                        <div className="flex justify-between">
-                          <span className="text-slate-600">Name:</span>
-                          <span>{selectedOrder.contactName}</span>
-                        </div>
-                      )}
-                      {selectedOrder.contactEmail && (
-                        <div className="flex justify-between">
-                          <span className="text-slate-600">Email:</span>
-                          <span className="text-blue-600">{selectedOrder.contactEmail}</span>
-                        </div>
-                      )}
-                      {selectedOrder.contactPhone && (
-                        <div className="flex justify-between">
-                          <span className="text-slate-600">Phone:</span>
-                          <span>{selectedOrder.contactPhone}</span>
-                        </div>
-                      )}
+                {/* Customer Information */}
+                <div>
+                  <h3 className="font-semibold text-slate-900 mb-3">Customer Information</h3>
+                  <div className="space-y-3">
+                    {/* Primary Contact */}
+                    <div className="bg-blue-50 p-3 rounded-lg">
+                      <div className="flex items-center gap-2 mb-2">
+                        <User className="h-4 w-4 text-blue-600" />
+                        <span className="font-medium text-blue-900">Primary Contact</span>
+                      </div>
+                      <div className="space-y-1 text-sm">
+                        {selectedOrder.contactName && (
+                          <div>
+                            <span className="font-medium">{selectedOrder.contactName}</span>
+                          </div>
+                        )}
+                        {selectedOrder.contactEmail && (
+                          <div className="text-blue-700">{selectedOrder.contactEmail}</div>
+                        )}
+                        {selectedOrder.contactPhone && (
+                          <div className="text-slate-600">{selectedOrder.contactPhone}</div>
+                        )}
+                      </div>
                     </div>
+
+                    {/* Company Information */}
+                    {selectedOrder.companyName && (
+                      <div className="bg-slate-50 p-3 rounded-lg">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Building className="h-4 w-4 text-slate-600" />
+                          <span className="font-medium text-slate-900">Company</span>
+                        </div>
+                        <div className="text-sm text-slate-700">{selectedOrder.companyName}</div>
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
 
                 {/* Project Details */}
                 {selectedOrder.projectDescription && (
