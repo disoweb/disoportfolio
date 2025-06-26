@@ -337,186 +337,185 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
           </div>
         </div>
 
-        {/* Step 1: Contact Information */}
         {currentStep === 1 && (
           <form onSubmit={contactForm.handleSubmit(onContactSubmit)} className="space-y-4">
-            <div className="flex items-center gap-2 mb-4">
-              <User className="h-5 w-5 text-blue-600" />
-              <h3 className="text-lg font-semibold">Contact Information</h3>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="fullName">Full Name *</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="fullName"
-                    {...contactForm.register("fullName")}
-                    className="pl-10"
-                    placeholder="Your full name"
-                  />
-                </div>
-                {contactForm.formState.errors.fullName && (
-                  <p className="text-sm text-red-500">{contactForm.formState.errors.fullName.message}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="email">Email Address *</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="email"
-                    type="email"
-                    {...contactForm.register("email")}
-                    className="pl-10"
-                    placeholder="your@email.com"
-                  />
-                </div>
-                {contactForm.formState.errors.email && (
-                  <p className="text-sm text-red-500">{contactForm.formState.errors.email.message}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number *</Label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="phone"
-                    {...contactForm.register("phone")}
-                    className="pl-10"
-                    placeholder="+234 123 456 7890"
-                  />
-                </div>
-                {contactForm.formState.errors.phone && (
-                  <p className="text-sm text-red-500">{contactForm.formState.errors.phone.message}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="company">Company (Optional)</Label>
-                <div className="relative">
-                  <Building2 className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="company"
-                    {...contactForm.register("company")}
-                    className="pl-10"
-                    placeholder="Your company name"
-                  />
-                </div>
-              </div>
-            </div>
-
             <div className="space-y-2">
-              <Label htmlFor="projectDescription">Project Description *</Label>
-              <div className="relative">
-                <FileText className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Textarea
-                  id="projectDescription"
-                  {...contactForm.register("projectDescription")}
-                  className="pl-10 min-h-[100px]"
-                  placeholder="Describe your project requirements, goals, and any specific features you need..."
-                />
-              </div>
-              {contactForm.formState.errors.projectDescription && (
-                <p className="text-sm text-red-500">{contactForm.formState.errors.projectDescription.message}</p>
+              <Label htmlFor="fullName" className="flex items-center gap-2">
+                <User className="h-4 w-4" />
+                Full Name *
+              </Label>
+              <Input
+                id="fullName"
+                {...contactForm.register("fullName")}
+                className="h-10"
+                placeholder="Enter your full name"
+              />
+              {contactForm.formState.errors.fullName && (
+                <p className="text-sm text-red-600">{contactForm.formState.errors.fullName.message}</p>
               )}
             </div>
 
-            <Button type="submit" className="w-full">
+            <div className="space-y-2">
+              <Label htmlFor="email" className="flex items-center gap-2">
+                <Mail className="h-4 w-4" />
+                Email Address *
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                {...contactForm.register("email")}
+                className="h-10"
+                placeholder="Enter your email address"
+              />
+              {contactForm.formState.errors.email && (
+                <p className="text-sm text-red-600">{contactForm.formState.errors.email.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="phone" className="flex items-center gap-2">
+                <Phone className="h-4 w-4" />
+                Phone Number *
+              </Label>
+              <Input
+                id="phone"
+                type="tel"
+                {...contactForm.register("phone")}
+                className="h-10"
+                placeholder="Enter your phone number"
+              />
+              {contactForm.formState.errors.phone && (
+                <p className="text-sm text-red-600">{contactForm.formState.errors.phone.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="company" className="flex items-center gap-2">
+                <Building2 className="h-4 w-4" />
+                Company (Optional)
+              </Label>
+              <Input
+                id="company"
+                {...contactForm.register("company")}
+                className="h-10"
+                placeholder="Enter your company name"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="projectDescription" className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Project Description *
+              </Label>
+              <Textarea
+                id="projectDescription"
+                {...contactForm.register("projectDescription")}
+                className="min-h-20"
+                placeholder="Please describe your project requirements, goals, and any specific features you need..."
+              />
+              {contactForm.formState.errors.projectDescription && (
+                <p className="text-sm text-red-600">{contactForm.formState.errors.projectDescription.message}</p>
+              )}
+            </div>
+
+            <Button type="submit" className="w-full h-10">
               Continue to Payment
-              <ArrowLeft className="ml-2 h-4 w-4 rotate-180" />
             </Button>
           </form>
         )}
 
-        {/* Step 2: Payment Information */}
-        {currentStep === 2 && contactData && (
+        {currentStep === 2 && (
           <form onSubmit={paymentForm.handleSubmit(onPaymentSubmit)} className="space-y-6">
-            <div className="flex items-center gap-2 mb-4">
-              <CreditCard className="h-5 w-5 text-blue-600" />
-              <h3 className="text-lg font-semibold">Payment Details</h3>
+            <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+              <h3 className="font-medium text-gray-900">Contact Information</h3>
+              <div className="text-sm text-gray-600 space-y-1">
+                <p><strong>Name:</strong> {contactData?.fullName}</p>
+                <p><strong>Email:</strong> {contactData?.email}</p>
+                <p><strong>Phone:</strong> {contactData?.phone}</p>
+                {contactData?.company && <p><strong>Company:</strong> {contactData.company}</p>}
+              </div>
             </div>
 
-            {/* Order Summary */}
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h4 className="font-semibold mb-3">Order Summary</h4>
+            <div className="space-y-4">
               <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span>{service.name}</span>
-                  <span>₦{totalPrice.toLocaleString()}</span>
-                </div>
-                {selectedAddOns.length > 0 && (
-                  <div className="text-sm text-gray-600">
-                    <p>Add-ons: {selectedAddOns.join(", ")}</p>
-                  </div>
+                <Label>Timeline Preference *</Label>
+                <Select onValueChange={(value) => paymentForm.setValue("timeline", value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select your preferred timeline" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1-2 weeks">1-2 weeks</SelectItem>
+                    <SelectItem value="2-4 weeks">2-4 weeks</SelectItem>
+                    <SelectItem value="1-2 months">1-2 months</SelectItem>
+                    <SelectItem value="2+ months">2+ months</SelectItem>
+                  </SelectContent>
+                </Select>
+                {paymentForm.formState.errors.timeline && (
+                  <p className="text-sm text-red-600">{paymentForm.formState.errors.timeline.message}</p>
                 )}
-                <div className="border-t pt-2 font-semibold">
-                  <div className="flex justify-between">
-                    <span>Total</span>
-                    <span>₦{totalPrice.toLocaleString()}</span>
-                  </div>
+              </div>
+            </div>
+
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <h3 className="font-medium text-blue-900 mb-2">Order Summary</h3>
+              
+              <div className="flex justify-between items-center text-blue-800">
+                <span>{service.name} Package</span>
+                <span>₦{totalPrice.toLocaleString()}</span>
+              </div>
+              
+              <div className="border-t border-blue-200 mt-2 pt-2">
+                <div className="flex justify-between items-center font-semibold text-blue-900">
+                  <span>Total</span>
+                  <span className="text-lg">₦{totalPrice.toLocaleString()}</span>
                 </div>
               </div>
             </div>
 
-            {/* Timeline Selection */}
-            <div className="space-y-2">
-              <Label>Project Timeline</Label>
-              <Select onValueChange={(value) => paymentForm.setValue("timeline", value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select your preferred timeline" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1-2 weeks">1-2 weeks</SelectItem>
-                  <SelectItem value="2-4 weeks">2-4 weeks</SelectItem>
-                  <SelectItem value="4-6 weeks">4-6 weeks</SelectItem>
-                  <SelectItem value="6+ weeks">6+ weeks</SelectItem>
-                </SelectContent>
-              </Select>
-              {paymentForm.formState.errors.timeline && (
-                <p className="text-sm text-red-500">{paymentForm.formState.errors.timeline.message}</p>
-              )}
-            </div>
-
-            {/* Payment Method */}
-            <div className="space-y-2">
-              <Label>Payment Method</Label>
-              <RadioGroup value="paystack" className="flex items-center space-x-2">
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="paystack" id="paystack" />
-                  <Label htmlFor="paystack" className="flex items-center gap-2">
-                    <CreditCard className="h-4 w-4" />
-                    Secure Payment via Paystack
-                  </Label>
-                </div>
-              </RadioGroup>
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h4 className="font-medium text-gray-900 mb-2">
+                <CreditCard className="inline h-4 w-4 mr-2" />
+                Secure Payment
+              </h4>
               <p className="text-sm text-gray-600">
-                Pay securely with your debit card, bank transfer, or other payment methods via Paystack.
+                You'll be redirected to Paystack to complete your payment securely. We accept all major credit cards and bank transfers.
               </p>
             </div>
 
-            <div className="flex gap-3">
+            <div className="flex gap-4">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setCurrentStep(1)}
-                className="flex-1"
+                className="flex-1 h-10 text-sm"
               >
-                <ArrowLeft className="mr-2 h-4 w-4" />
+                <ArrowLeft className="mr-1 h-3 w-3" />
                 Back
               </Button>
+              
               <Button
                 type="submit"
-                className="flex-1"
+                className="flex-1 h-10 text-sm"
                 disabled={orderMutation.isPending}
               >
-                {orderMutation.isPending ? "Processing..." : `Pay ₦${totalPrice.toLocaleString()}`}
-                <CreditCard className="ml-2 h-4 w-4" />
+                {orderMutation.isPending ? (
+                  <>
+                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    Pay ₦{totalPrice.toLocaleString()}
+                    <CreditCard className="ml-1 h-3 w-3" />
+                  </>
+                )}
               </Button>
             </div>
+
+            <p className="text-xs text-gray-500 text-center">
+              By proceeding, you agree to our terms of service. 
+              Your payment is processed securely by Paystack.
+            </p>
           </form>
         )}
       </CardContent>
