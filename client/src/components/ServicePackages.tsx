@@ -238,25 +238,63 @@ export default function ServicePackages() {
   const [priceUpdates, setPriceUpdates] = useState<Record<string, number>>({});
   const [selectedAddOns, setSelectedAddOns] = useState<Record<string, string[]>>({});
 
+  // Helper function to parse PostgreSQL arrays or JSON strings
+  const parseArrayField = (field: string | any[]): string[] => {
+    if (!field) return [];
+    if (Array.isArray(field)) return field;
+    if (typeof field === 'string') {
+      // Handle PostgreSQL array format: {"item1","item2","item3"}
+      if (field.startsWith('{') && field.endsWith('}')) {
+        return field.slice(1, -1)
+          .split(',')
+          .map(item => item.replace(/^"/, '').replace(/"$/, '').trim())
+          .filter(item => item.length > 0);
+      }
+      // Handle JSON array format: ["item1","item2","item3"]
+      if (field.startsWith('[') && field.endsWith(']')) {
+        try {
+          return JSON.parse(field);
+        } catch {
+          return [field];
+        }
+      }
+      // Single string fallback
+      return [field];
+    }
+    return [];
+  };
+
   // Fetch services from database
   const { data: servicesData = [], isLoading, error } = useQuery({
     queryKey: ['/api/services'],
-    select: (data: any[]) => data.map((service: any) => ({
-      id: service.id,
-      name: service.name,
-      description: service.description,
-      price: parseInt(service.priceUsd) || 0,
-      originalPrice: parseInt(service.originalPriceUsd) || parseInt(service.priceUsd) || 0,
-      duration: service.duration || "4-6 weeks",
-      deliveryDate: calculateDeliveryDate(service.duration || "4-6 weeks"),
-      spots: service.spotsRemaining || 5,
-      totalSpots: service.totalSpots || 10,
-      features: service.features ? JSON.parse(service.features) : [],
-      addOns: service.addOns ? JSON.parse(service.addOns) : [],
-      recommended: service.recommended || false,
-      category: service.category,
-      industry: service.industry ? JSON.parse(service.industry) : ["general"]
-    }))
+    select: (data: any[]) => {
+      console.log('Raw services data:', data);
+      return data.map((service: any) => {
+        try {
+          const transformed = {
+            id: service.id,
+            name: service.name,
+            description: service.description,
+            price: parseInt(service.priceUsd) || 0,
+            originalPrice: parseInt(service.originalPriceUsd) || parseInt(service.priceUsd) || 0,
+            duration: service.duration || "4-6 weeks",
+            deliveryDate: calculateDeliveryDate(service.duration || "4-6 weeks"),
+            spots: service.spotsRemaining || 5,
+            totalSpots: service.totalSpots || 10,
+            features: parseArrayField(service.features),
+            addOns: Array.isArray(service.addOns) ? service.addOns : [],
+            recommended: service.recommended || false,
+            category: service.category,
+            industry: parseArrayField(service.industry)
+          };
+          console.log('Transformed service:', transformed);
+          return transformed;
+        } catch (err) {
+          console.error('Error transforming service:', service, err);
+          return null;
+        }
+      }).filter(Boolean);
+    }
   });
 
   const industryRecommendations: Record<string, string[]> = {
@@ -336,10 +374,13 @@ export default function ServicePackages() {
   }
 
   if (error) {
+    console.error('Services query error:', error);
     return (
       <section className="py-6 bg-slate-50">
         <div className="container mx-auto px-4">
-          <div className="text-center text-red-600">Failed to load services</div>
+          <div className="text-center text-red-600">
+            Failed to load services: {error.message || 'Unknown error'}
+          </div>
         </div>
       </section>
     );
