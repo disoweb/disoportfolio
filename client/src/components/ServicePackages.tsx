@@ -387,7 +387,7 @@ export default function ServicePackages() {
   }
 
   return (
-    <section className="py-6 bg-slate-50" id="packages">
+    <section className="py-6 bg-slate-50" id="service-packages">
       <div className="container mx-auto px-4">
         <div className="text-center mb-6">
           <h2 className="text-2xl font-bold text-slate-800 mb-2">

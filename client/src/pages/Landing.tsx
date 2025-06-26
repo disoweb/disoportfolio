@@ -387,9 +387,9 @@ export default function Landing() {
                 size="lg"
                 className="bg-blue-600 hover:bg-blue-700 px-8 py-6 text-lg w-auto relative"
                 onClick={() => {
-                  const industrySection = document.getElementById('industry-selection');
-                  if (industrySection) {
-                    industrySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  const servicesSection = document.getElementById('service-packages');
+                  if (servicesSection) {
+                    servicesSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
                   }
                 }}
               >
@@ -534,45 +534,7 @@ export default function Landing() {
       </section>
 
       {/* Services Section */}
-      <section id="services-section" className="py-10 lg:py-24 bg-gradient-to-br from-slate-50 to-blue-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold mb-4 text-blue-600">
-              Choose Your Package
-            </h2>
-            <p className="text-xl text-slate-600 max-w-3xl mx-auto">
-              From small businesses to large enterprises, we have the right
-              solution for your needs.
-            </p>
-
-            {/* Pricing Benefits */}
-            <div className="flex flex-wrap justify-center gap-4 mt-6">
-              <Badge
-                variant="secondary"
-                className="text-sm py-1 px-3 text-blue-600"
-              >
-                <Clock className="h-3 w-3 mr-1 text-green-800" />
-                Pay in installments available
-              </Badge>
-              <Badge
-                variant="secondary"
-                className="text-sm py-1 px-3 text-blue-600"
-              >
-                <Award className="h-3 w-3 mr-1 text-green-800" />
-                Industry-specific recommendations
-              </Badge>
-              <Badge
-                variant="secondary"
-                className="text-sm py-1 px-3 text-blue-600"
-              >
-                <CheckCircle className="h-3 w-3 mr-1 text-green-800" />
-                AI-powered suggestions
-              </Badge>
-            </div>
-          </div>
-          <ServicePackages />
-        </div>
-      </section>
+      <ServicePackages />
 
       {/* Testimonials Section */}
       <section className="py-10 lg:py-24 bg-white">
