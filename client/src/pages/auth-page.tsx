@@ -97,9 +97,12 @@ export default function AuthPage() {
       const response = await apiRequest("POST", "/api/auth/login", data);
       return response.json();
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       queryClient.setQueryData(["/api/auth/user"], data.user);
       toast({ title: "Welcome back!", description: "You've been successfully logged in." });
+      
+      // Wait a moment for session to be fully established
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       // Check for pending checkout and redirect appropriately
       const pendingCheckout = sessionStorage.getItem('pendingCheckout');

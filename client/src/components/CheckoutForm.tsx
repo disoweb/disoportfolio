@@ -217,37 +217,64 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
             setContactData(checkoutData.contactData);
             setCurrentStep(2);
             
-            // Auto-submit the payment after a brief delay to ensure state is set
-            setTimeout(() => {
+            // Auto-submit the payment after ensuring user is properly authenticated
+            setTimeout(async () => {
               console.log('🔍 [AUTH EFFECT] Auto-submitting payment');
               
-              // Ensure email is populated from authenticated user if missing
-              const contactData = { ...checkoutData.contactData };
-              if (!contactData.email && user?.email) {
-                console.log('🔍 [AUTH EFFECT] Populating missing email from user:', user.email);
-                contactData.email = user.email;
-              }
-              
-              // Validate that we have all required fields
-              if (!contactData.fullName || !contactData.email || !contactData.projectDescription) {
-                console.error('🔍 [AUTH EFFECT] Missing required contact data:', contactData);
+              // Verify user is still authenticated before proceeding
+              try {
+                const authCheck = await apiRequest("GET", "/api/auth/user");
+                const currentUser = await authCheck.json();
+                console.log('🔍 [AUTH EFFECT] Auth check result:', currentUser);
+                
+                if (!currentUser || !currentUser.email) {
+                  console.error('🔍 [AUTH EFFECT] User not authenticated, aborting auto-submit');
+                  toast({
+                    title: "Authentication Error",
+                    description: "Please log in again to complete your order.",
+                    variant: "destructive",
+                  });
+                  setLocation('/auth');
+                  return;
+                }
+                
+                // Ensure email is populated from authenticated user if missing
+                const contactData = { ...checkoutData.contactData };
+                if (!contactData.email && currentUser.email) {
+                  console.log('🔍 [AUTH EFFECT] Populating missing email from user:', currentUser.email);
+                  contactData.email = currentUser.email;
+                }
+                
+                // Validate that we have all required fields
+                if (!contactData.fullName || !contactData.email || !contactData.projectDescription) {
+                  console.error('🔍 [AUTH EFFECT] Missing required contact data:', contactData);
+                  toast({
+                    title: "Incomplete Information",
+                    description: "Please fill out all required contact information.",
+                    variant: "destructive",
+                  });
+                  setCurrentStep(1);
+                  return;
+                }
+                
+                const combinedData = { 
+                  ...contactData, 
+                  paymentMethod: "paystack",
+                  ...(checkoutData.paymentData || {})
+                };
+                console.log('🔍 [AUTH EFFECT] Combined data for order:', combinedData);
+                orderMutation.mutate(combinedData);
+                
+              } catch (error) {
+                console.error('🔍 [AUTH EFFECT] Auth check failed:', error);
                 toast({
-                  title: "Incomplete Information",
-                  description: "Please fill out all required contact information.",
+                  title: "Authentication Error",
+                  description: "Please log in again to complete your order.",
                   variant: "destructive",
                 });
-                setCurrentStep(1);
-                return;
+                setLocation('/auth');
               }
-              
-              const combinedData = { 
-                ...contactData, 
-                paymentMethod: "paystack",
-                ...(checkoutData.paymentData || {})
-              };
-              console.log('🔍 [AUTH EFFECT] Combined data for order:', combinedData);
-              orderMutation.mutate(combinedData);
-            }, 500);
+            }, 1000);
           }
         } catch (error) {
           console.error('🔍 [AUTH EFFECT] Error restoring pending checkout:', error);
