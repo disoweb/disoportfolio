@@ -151,17 +151,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/orders', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      const orderData = insertOrderSchema.parse({
-        ...req.body,
+      console.log('🔍 [ORDER CREATE] Raw request body:', JSON.stringify(req.body, null, 2));
+      console.log('🔍 [ORDER CREATE] User ID:', userId);
+      
+      // Transform the frontend data structure to match the database schema
+      const {
+        serviceId,
+        contactInfo,
+        projectDetails,
+        selectedAddOns,
+        totalAmount,
+        paymentMethod,
+        timeline
+      } = req.body;
+      
+      // Create custom request text from all the collected information
+      const customRequestData = {
+        contactInfo: contactInfo || {
+          fullName: req.body.fullName,
+          email: req.body.email,
+          phone: req.body.phone,
+          company: req.body.company
+        },
+        projectDetails: projectDetails || {
+          description: req.body.projectDescription
+        },
+        selectedAddOns: selectedAddOns || [],
+        timeline: timeline || req.body.timeline,
+        paymentMethod: paymentMethod || req.body.paymentMethod
+      };
+      
+      console.log('🔍 [ORDER CREATE] Transformed custom request data:', JSON.stringify(customRequestData, null, 2));
+      
+      // Prepare order data according to the database schema
+      const orderData = {
         userId,
-      });
-      const order = await storage.createOrder(orderData);
-      res.json(order);
+        serviceId: serviceId || req.body.serviceId,
+        customRequest: JSON.stringify(customRequestData),
+        totalPrice: (totalAmount || req.body.totalAmount || 0).toString(),
+        status: "pending" as const,
+      };
+      
+      console.log('🔍 [ORDER CREATE] Final order data for validation:', JSON.stringify(orderData, null, 2));
+      
+      // Validate using the schema
+      const validatedOrderData = insertOrderSchema.parse(orderData);
+      console.log('🔍 [ORDER CREATE] Validated order data:', JSON.stringify(validatedOrderData, null, 2));
+      
+      // Create the order
+      const order = await storage.createOrder(validatedOrderData);
+      console.log('🔍 [ORDER CREATE] Created order:', JSON.stringify(order, null, 2));
+      
+      // Initialize payment if needed
+      if (order && order.id) {
+        try {
+          const email = customRequestData.contactInfo.email;
+          const paymentUrl = await storage.initializePayment({
+            orderId: order.id,
+            amount: parseInt(orderData.totalPrice),
+            email,
+            userId,
+          });
+          
+          console.log('🔍 [ORDER CREATE] Payment URL generated:', paymentUrl);
+          res.json({ ...order, paymentUrl });
+        } catch (paymentError) {
+          console.error('🔍 [ORDER CREATE] Payment initialization failed:', paymentError);
+          // Return order without payment URL if payment fails
+          res.json(order);
+        }
+      } else {
+        res.json(order);
+      }
     } catch (error) {
       if (error instanceof z.ZodError) {
+        console.error('🔍 [ORDER CREATE] Validation error:', error.errors);
         return res.status(400).json({ message: "Invalid order data", errors: error.errors });
       }
-      console.error("Error creating order:", error);
+      console.error("🔍 [ORDER CREATE] Error creating order:", error);
       res.status(500).json({ message: "Failed to create order" });
     }
   });
