@@ -72,7 +72,7 @@ export async function setupAuth(app: Express) {
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || 'dev-secret-key-for-replit-development',
     resave: false,
-    saveUninitialized: true,
+    saveUninitialized: false,
     store: sessionStore,
     cookie: {
       secure: false,
@@ -89,6 +89,13 @@ export async function setupAuth(app: Express) {
   // Initialize passport after session middleware
   app.use(passport.initialize());
   app.use(passport.session());
+
+  // Session debugging disabled for production
+  // app.use((req, res, next) => {
+  //   console.log('Session:', req.session ? 'exists' : 'missing');
+  //   console.log('Session ID:', req.sessionID);
+  //   next();
+  // });
 
   // Local Strategy (Email/Password)
   passport.use(
@@ -328,33 +335,44 @@ export async function setupAuth(app: Express) {
         return res.status(401).json({ message: info?.message || "Login failed" });
       }
 
-      // Manually set session instead of using req.login to avoid passport issues
-      if (req.session) {
-        (req.session as any).passport = { user: user.id };
-        req.session.save((saveErr) => {
-          if (saveErr) {
-            auditLog('login_session_error', user.id, { error: saveErr.message, clientIP });
-            return res.status(500).json({ message: "Login failed" });
-          }
+      // Custom session management to avoid passport issues
+      try {
+        if (req.session) {
+          // Set user ID directly in session without passport wrapper
+          (req.session as any).userId = user.id;
           
-          const sanitizedUser = { ...user };
-          delete (sanitizedUser as any).password;
-          
-          auditLog('login_success', user.id, { email: sanitizedEmail.substring(0, 5) + '***', clientIP });
-          res.json({ user: sanitizedUser });
-        });
-      } else {
-        auditLog('login_no_session', user.id, { clientIP });
-        res.status(500).json({ message: "Session not available" });
+          req.session.save((saveErr) => {
+            if (saveErr) {
+              console.error('Session save error:', saveErr);
+              auditLog('login_session_error', user.id, { error: saveErr.message, clientIP });
+              return res.status(500).json({ message: "Login failed" });
+            }
+            
+            const sanitizedUser = { ...user };
+            delete (sanitizedUser as any).password;
+            
+            auditLog('login_success', user.id, { email: sanitizedEmail.substring(0, 5) + '***', clientIP });
+            res.json({ user: sanitizedUser });
+          });
+        } else {
+          console.error('No session object available');
+          auditLog('login_session_error', user.id, { error: 'No session available', clientIP });
+          return res.status(500).json({ message: "Login failed" });
+        }
+      } catch (sessionError) {
+        console.error('Session error:', sessionError);
+        auditLog('login_session_error', user.id, { error: (sessionError as Error).message, clientIP });
+        return res.status(500).json({ message: "Login failed" });
       }
     })(req, res, next);
   });
 
   app.get("/api/auth/user", async (req, res) => {
     try {
-      // Check session directly for user
-      if (req.session && (req.session as any).passport && (req.session as any).passport.user) {
-        const user = await storage.getUser((req.session as any).passport.user);
+      // Check custom session userId instead of passport
+      if (req.session && (req.session as any).userId) {
+        const userId = (req.session as any).userId;
+        const user = await storage.getUser(userId);
         if (user) {
           const sanitizedUser = { ...user };
           delete (sanitizedUser as any).password;
@@ -443,25 +461,33 @@ export async function setupAuth(app: Express) {
 
 export const isAuthenticated = async (req: any, res: any, next: any) => {
   try {
-    // Check session directly due to passport serialization issues
-    if (req.session && req.session.passport && req.session.passport.user) {
-      // Manually attach user to request if needed
-      if (!req.user) {
-        const user = await storage.getUser(req.session.passport.user);
-        if (user) {
-          req.user = user;
-          return next();
-        } else {
-          return res.status(401).json({ message: "User not found" });
-        }
-      } else {
+    // Check custom session userId first (from our login system)
+    if (req.session && (req.session as any).userId) {
+      const userId = (req.session as any).userId;
+      const user = await storage.getUser(userId);
+      if (user) {
+        req.user = user;
         return next();
       }
-    } else {
-      return res.status(401).json({ message: "Authentication required" });
     }
+
+    // Fallback check for passport session
+    if (req.session && req.session.passport && req.session.passport.user) {
+      const user = await storage.getUser(req.session.passport.user);
+      if (user) {
+        req.user = user;
+        return next();
+      }
+    }
+    
+    // Final fallback for req.user
+    if (req.user) {
+      return next();
+    }
+    
+    return res.status(401).json({ message: "Authentication required" });
   } catch (error) {
     console.error('Authentication error:', error);
-    return res.status(401).json({ message: "Authentication required" });
+    res.status(401).json({ message: "Authentication required" });
   }
 };

@@ -1,0 +1,16 @@
+HTTP/1.1 200 OK
+X-Powered-By: Express
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
+X-XSS-Protection: 1; mode=block
+Referrer-Policy: strict-origin-when-cross-origin
+Cache-Control: no-cache, no-store, must-revalidate
+Pragma: no-cache
+Content-Type: application/json; charset=utf-8
+Content-Length: 4
+ETag: W/"4-K+iMpCQsduglOsYkdIUQZQMtaDM"
+Set-Cookie: connect.sid=s%3A4sTovOW-V8kgGMVIeP9_18WwgeyJmQPl.YXWeEqVs983c9W1%2F7Fk38r8wTqEwphUJFIDUHV5g9zo; Path=/; Expires=Thu, 03 Jul 2025 14:43:00 GMT; HttpOnly; SameSite=Lax
+Date: Thu, 26 Jun 2025 14:43:00 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+

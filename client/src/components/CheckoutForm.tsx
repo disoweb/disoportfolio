@@ -136,6 +136,12 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
         totalAmount: data.overrideTotalAmount || totalPrice,
       };
 
+      // Verify authentication before submitting order
+      const authCheck = await fetch("/api/auth/user", { credentials: "include" });
+      if (!authCheck.ok || authCheck.status === 401) {
+        throw new Error("Authentication required - please log in again");
+      }
+      
       try {
         const response = await apiRequest("POST", "/api/orders", orderData);
         if (!response.ok) {
@@ -172,11 +178,22 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
       // Hide loader on error
       setShowPaymentLoader(false);
       
-      toast({
-        title: "Order failed",
-        description: error.message || "Something went wrong. Please try again.",
-        variant: "destructive",
-      });
+      if (error.message.includes("Authentication")) {
+        toast({
+          title: "Authentication Error",
+          description: "Please log in again to complete your order.",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/auth";
+        }, 1500);
+      } else {
+        toast({
+          title: "Order failed",
+          description: error.message || "Something went wrong. Please try again.",
+          variant: "destructive",
+        });
+      }
     },
   });
 
