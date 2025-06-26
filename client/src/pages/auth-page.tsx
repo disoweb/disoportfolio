@@ -227,25 +227,63 @@ export default function AuthPage() {
       const response = await apiRequest("POST", "/api/auth/register", data);
       return response.json();
     },
-    onSuccess: (data) => {
-      queryClient.setQueryData(["/api/auth/user"], data.user);
-      toast({ title: "Welcome to DiSO Webs!", description: "Your account has been created successfully." });
+    onSuccess: async (data) => {
+      console.log('🚀 [REGISTER SUCCESS] User created:', data.user.email);
       
-      // Check for pending checkout and redirect appropriately
-      const pendingCheckout = sessionStorage.getItem('pendingCheckout');
-      if (pendingCheckout) {
+      // Set the user data in React Query cache
+      queryClient.setQueryData(["/api/auth/user"], data.user);
+      toast({ title: "Welcome!", description: "Your account has been created successfully." });
+      
+      console.log('🚀 [REGISTER SUCCESS] Waiting for session establishment...');
+      // Wait longer for session to be fully established with database
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Check for checkout session token first
+      const checkoutSessionToken = sessionStorage.getItem('checkoutSessionToken');
+      console.log('🔄 AUTH: Checking for checkout session token:', checkoutSessionToken);
+      
+      if (checkoutSessionToken) {
         try {
-          const checkoutData = JSON.parse(pendingCheckout);
-
-          setLocation(checkoutData.returnUrl || '/checkout');
+          // Fetch the checkout session data
+          const response = await fetch(`/api/checkout-sessions/${checkoutSessionToken}`, {
+            credentials: 'include'
+          });
+          
+          if (response.ok) {
+            const sessionData = await response.json();
+            console.log('🔄 AUTH: Found checkout session:', sessionData);
+            
+            // Build redirect URL with all the service data
+            const params = new URLSearchParams({
+              service: sessionData.serviceId,
+              price: sessionData.serviceData.price,
+              step: 'payment',
+              checkout: checkoutSessionToken
+            });
+            
+            if (sessionData.selectedAddOns && sessionData.selectedAddOns.length > 0) {
+              params.set('addons', JSON.stringify(sessionData.selectedAddOns));
+            }
+            
+            // Set auto-submit flag for immediate payment
+            sessionStorage.setItem('auto_submit_payment', 'true');
+            console.log('🔄 AUTH: Set auto_submit_payment flag, redirecting to checkout');
+            
+            // Redirect to checkout with auto-payment
+            window.location.href = `/checkout?${params.toString()}`;
+            return;
+          }
         } catch (error) {
-          console.error('🔍 [REGISTER SUCCESS] Error parsing pending checkout:', error);
-          setLocation("/");
+          console.error('🔄 AUTH: Error fetching checkout session:', error);
         }
-      } else {
-        console.log('🔍 [REGISTER SUCCESS] No pending checkout, redirecting to dashboard');
-        setLocation("/");
+        
+        // Clear invalid token
+        sessionStorage.removeItem('checkoutSessionToken');
       }
+      
+      // No checkout session, redirect to dashboard
+      console.log('🔄 AUTH: No pending checkout, redirecting to dashboard');
+      setLocation("/dashboard");
     },
     onError: (error: any) => {
       toast({

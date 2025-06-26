@@ -38,35 +38,29 @@ async function comparePasswords(supplied: string, stored: string): Promise<boole
 }
 
 export async function setupAuth(app: Express) {
-  // Session configuration - use memory store for development to avoid DB connection issues
+  // Session configuration - use PostgreSQL session store if available, fallback to memory
   let sessionStore;
   
-  if (process.env.NODE_ENV === 'production' && process.env.DATABASE_URL) {
-    const PostgresSessionStore = connectPg(session);
-    sessionStore = new PostgresSessionStore({
-      conString: process.env.DATABASE_URL,
-      createTableIfMissing: true,
-      tableName: "sessions",
-      errorLog: (error: any) => {
-        console.error('Session store error:', error);
-      }
-    });
-    
-    sessionStore.on('connect', () => {
-      console.log('Session store connected successfully');
-    });
-
-    sessionStore.on('disconnect', () => {
-      console.log('Session store disconnected');
-    });
-
-    sessionStore.on('error', (error) => {
-      console.error('Session store error:', error);
-    });
-  } else {
-    // Use memory store for development
-    console.log('Using memory store for sessions in development');
-    sessionStore = undefined; // Express session will use memory store by default
+  try {
+    if (process.env.DATABASE_URL) {
+      const PostgresSessionStore = connectPg(session);
+      sessionStore = new PostgresSessionStore({
+        conString: process.env.DATABASE_URL,
+        createTableIfMissing: false, // Table already exists
+        tableName: "sessions",
+        ttl: 7 * 24 * 60 * 60, // 7 days in seconds
+        errorLog: (error: any) => {
+          console.error('Session store error:', error);
+        }
+      });
+      console.log('Using PostgreSQL session store for persistent sessions');
+    } else {
+      console.log('Using memory store for sessions (DATABASE_URL not available)');
+      sessionStore = undefined;
+    }
+  } catch (error) {
+    console.error('Failed to create PostgreSQL session store, falling back to memory store:', error);
+    sessionStore = undefined;
   }
 
   const sessionSettings: session.SessionOptions = {
