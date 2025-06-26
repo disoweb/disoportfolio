@@ -25,7 +25,13 @@ import WhatsAppFloat from "@/components/WhatsAppFloat";
 function Router() {
   const { isAuthenticated, isLoading, user } = useAuth();
   const [mounted, setMounted] = useState(false);
-  const [paymentInProgress, setPaymentInProgress] = useState(false);
+  // Initialize payment state immediately from sessionStorage to prevent flash
+  const [paymentInProgress, setPaymentInProgress] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem('payment_in_progress') === 'true';
+    }
+    return false;
+  });
 
   useEffect(() => {
     setMounted(true);
@@ -42,18 +48,29 @@ function Router() {
     }
   }, []);
 
-  // Clear payment flag if redirected back with clear_payment parameter
+  // Check for payment states and handle auto-submit
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
       if (urlParams.get('clear_payment') === 'true') {
         sessionStorage.removeItem('payment_in_progress');
+        sessionStorage.removeItem('pendingCheckout');
         setPaymentInProgress(false);
       } else {
-        // Only check if payment is explicitly in progress
+        // Check payment flags immediately
         const inProgress = sessionStorage.getItem('payment_in_progress') === 'true';
-        console.log('🌐 [APP] Checking payment_in_progress flag:', inProgress);
-        setPaymentInProgress(inProgress);
+        const pendingCheckout = sessionStorage.getItem('pendingCheckout');
+        
+        console.log('🌐 [APP] Checking payment states - inProgress:', inProgress, 'pendingCheckout:', !!pendingCheckout, 'authenticated:', isAuthenticated);
+        
+        // Set payment loader if payment is in progress or authenticated user has pending checkout
+        if (inProgress || (isAuthenticated && pendingCheckout)) {
+          setPaymentInProgress(true);
+          // Ensure immediate auto-submission for authenticated users with pending data
+          if (isAuthenticated && pendingCheckout && !inProgress) {
+            sessionStorage.setItem('payment_in_progress', 'true');
+          }
+        }
       }
     }
   }, [isAuthenticated]);
@@ -81,9 +98,13 @@ function Router() {
     );
   }
 
-  // Show payment loader to prevent dashboard flash during payment processing
-  if (paymentInProgress) {
-    console.log('🌐 [APP] Rendering global payment loader');
+  // Check for immediate payment conditions
+  const pendingCheckout = typeof window !== 'undefined' && sessionStorage.getItem('pendingCheckout');
+  const shouldShowPaymentLoader = paymentInProgress || (isAuthenticated && pendingCheckout);
+  
+  // Priority render: payment loader before anything else
+  if (shouldShowPaymentLoader) {
+    console.log('🌐 [APP] Rendering global payment loader to prevent dashboard flash');
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">

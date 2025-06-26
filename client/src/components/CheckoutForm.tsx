@@ -163,10 +163,9 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
         sessionStorage.setItem('payment_in_progress', 'true');
         
         console.log('✅ [ORDER SUCCESS] Redirecting to Paystack URL:', data.paymentUrl);
-        // Redirect to Paystack immediately - loader will persist until page loads
-        setTimeout(() => {
-          window.location.href = data.paymentUrl;
-        }, 100); // Minimal delay to ensure loader renders
+        
+        // Immediate redirect to Paystack to minimize any potential flash
+        window.location.href = data.paymentUrl;
       } else {
         console.log('✅ [ORDER SUCCESS] No payment URL, showing success message');
         toast({
@@ -222,8 +221,8 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
             // Set global payment flag to prevent dashboard flash
             sessionStorage.setItem('payment_in_progress', 'true');
             
-            // Force re-render by updating window location slightly
-            window.history.replaceState({}, '', window.location.pathname + '?payment=processing');
+            // Force app to re-render with payment loader immediately
+            window.dispatchEvent(new Event('storage'));
             
             // Auto-submit the payment after ensuring user is properly authenticated
             setTimeout(() => {
@@ -283,7 +282,7 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
               console.log('🔄 [AUTO-SUBMIT] PaymentLoader state before mutate:', showPaymentLoader);
               orderMutation.mutate(combinedData);
               console.log('🔄 [AUTO-SUBMIT] Order mutation called, isPending after mutate:', orderMutation.isPending);
-            }, 50); // Minimal delay to ensure PaymentLoader renders first
+            }, 100); // Minimal delay to ensure PaymentLoader renders
           }
         } catch (error) {
           sessionStorage.removeItem('pendingCheckout');
