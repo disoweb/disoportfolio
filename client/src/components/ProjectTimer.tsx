@@ -31,6 +31,9 @@ export default function ProjectTimer({ project }: ProjectTimerProps) {
       const endDate = new Date(project.dueDate);
       const timeDiff = endDate.getTime() - now.getTime();
       
+      // Debug: Log project details
+      console.log(`Project: ${project.projectName}, Due: ${project.dueDate}, TimeDiff: ${timeDiff}`);
+      
       if (timeDiff <= 0) {
         setTimeRemaining({ days: 0, hours: 0, minutes: 0, isOverdue: true });
         return;
