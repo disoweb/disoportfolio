@@ -60,9 +60,16 @@ export default function TransactionHistory() {
           searchFields.push(orderId.slice(-8)); // Medium order ID
         }
         
-        // Debug: log all search fields for first few orders
+        // Debug: log all search fields and actual values for problematic searches
         if (query === 'good') {
-          console.log(`Order ${order.id?.slice(-6)} search fields:`, searchFields);
+          console.log(`Order ${order.id?.slice(-6)}:`, {
+            contactName: order.contactName,
+            contactEmail: order.contactEmail,
+            companyName: order.companyName,
+            serviceName: order.serviceName,
+            customRequest: order.customRequest,
+            searchFields: searchFields
+          });
         }
         
         // Check for exact word matches or meaningful partial matches (3+ chars)
