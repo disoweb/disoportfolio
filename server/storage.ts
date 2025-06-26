@@ -550,7 +550,7 @@ export class DatabaseStorage implements IStorage {
   // Analytics operations
   async getAnalytics(): Promise<any> {
     const [totalRevenue] = await db
-      .select({ value: sum(orders.totalPrice) })
+      .select({ value: sum(sql`CAST(${orders.totalPrice} AS DECIMAL)`) })
       .from(orders)
       .where(eq(orders.status, "paid"));
 
