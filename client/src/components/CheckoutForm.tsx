@@ -157,6 +157,9 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
 
   const orderMutation = useMutation({
     mutationFn: async (data: ContactForm & PaymentForm) => {
+      console.log('🚀 [ORDER MUTATION] Starting order submission');
+      console.log('🚀 [ORDER MUTATION] Input data:', data);
+      
       const orderData = {
         serviceId: service.id,
         customerInfo: {
@@ -172,7 +175,16 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
         totalAmount: totalPrice,
       };
 
-      return await apiRequest("POST", "/api/orders", orderData);
+      console.log('🚀 [ORDER MUTATION] Sending order data:', orderData);
+      
+      try {
+        const response = await apiRequest("POST", "/api/orders", orderData);
+        console.log('🚀 [ORDER MUTATION] Order response received:', response);
+        return response;
+      } catch (error) {
+        console.error('🚀 [ORDER MUTATION] Order failed:', error);
+        throw error;
+      }
     },
     onSuccess: (data) => {
       if (data.paymentUrl) {
@@ -196,12 +208,17 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
 
   // Handle pending checkout completion after authentication
   useEffect(() => {
-    console.log('🔍 [AUTH EFFECT] useEffect triggered');
-    console.log('🔍 [AUTH EFFECT] User:', !!user, user?.email);
+    console.log('🚀 [AUTH EFFECT] Authentication state changed');
+    console.log('🚀 [AUTH EFFECT] - User authenticated:', !!user);
+    console.log('🚀 [AUTH EFFECT] - User email:', user?.email);
+    console.log('🚀 [AUTH EFFECT] - Loading state:', isLoading);
+    console.log('🚀 [AUTH EFFECT] - Current step:', currentStep);
     
     if (user) {
+      console.log('🚀 [AUTH EFFECT] User is authenticated, checking for pending checkout');
+      
       const pendingCheckout = sessionStorage.getItem('pendingCheckout');
-      console.log('🔍 [AUTH EFFECT] Pending checkout data:', pendingCheckout);
+      console.log('🚀 [AUTH EFFECT] Raw sessionStorage pendingCheckout:', pendingCheckout);
       
       if (pendingCheckout) {
         try {

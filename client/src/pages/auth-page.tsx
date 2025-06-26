@@ -94,32 +94,45 @@ export default function AuthPage() {
 
   const loginMutation = useMutation({
     mutationFn: async (data: LoginForm) => {
+      console.log('🚀 [LOGIN MUTATION] Starting login request');
+      console.log('🚀 [LOGIN MUTATION] Login data:', { email: data.email, password: '[HIDDEN]' });
+      
       const response = await apiRequest("POST", "/api/auth/login", data);
-      return response.json();
+      const result = await response.json();
+      
+      console.log('🚀 [LOGIN MUTATION] Login response received:', result);
+      return result;
     },
     onSuccess: async (data) => {
+      console.log('🚀 [LOGIN SUCCESS] Login successful, user data:', data.user);
+      
       queryClient.setQueryData(["/api/auth/user"], data.user);
       toast({ title: "Welcome back!", description: "You've been successfully logged in." });
       
+      console.log('🚀 [LOGIN SUCCESS] Waiting for session establishment...');
       // Wait a moment for session to be fully established
       await new Promise(resolve => setTimeout(resolve, 500));
       
       // Check for pending checkout and redirect appropriately
       const pendingCheckout = sessionStorage.getItem('pendingCheckout');
-      console.log('🔍 [LOGIN SUCCESS] Checking for pending checkout:', pendingCheckout);
+      console.log('🚀 [LOGIN SUCCESS] Checking for pending checkout in sessionStorage');
+      console.log('🚀 [LOGIN SUCCESS] pendingCheckout raw value:', pendingCheckout);
       
       if (pendingCheckout) {
         try {
           const checkoutData = JSON.parse(pendingCheckout);
-          console.log('🔍 [LOGIN SUCCESS] Found pending checkout data:', checkoutData);
-          console.log('🔍 [LOGIN SUCCESS] Redirecting to:', checkoutData.returnUrl || '/checkout');
-          setLocation(checkoutData.returnUrl || '/checkout');
+          console.log('🚀 [LOGIN SUCCESS] Successfully parsed pending checkout data:', checkoutData);
+          const redirectUrl = checkoutData.returnUrl || '/checkout';
+          console.log('🚀 [LOGIN SUCCESS] Redirecting to checkout page:', redirectUrl);
+          setLocation(redirectUrl);
         } catch (error) {
-          console.error('🔍 [LOGIN SUCCESS] Error parsing pending checkout:', error);
+          console.error('🚀 [LOGIN SUCCESS] Error parsing pending checkout data:', error);
+          console.log('🚀 [LOGIN SUCCESS] Fallback redirect to dashboard');
           setLocation("/");
         }
       } else {
-        console.log('🔍 [LOGIN SUCCESS] No pending checkout found, redirecting to dashboard');
+        console.log('🚀 [LOGIN SUCCESS] No pending checkout found in sessionStorage');
+        console.log('🚀 [LOGIN SUCCESS] Redirecting to dashboard');
         setLocation("/");
       }
     },
