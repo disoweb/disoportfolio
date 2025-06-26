@@ -347,18 +347,16 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
         if (shouldAutoSubmit && currentUser && sessionData?.contactData) {
           console.log('💰 CHECKOUT-FORM: Auto-submitting payment with direct auth check');
           
-          const paymentData = {
-            serviceId: service.id,
-            contactInfo: sessionData.contactData,
-            totalAmount: totalPrice,
-            selectedAddOns: selectedAddOns
-          };
-          
-          console.log('💰 CHECKOUT-FORM: Payment data:', paymentData);
+          // Clear the auto-submit flag to prevent multiple submissions
+          sessionStorage.removeItem('auto_submit_payment');
           
           setTimeout(() => {
-            console.log('💰 CHECKOUT-FORM: Calling orderMutation.mutate with direct auth');
-            orderMutation.mutate(paymentData);
+            console.log('💰 CHECKOUT-FORM: Calling onPaymentSubmit with direct auth');
+            // Use the existing form submission logic with contact data
+            onPaymentSubmit({
+              paymentMethod: 'paystack',
+              timeline: 'standard'
+            });
           }, 1000);
           
           return;
