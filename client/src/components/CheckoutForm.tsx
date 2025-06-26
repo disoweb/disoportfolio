@@ -3,28 +3,30 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, ArrowRight, CreditCard, User } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/useAuth";
+import { CreditCard, ArrowLeft, User, Mail, Phone, Building2, FileText } from "lucide-react";
 
-// Step 1: Contact Details Schema
 const contactSchema = z.object({
-  fullName: z.string().min(1, "Full name is required"),
-  email: z.string().email("Invalid email address"),
-  phone: z.string().min(1, "Phone number is required"),
+  fullName: z.string().min(2, "Full name must be at least 2 characters"),
+  email: z.string().email("Please enter a valid email"),
+  phone: z.string().min(10, "Please enter a valid phone number"),
   company: z.string().optional(),
-  projectDescription: z.string().min(10, "Please provide project details (minimum 10 characters)"),
+  projectDescription: z.string().min(10, "Please provide a detailed project description"),
 });
 
-// Step 2: Payment Schema
 const paymentSchema = z.object({
-  paymentMethod: z.literal("paystack", { required_error: "Payment method is required" }),
+  paymentMethod: z.literal("paystack"),
+  timeline: z.string().min(1, "Please select a timeline"),
 });
 
 type ContactForm = z.infer<typeof contactSchema>;
@@ -79,11 +81,10 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
     }
   };
 
-  // Step 1: Contact Form with persistent data
-  const storedContactData = getStoredFormData('checkout_contact_data');
+  // Auto-populate user email if authenticated
   const contactForm = useForm<ContactForm>({
     resolver: zodResolver(contactSchema),
-    defaultValues: storedContactData || {
+    defaultValues: {
       fullName: "",
       email: user?.email || "",
       phone: "",
@@ -92,84 +93,43 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
     },
   });
 
-  // Step 2: Payment Form
   const paymentForm = useForm<PaymentForm>({
     resolver: zodResolver(paymentSchema),
     defaultValues: {
       paymentMethod: "paystack",
+      timeline: "",
     },
   });
 
-  // Auto-save form data as user types
-  const watchedValues = contactForm.watch();
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      const formData = contactForm.getValues();
-      if (Object.values(formData).some(value => value !== "")) {
-        storeFormData('checkout_contact_data', formData);
-      }
-    }, 1000); // Debounce for 1 second
-
-    return () => clearTimeout(timer);
-  }, [watchedValues, contactForm]);
-
-  // Auto-populate email when user becomes authenticated
-  useEffect(() => {
-    if (user?.email && !contactForm.getValues().email) {
-      console.log('🔍 [CHECKOUT FORM] Auto-populating email from authenticated user:', user.email);
-      contactForm.setValue('email', user.email);
-    }
-  }, [user, contactForm]);
-
-  // Restore contact data if it exists (from previous session or auth flow)
+  // Restore contact data on component mount
   useEffect(() => {
     console.log('🔍 [CHECKOUT FORM] Restore data effect triggered');
+    const storedContactData = getStoredFormData('checkout_contact_data');
     console.log('🔍 [CHECKOUT FORM] storedContactData:', storedContactData);
     console.log('🔍 [CHECKOUT FORM] contactData:', contactData);
     
-    // First check for pending checkout data (priority for auth flow)
-    const pendingCheckout = sessionStorage.getItem('pendingCheckout');
-    if (pendingCheckout && !contactData) {
-      try {
-        const checkoutData = JSON.parse(pendingCheckout);
-        console.log('🔍 [CHECKOUT FORM] Found pending checkout data:', checkoutData);
-        
-        if (checkoutData.contactData) {
-          console.log('🔍 [CHECKOUT FORM] Restoring contact data from pending checkout');
-          setContactData(checkoutData.contactData);
-          contactForm.reset(checkoutData.contactData);
-          setCurrentStep(2);
-          return;
-        }
-      } catch (error) {
-        console.error('🔍 [CHECKOUT FORM] Error parsing pending checkout:', error);
-      }
-    }
-    
-    // Fallback to localStorage data
     if (storedContactData && !contactData) {
       console.log('🔍 [CHECKOUT FORM] Restoring contact data from localStorage');
-      setContactData(storedContactData);
       contactForm.reset(storedContactData);
+      setContactData(storedContactData);
       setCurrentStep(2);
     }
-  }, [storedContactData, contactData, contactForm]);
+  }, [contactForm, contactData]);
 
   const orderMutation = useMutation({
-    mutationFn: async (data: ContactForm & PaymentForm) => {
-      console.log('🚀 [ORDER MUTATION] Starting order submission');
-      console.log('🚀 [ORDER MUTATION] Input data:', data);
+    mutationFn: async (data: PaymentForm) => {
+      if (!contactData) throw new Error("Contact data is missing");
       
       const orderData = {
         serviceId: service.id,
-        customerInfo: {
-          fullName: data.fullName,
-          email: data.email,
-          phone: data.phone,
-          company: data.company,
+        contactInfo: {
+          fullName: contactData.fullName,
+          email: contactData.email,
+          phone: contactData.phone,
+          company: contactData.company,
         },
         projectDetails: {
-          description: data.projectDescription,
+          description: contactData.projectDescription,
         },
         selectedAddOns: selectedAddOns,
         totalAmount: totalPrice,
@@ -216,7 +176,6 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
     
     if (user) {
       console.log('🚀 [AUTH EFFECT] User is authenticated, checking for pending checkout');
-      
       const pendingCheckout = sessionStorage.getItem('pendingCheckout');
       console.log('🚀 [AUTH EFFECT] Raw sessionStorage pendingCheckout:', pendingCheckout);
       
@@ -234,66 +193,51 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
             setCurrentStep(2);
             
             // Auto-submit the payment after ensuring user is properly authenticated
-            setTimeout(async () => {
+            setTimeout(() => {
               console.log('🔍 [AUTH EFFECT] Auto-submitting payment');
+              console.log('🔍 [AUTH EFFECT] Current user from useAuth:', user);
               
-              // Verify user is still authenticated before proceeding
-              try {
-                const authCheck = await apiRequest("GET", "/api/auth/user");
-                const currentUser = await authCheck.json();
-                console.log('🔍 [AUTH EFFECT] Auth check result:', currentUser);
-                
-                if (!currentUser || !currentUser.email) {
-                  console.error('🔍 [AUTH EFFECT] User not authenticated, aborting auto-submit');
-                  toast({
-                    title: "Authentication Error",
-                    description: "Please log in again to complete your order.",
-                    variant: "destructive",
-                  });
-                  setLocation('/auth');
-                  return;
-                }
-                
-                // Ensure email is populated from authenticated user if missing
-                const contactData = { ...checkoutData.contactData };
-                if (!contactData.email && currentUser.email) {
-                  console.log('🔍 [AUTH EFFECT] Populating missing email from user:', currentUser.email);
-                  contactData.email = currentUser.email;
-                }
-                
-                // Validate that we have all required fields
-                if (!contactData.fullName || !contactData.email || !contactData.projectDescription) {
-                  console.error('🔍 [AUTH EFFECT] Missing required contact data:', contactData);
-                  toast({
-                    title: "Incomplete Information",
-                    description: "Please fill out all required contact information.",
-                    variant: "destructive",
-                  });
-                  setCurrentStep(1);
-                  return;
-                }
-                
-                const combinedData = { 
-                  ...contactData, 
-                  paymentMethod: "paystack",
-                  ...(checkoutData.paymentData || {})
-                };
-                console.log('🔍 [AUTH EFFECT] Combined data for order:', combinedData);
-                orderMutation.mutate(combinedData);
-                
-                // Remove pending checkout data after successful submission
-                sessionStorage.removeItem('pendingCheckout');
-                console.log('🔍 [AUTH EFFECT] Removed pending checkout from storage after order submission');
-                
-              } catch (error) {
-                console.error('🔍 [AUTH EFFECT] Auth check failed:', error);
+              if (!user || !user.email) {
+                console.error('🔍 [AUTH EFFECT] User not authenticated, aborting auto-submit');
                 toast({
                   title: "Authentication Error",
                   description: "Please log in again to complete your order.",
                   variant: "destructive",
                 });
                 setLocation('/auth');
+                return;
               }
+              
+              // Ensure email is populated from authenticated user if missing
+              const contactDataToUse = { ...checkoutData.contactData };
+              if (!contactDataToUse.email && user.email) {
+                console.log('🔍 [AUTH EFFECT] Populating missing email from user:', user.email);
+                contactDataToUse.email = user.email;
+              }
+              
+              // Validate that we have all required fields
+              if (!contactDataToUse.fullName || !contactDataToUse.email || !contactDataToUse.projectDescription) {
+                console.error('🔍 [AUTH EFFECT] Missing required contact data:', contactDataToUse);
+                toast({
+                  title: "Incomplete Information",
+                  description: "Please fill out all required contact information.",
+                  variant: "destructive",
+                });
+                setCurrentStep(1);
+                return;
+              }
+              
+              const combinedData = { 
+                ...contactDataToUse, 
+                paymentMethod: "paystack" as const,
+                timeline: checkoutData.paymentData?.timeline || "2-4 weeks"
+              };
+              console.log('🔍 [AUTH EFFECT] Combined data for order:', combinedData);
+              orderMutation.mutate(combinedData);
+              
+              // Remove pending checkout data after successful submission
+              sessionStorage.removeItem('pendingCheckout');
+              console.log('🔍 [AUTH EFFECT] Removed pending checkout from storage after order submission');
             }, 1000);
           }
         } catch (error) {
@@ -304,7 +248,7 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
         console.log('🔍 [AUTH EFFECT] No pending checkout found');
       }
     }
-  }, [user, orderMutation]);
+  }, [user, orderMutation, currentStep, setLocation, toast]);
 
   const onContactSubmit = (data: ContactForm) => {
     // Store contact data persistently
@@ -323,192 +267,224 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
     
     // Check if user is authenticated
     if (!user) {
-      console.log('🔍 [CHECKOUT DEBUG] User not authenticated, storing checkout data');
+      console.log('🔍 [CHECKOUT DEBUG] User not authenticated, storing checkout data and redirecting');
       
-      // Store checkout data in sessionStorage and redirect to login
+      // Store all checkout data in sessionStorage for later restoration
       const checkoutData = {
         service,
         totalPrice,
         selectedAddOns,
         contactData,
         paymentData: data,
-        returnUrl: window.location.pathname + window.location.search,
+        returnUrl: `/checkout?service=${service.id}&price=${totalPrice}&addons=${selectedAddOns.join(',')}`,
         timestamp: Date.now()
       };
       
+      console.log('🔍 [CHECKOUT DEBUG] Storing checkout data:', checkoutData);
       sessionStorage.setItem('pendingCheckout', JSON.stringify(checkoutData));
-      console.log('🔍 [CHECKOUT DEBUG] Stored pending checkout:', checkoutData);
       
+      // Redirect to auth page
+      console.log('🔍 [CHECKOUT DEBUG] Redirecting to authentication');
       setLocation('/auth');
       return;
     }
     
-    console.log('🔍 [CHECKOUT DEBUG] User authenticated, proceeding with order');
-    const combinedData = { ...contactData, ...data };
+    // User is authenticated, proceed with order
+    console.log('🔍 [CHECKOUT DEBUG] User authenticated, proceeding with order submission');
+    
+    // Ensure email is populated from authenticated user if missing
+    const finalContactData = { ...contactData };
+    if (!finalContactData.email && user.email) {
+      finalContactData.email = user.email;
+    }
+    
+    const combinedData = { 
+      ...finalContactData, 
+      ...data 
+    };
+    
+    console.log('🔍 [CHECKOUT DEBUG] Final combined data:', combinedData);
     orderMutation.mutate(combinedData);
-  };
-
-  const goBackToStep1 = () => {
-    setCurrentStep(1);
   };
 
   return (
     <Card className="w-full max-w-2xl mx-auto">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-semibold">
-            {currentStep === 1 ? "Contact Details" : "Payment"}
-          </CardTitle>
-          <div className="flex items-center space-x-1 text-xs text-gray-500">
-            <div className={`flex items-center ${currentStep === 1 ? 'text-blue-600' : 'text-green-600'}`}>
-              <User className="h-3 w-3 mr-1" />
-              <span>1</span>
-            </div>
-            <ArrowRight className="h-3 w-3" />
-            <div className={`flex items-center ${currentStep === 2 ? 'text-blue-600' : 'text-gray-400'}`}>
-              <CreditCard className="h-3 w-3 mr-1" />
-              <span>2</span>
-            </div>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <CreditCard className="h-5 w-5" />
+          Secure Checkout
+        </CardTitle>
+        <CardDescription>
+          Complete your order for {service.name}
+        </CardDescription>
+      </CardHeader>
+      
+      <CardContent className="space-y-6">
+        {/* Progress Steps */}
+        <div className="flex items-center justify-center space-x-4 mb-6">
+          <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${
+            currentStep >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
+          }`}>
+            1
+          </div>
+          <div className={`h-0.5 w-16 ${currentStep >= 2 ? 'bg-blue-600' : 'bg-gray-200'}`} />
+          <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${
+            currentStep >= 2 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
+          }`}>
+            2
           </div>
         </div>
-      </CardHeader>
-      <CardContent className="pt-0">
-        {/* Compact Order Summary */}
-        <div className="bg-gray-50 p-3 rounded-lg mb-4">
-          <div className="flex justify-between items-start mb-2">
-            <div className="flex-1 min-w-0">
-              <h3 className="font-medium text-sm truncate">{service.name}</h3>
-              {selectedAddOns.length > 0 && (
-                <p className="text-xs text-gray-600 mt-1">
-                  +{selectedAddOns.length} add-on{selectedAddOns.length > 1 ? 's' : ''}
-                </p>
+
+        {currentStep === 1 && (
+          <form onSubmit={contactForm.handleSubmit(onContactSubmit)} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="fullName" className="flex items-center gap-2">
+                <User className="h-4 w-4" />
+                Full Name *
+              </Label>
+              <Input
+                id="fullName"
+                {...contactForm.register("fullName")}
+                className="h-10"
+                placeholder="Enter your full name"
+              />
+              {contactForm.formState.errors.fullName && (
+                <p className="text-sm text-red-600">{contactForm.formState.errors.fullName.message}</p>
               )}
             </div>
-            <div className="text-right">
-              <span className="text-lg font-bold text-blue-600">
-                ₦{totalPrice.toLocaleString()}
-              </span>
-            </div>
-          </div>
-        </div>
 
-        {/* Step 1: Contact Details */}
-        {currentStep === 1 && (
-          <form onSubmit={contactForm.handleSubmit(onContactSubmit)} className="space-y-3">
-            <div className="space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium mb-1">Full Name *</label>
-                  <Input
-                    {...contactForm.register("fullName")}
-                    placeholder="John Doe"
-                    className="h-9 text-sm"
-                  />
-                  {contactForm.formState.errors.fullName && (
-                    <p className="text-red-500 text-xs mt-1">
-                      {contactForm.formState.errors.fullName.message}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium mb-1">Email *</label>
-                  <Input
-                    {...contactForm.register("email")}
-                    type="email"
-                    placeholder="john@example.com"
-                    className="h-9 text-sm"
-                  />
-                  {contactForm.formState.errors.email && (
-                    <p className="text-red-500 text-xs mt-1">
-                      {contactForm.formState.errors.email.message}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium mb-1">Phone *</label>
-                  <Input
-                    {...contactForm.register("phone")}
-                    placeholder="+234 123 456 7890"
-                    className="h-9 text-sm"
-                  />
-                  {contactForm.formState.errors.phone && (
-                    <p className="text-red-500 text-xs mt-1">
-                      {contactForm.formState.errors.phone.message}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium mb-1">Company</label>
-                  <Input
-                    {...contactForm.register("company")}
-                    placeholder="Company (Optional)"
-                    className="h-9 text-sm"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium mb-1">Project Description *</label>
-                <Textarea
-                  {...contactForm.register("projectDescription")}
-                  placeholder="Brief description of your project requirements..."
-                  className="min-h-[60px] text-sm resize-none"
-                  rows={3}
-                />
-                {contactForm.formState.errors.projectDescription && (
-                  <p className="text-red-500 text-xs mt-1">
-                    {contactForm.formState.errors.projectDescription.message}
-                  </p>
-                )}
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="email" className="flex items-center gap-2">
+                <Mail className="h-4 w-4" />
+                Email Address *
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                {...contactForm.register("email")}
+                className="h-10"
+                placeholder="Enter your email address"
+              />
+              {contactForm.formState.errors.email && (
+                <p className="text-sm text-red-600">{contactForm.formState.errors.email.message}</p>
+              )}
             </div>
 
-            <Button type="submit" className="w-full h-10 text-sm">
+            <div className="space-y-2">
+              <Label htmlFor="phone" className="flex items-center gap-2">
+                <Phone className="h-4 w-4" />
+                Phone Number *
+              </Label>
+              <Input
+                id="phone"
+                type="tel"
+                {...contactForm.register("phone")}
+                className="h-10"
+                placeholder="Enter your phone number"
+              />
+              {contactForm.formState.errors.phone && (
+                <p className="text-sm text-red-600">{contactForm.formState.errors.phone.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="company" className="flex items-center gap-2">
+                <Building2 className="h-4 w-4" />
+                Company (Optional)
+              </Label>
+              <Input
+                id="company"
+                {...contactForm.register("company")}
+                className="h-10"
+                placeholder="Enter your company name"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="projectDescription" className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Project Description *
+              </Label>
+              <Textarea
+                id="projectDescription"
+                {...contactForm.register("projectDescription")}
+                className="min-h-20"
+                placeholder="Please describe your project requirements, goals, and any specific features you need..."
+              />
+              {contactForm.formState.errors.projectDescription && (
+                <p className="text-sm text-red-600">{contactForm.formState.errors.projectDescription.message}</p>
+              )}
+            </div>
+
+            <Button type="submit" className="w-full h-10">
               Continue to Payment
-              <ArrowRight className="ml-2 h-3 w-3" />
             </Button>
           </form>
         )}
 
-        {/* Step 2: Payment */}
         {currentStep === 2 && (
-          <form onSubmit={paymentForm.handleSubmit(onPaymentSubmit)} className="space-y-3">
-            <div className="space-y-3">
-              <div className="border rounded-lg p-3 bg-blue-50 border-blue-200">
-                <div className="flex items-center space-x-2">
-                  <CreditCard className="h-4 w-4 text-blue-600" />
-                  <div>
-                    <h4 className="font-medium text-sm text-blue-900">Secure Payment via Paystack</h4>
-                    <p className="text-xs text-blue-700">
-                      Debit card, bank transfer, and other payment methods
-                    </p>
-                  </div>
-                </div>
+          <form onSubmit={paymentForm.handleSubmit(onPaymentSubmit)} className="space-y-6">
+            <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+              <h3 className="font-medium text-gray-900">Contact Information</h3>
+              <div className="text-sm text-gray-600 space-y-1">
+                <p><strong>Name:</strong> {contactData?.fullName}</p>
+                <p><strong>Email:</strong> {contactData?.email}</p>
+                <p><strong>Phone:</strong> {contactData?.phone}</p>
+                {contactData?.company && <p><strong>Company:</strong> {contactData.company}</p>}
               </div>
-
-              {contactData && (
-                <div className="bg-gray-50 p-3 rounded-lg">
-                  <h4 className="font-medium text-xs mb-2">Contact Information</h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-xs text-gray-600">
-                    <p><strong>Name:</strong> {contactData.fullName}</p>
-                    <p><strong>Email:</strong> {contactData.email}</p>
-                    <p><strong>Phone:</strong> {contactData.phone}</p>
-                    {contactData.company && <p><strong>Company:</strong> {contactData.company}</p>}
-                  </div>
-                </div>
-              )}
             </div>
 
-            <div className="flex space-x-2">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Timeline Preference *</Label>
+                <Select onValueChange={(value) => paymentForm.setValue("timeline", value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select your preferred timeline" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1-2 weeks">1-2 weeks</SelectItem>
+                    <SelectItem value="2-4 weeks">2-4 weeks</SelectItem>
+                    <SelectItem value="1-2 months">1-2 months</SelectItem>
+                    <SelectItem value="2+ months">2+ months</SelectItem>
+                  </SelectContent>
+                </Select>
+                {paymentForm.formState.errors.timeline && (
+                  <p className="text-sm text-red-600">{paymentForm.formState.errors.timeline.message}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <h3 className="font-medium text-blue-900 mb-2">Order Summary</h3>
+              
+              <div className="flex justify-between items-center text-blue-800">
+                <span>{service.name} Package</span>
+                <span>₦{totalPrice.toLocaleString()}</span>
+              </div>
+              
+              <div className="border-t border-blue-200 mt-2 pt-2">
+                <div className="flex justify-between items-center font-semibold text-blue-900">
+                  <span>Total</span>
+                  <span className="text-lg">₦{totalPrice.toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h4 className="font-medium text-gray-900 mb-2">
+                <CreditCard className="inline h-4 w-4 mr-2" />
+                Secure Payment
+              </h4>
+              <p className="text-sm text-gray-600">
+                You'll be redirected to Paystack to complete your payment securely. We accept all major credit cards and bank transfers.
+              </p>
+            </div>
+
+            <div className="flex gap-4">
               <Button
                 type="button"
                 variant="outline"
-                onClick={goBackToStep1}
+                onClick={() => setCurrentStep(1)}
                 className="flex-1 h-10 text-sm"
               >
                 <ArrowLeft className="mr-1 h-3 w-3" />
