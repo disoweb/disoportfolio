@@ -100,7 +100,22 @@ export default function AuthPage() {
     onSuccess: (data) => {
       queryClient.setQueryData(["/api/auth/user"], data.user);
       toast({ title: "Welcome back!", description: "You've been successfully logged in." });
-      setLocation("/");
+      
+      // Check for pending checkout and redirect appropriately
+      const pendingCheckout = sessionStorage.getItem('pendingCheckout');
+      if (pendingCheckout) {
+        try {
+          const checkoutData = JSON.parse(pendingCheckout);
+          console.log('🔍 [LOGIN SUCCESS] Found pending checkout, redirecting to:', checkoutData.returnUrl || '/checkout');
+          setLocation(checkoutData.returnUrl || '/checkout');
+        } catch (error) {
+          console.error('🔍 [LOGIN SUCCESS] Error parsing pending checkout:', error);
+          setLocation("/");
+        }
+      } else {
+        console.log('🔍 [LOGIN SUCCESS] No pending checkout, redirecting to dashboard');
+        setLocation("/");
+      }
     },
     onError: (error: any) => {
       toast({
@@ -119,7 +134,22 @@ export default function AuthPage() {
     onSuccess: (data) => {
       queryClient.setQueryData(["/api/auth/user"], data.user);
       toast({ title: "Welcome to DiSO Webs!", description: "Your account has been created successfully." });
-      setLocation("/");
+      
+      // Check for pending checkout and redirect appropriately
+      const pendingCheckout = sessionStorage.getItem('pendingCheckout');
+      if (pendingCheckout) {
+        try {
+          const checkoutData = JSON.parse(pendingCheckout);
+          console.log('🔍 [REGISTER SUCCESS] Found pending checkout, redirecting to:', checkoutData.returnUrl || '/checkout');
+          setLocation(checkoutData.returnUrl || '/checkout');
+        } catch (error) {
+          console.error('🔍 [REGISTER SUCCESS] Error parsing pending checkout:', error);
+          setLocation("/");
+        }
+      } else {
+        console.log('🔍 [REGISTER SUCCESS] No pending checkout, redirecting to dashboard');
+        setLocation("/");
+      }
     },
     onError: (error: any) => {
       toast({
