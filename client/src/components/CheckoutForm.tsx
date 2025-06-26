@@ -200,7 +200,9 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
     console.log('🔄 [CHECKOUT FORM] === AUTO-PAYMENT USEEFFECT START ===');
     console.log('🔄 [CHECKOUT FORM] Current path:', currentPath);
     console.log('🔄 [CHECKOUT FORM] User exists:', !!user);
+    console.log('🔄 [CHECKOUT FORM] User data:', user);
     console.log('🔄 [CHECKOUT FORM] Order mutation pending:', orderMutation.isPending);
+    console.log('🔄 [CHECKOUT FORM] Contact data state:', contactData);
     
     if (currentPath !== '/checkout' || !user || orderMutation.isPending) {
       console.log('🔄 [CHECKOUT FORM] ❌ Exiting early - conditions not met');

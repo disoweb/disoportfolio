@@ -47,10 +47,13 @@ export default function AuthPage() {
 
   // Handle pending checkout completion and redirect if already logged in
   useEffect(() => {
+    console.log('🔐 [AUTH PAGE] useEffect triggered - isLoading:', isLoading, 'user:', !!user, 'redirectHandled:', redirectHandled);
+    
     if (!isLoading && user && !redirectHandled) {
       const pendingCheckout = sessionStorage.getItem('pendingCheckout');
       
       console.log('🔐 [AUTH PAGE] User authenticated, checking pending checkout:', !!pendingCheckout);
+      console.log('🔐 [AUTH PAGE] Raw pending checkout data:', pendingCheckout);
       
       if (pendingCheckout) {
         try {
