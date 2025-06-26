@@ -273,6 +273,40 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
     }
   }, [user, orderMutation.isPending, setLocation, toast]);
 
+  // Check for post-authentication auto-payment
+  useEffect(() => {
+    const autoSubmitPayment = sessionStorage.getItem('auto_submit_payment');
+    console.log('CheckoutForm - Auto-payment check:', {
+      autoSubmitPayment,
+      isPostAuthRedirect,
+      hasSessionData: !!sessionData?.contactData,
+      hasUser: !!user,
+      stepParam: new URLSearchParams(window.location.search).get('step')
+    });
+    
+    if (autoSubmitPayment === 'true' && isPostAuthRedirect && sessionData?.contactData && user) {
+      console.log('CheckoutForm - Auto-submitting payment after authentication');
+      setContactData(sessionData.contactData);
+      setShowPaymentLoader(true);
+      sessionStorage.setItem('payment_in_progress', 'true');
+      sessionStorage.removeItem('auto_submit_payment');
+      
+      // Auto-submit payment directly without showing the form
+      const paymentData = {
+        paymentMethod: "paystack" as const,
+        timeline: "standard",
+        overrideSelectedAddOns: sessionData.selectedAddOns,
+        overrideTotalAmount: sessionData.totalPrice
+      };
+      
+      console.log('CheckoutForm - Submitting payment data:', paymentData);
+      
+      setTimeout(() => {
+        orderMutation.mutate(paymentData);
+      }, 1000);
+    }
+  }, [isPostAuthRedirect, sessionData, user, orderMutation]);
+
   const onContactSubmit = (data: ContactForm) => {
     // Store contact data persistently
     storeFormData('checkout_contact_data', data);
