@@ -37,9 +37,11 @@ export default function TransactionHistory() {
       filtered = filtered.filter((order: any) => order.status === statusFilter);
     }
     
-    // Filter by search query - improved logic to prevent false positives
+    // Filter by search query - debug false positives
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
+      console.log('🔍 Searching for:', query);
+      
       filtered = filtered.filter((order: any) => {
         // Create search fields with better validation
         const searchFields = [
@@ -58,16 +60,31 @@ export default function TransactionHistory() {
           searchFields.push(orderId.slice(-8)); // Medium order ID
         }
         
+        // Debug: log all search fields for first few orders
+        if (query === 'good') {
+          console.log(`Order ${order.id?.slice(-6)} search fields:`, searchFields);
+        }
+        
         // Check for exact word matches or meaningful partial matches (3+ chars)
-        return searchFields.some(field => {
+        const hasMatch = searchFields.some(field => {
           if (query.length < 3) {
             // For short queries, require exact word match
-            return field.split(' ').some(word => word === query);
+            const wordMatch = field.split(' ').some(word => word === query);
+            if (wordMatch && query === 'good') {
+              console.log(`✓ Word match found in: "${field}"`);
+            }
+            return wordMatch;
           } else {
             // For longer queries, allow substring matching
-            return field.includes(query);
+            const substringMatch = field.includes(query);
+            if (substringMatch && query === 'good') {
+              console.log(`✓ Substring match found in: "${field}"`);
+            }
+            return substringMatch;
           }
         });
+        
+        return hasMatch;
       });
     }
     
