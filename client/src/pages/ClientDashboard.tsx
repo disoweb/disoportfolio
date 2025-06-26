@@ -500,82 +500,108 @@ export default function ClientDashboard() {
 
                         {/* Pagination Controls */}
                         {totalPages > 1 && (
-                          <div className="flex items-center justify-between mt-6 pt-4 border-t border-slate-200">
-                            <div className="text-sm text-slate-600">
-                              Showing {startIndex + 1}-{Math.min(endIndex, filteredOrders.length)} of {filteredOrders.length} orders
-                            </div>
-                            
-                            <div className="flex items-center gap-1">
-                              {/* First Page */}
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setCurrentPage(1)}
-                                disabled={currentPage === 1}
-                                className="h-8 w-8 p-0"
-                              >
-                                <ChevronsLeft className="h-4 w-4" />
-                              </Button>
+                          <div className="mt-3 pt-2 border-t border-slate-200">
+                            {/* Mobile-first compact layout */}
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="text-xs text-slate-600 hidden sm:block">
+                                {startIndex + 1}-{Math.min(endIndex, filteredOrders.length)} of {filteredOrders.length}
+                              </div>
                               
-                              {/* Previous Page */}
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                                disabled={currentPage === 1}
-                                className="h-8 w-8 p-0"
-                              >
-                                <ChevronLeft className="h-4 w-4" />
-                              </Button>
-                              
-                              {/* Page Numbers */}
-                              {(() => {
-                                const pageNumbers = [];
-                                const maxVisiblePages = 5;
-                                let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-                                let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+                              <div className="flex items-center justify-center gap-1 mx-auto sm:mx-0">
+                                {/* Previous Page */}
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                                  disabled={currentPage === 1}
+                                  className="h-6 w-6 p-0 sm:h-8 sm:w-8"
+                                >
+                                  <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4" />
+                                </Button>
                                 
-                                if (endPage - startPage < maxVisiblePages - 1) {
-                                  startPage = Math.max(1, endPage - maxVisiblePages + 1);
-                                }
+                                {/* Page Numbers - Mobile optimized */}
+                                {(() => {
+                                  const pageNumbers = [];
+                                  const maxVisiblePages = 3; // Keep it minimal for mobile
+                                  let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+                                  let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+                                  
+                                  if (endPage - startPage < maxVisiblePages - 1) {
+                                    startPage = Math.max(1, endPage - maxVisiblePages + 1);
+                                  }
+                                  
+                                  // Show ellipsis if there are more pages before
+                                  if (startPage > 1) {
+                                    pageNumbers.push(
+                                      <Button
+                                        key={1}
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setCurrentPage(1)}
+                                        className="h-6 w-6 p-0 text-xs sm:h-8 sm:w-8 sm:text-sm"
+                                      >
+                                        1
+                                      </Button>
+                                    );
+                                    if (startPage > 2) {
+                                      pageNumbers.push(
+                                        <span key="ellipsis-start" className="px-1 text-slate-500 text-xs">
+                                          ...
+                                        </span>
+                                      );
+                                    }
+                                  }
+                                  
+                                  for (let i = startPage; i <= endPage; i++) {
+                                    pageNumbers.push(
+                                      <Button
+                                        key={i}
+                                        variant={currentPage === i ? "default" : "outline"}
+                                        size="sm"
+                                        onClick={() => setCurrentPage(i)}
+                                        className="h-6 w-6 p-0 text-xs sm:h-8 sm:w-8 sm:text-sm"
+                                      >
+                                        {i}
+                                      </Button>
+                                    );
+                                  }
+                                  
+                                  // Show ellipsis if there are more pages after
+                                  if (endPage < totalPages) {
+                                    if (endPage < totalPages - 1) {
+                                      pageNumbers.push(
+                                        <span key="ellipsis-end" className="px-1 text-slate-500 text-xs">
+                                          ...
+                                        </span>
+                                      );
+                                    }
+                                    pageNumbers.push(
+                                      <Button
+                                        key={totalPages}
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setCurrentPage(totalPages)}
+                                        className="h-6 w-6 p-0 text-xs sm:h-8 sm:w-8 sm:text-sm"
+                                      >
+                                        {totalPages}
+                                      </Button>
+                                    );
+                                  }
+                                  
+                                  return pageNumbers;
+                                })()}
                                 
-                                for (let i = startPage; i <= endPage; i++) {
-                                  pageNumbers.push(
-                                    <Button
-                                      key={i}
-                                      variant={currentPage === i ? "default" : "outline"}
-                                      size="sm"
-                                      onClick={() => setCurrentPage(i)}
-                                      className="h-8 w-8 p-0 text-xs"
-                                    >
-                                      {i}
-                                    </Button>
-                                  );
-                                }
-                                return pageNumbers;
-                              })()}
-                              
-                              {/* Next Page */}
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                                disabled={currentPage === totalPages}
-                                className="h-8 w-8 p-0"
-                              >
-                                <ChevronRight className="h-4 w-4" />
-                              </Button>
-                              
-                              {/* Last Page */}
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setCurrentPage(totalPages)}
-                                disabled={currentPage === totalPages}
-                                className="h-8 w-8 p-0"
-                              >
-                                <ChevronsRight className="h-4 w-4" />
-                              </Button>
+                                {/* Next Page */}
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                                  disabled={currentPage === totalPages}
+                                  className="h-6 w-6 p-0 sm:h-8 sm:w-8"
+                                >
+                                  <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4" />
+                                </Button>
+                              </div>
                             </div>
                           </div>
                         )}
