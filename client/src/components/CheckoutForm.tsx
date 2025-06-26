@@ -211,7 +211,7 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
     console.log('🚀 [AUTH EFFECT] Authentication state changed');
     console.log('🚀 [AUTH EFFECT] - User authenticated:', !!user);
     console.log('🚀 [AUTH EFFECT] - User email:', user?.email);
-    console.log('🚀 [AUTH EFFECT] - Loading state:', isLoading);
+    console.log('🚀 [AUTH EFFECT] - Loading state:', !user);
     console.log('🚀 [AUTH EFFECT] - Current step:', currentStep);
     
     if (user) {

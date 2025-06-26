@@ -66,7 +66,9 @@ export default function Checkout() {
       
       if (service) {
         setServiceData(service);
-        setTotalPrice(price ? parseInt(price) : service.price);
+        const servicePrice = price ? parseInt(price) : (service.price || parseInt(service.priceUsd || '0'));
+        console.log('🔍 [CHECKOUT PAGE] Setting totalPrice:', servicePrice);
+        setTotalPrice(servicePrice);
       }
     }
     
