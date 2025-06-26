@@ -258,36 +258,41 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
     }
   }, [user, orderMutation.isPending, totalPrice]);
 
-  // Handle auto-trigger payment after authentication
+  // Handle immediate payment trigger after authentication
   useEffect(() => {
-    const autoTrigger = sessionStorage.getItem('auto_trigger_payment');
-    console.log('🤖 [AUTO TRIGGER] Auto trigger flag:', !!autoTrigger);
-    console.log('🤖 [AUTO TRIGGER] User exists:', !!user);
-    console.log('🤖 [AUTO TRIGGER] Contact data exists:', !!contactData);
+    const immediatePaymentTrigger = sessionStorage.getItem('trigger_immediate_payment');
+    const storedContactData = getStoredFormData('checkout_contact_data');
     
-    if (autoTrigger && user && contactData && !orderMutation.isPending) {
-      console.log('🤖 [AUTO TRIGGER] ✅ All conditions met - triggering automatic payment');
+    console.log('🚀 [IMMEDIATE PAYMENT] Trigger flag:', !!immediatePaymentTrigger);
+    console.log('🚀 [IMMEDIATE PAYMENT] User exists:', !!user);
+    console.log('🚀 [IMMEDIATE PAYMENT] Stored contact data:', !!storedContactData);
+    console.log('🚀 [IMMEDIATE PAYMENT] Mutation pending:', orderMutation.isPending);
+    
+    if (immediatePaymentTrigger && user && storedContactData && !orderMutation.isPending) {
+      console.log('🚀 [IMMEDIATE PAYMENT] All conditions met - triggering payment');
       
-      // Clear the auto-trigger flag immediately
-      sessionStorage.removeItem('auto_trigger_payment');
+      // Clear the trigger flag immediately
+      sessionStorage.removeItem('trigger_immediate_payment');
       
-      // Show payment loader
+      // Set contact data and show payment loader
+      setContactData(storedContactData);
       setShowPaymentLoader(true);
+      setCurrentStep(2);
       
       // Auto-submit the payment with default timeline
       const paymentData = {
         paymentMethod: "paystack" as const,
-        timeline: "standard", // Default timeline for auto-submit
+        timeline: "2-4 weeks", // Default timeline
       };
       
-      console.log('🤖 [AUTO TRIGGER] Submitting payment with data:', paymentData);
+      console.log('🚀 [IMMEDIATE PAYMENT] Submitting payment with data:', paymentData);
       
-      // Use setTimeout to ensure state updates are complete
+      // Use setTimeout to ensure all state updates are complete
       setTimeout(() => {
         orderMutation.mutate(paymentData);
-      }, 500);
+      }, 1000);
     }
-  }, [user, contactData, orderMutation.isPending]);
+  }, [user, orderMutation.isPending]);
 
   const onContactSubmit = (data: ContactForm) => {
     // Store contact data persistently
