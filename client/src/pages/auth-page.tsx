@@ -130,6 +130,54 @@ export default function AuthPage() {
     },
   });
 
+  // Pre-populate registration form with checkout data if available
+  const getCheckoutContactData = async () => {
+    const checkoutToken = sessionStorage.getItem('checkoutSessionToken');
+    if (!checkoutToken) return {};
+    
+    try {
+      // First try to fetch from database session
+      const response = await fetch(`/api/checkout-sessions/${checkoutToken}`, {
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        const sessionData = await response.json();
+        if (sessionData.contactData) {
+          const nameParts = sessionData.contactData.fullName?.split(' ') || [];
+          return {
+            email: sessionData.contactData.email || "",
+            firstName: nameParts[0] || "",
+            lastName: nameParts.slice(1).join(' ') || "",
+            companyName: sessionData.contactData.company || "",
+            phone: sessionData.contactData.phone || "",
+          };
+        }
+      }
+    } catch (error) {
+      console.log('Error fetching checkout session:', error);
+    }
+    
+    // Fallback to session storage
+    const storedData = sessionStorage.getItem('checkout_contact_data');
+    if (storedData) {
+      try {
+        const contactData = JSON.parse(storedData);
+        const nameParts = contactData.fullName?.split(' ') || [];
+        return {
+          email: contactData.email || "",
+          firstName: nameParts[0] || "",
+          lastName: nameParts.slice(1).join(' ') || "",
+          companyName: contactData.company || "",
+          phone: contactData.phone || "",
+        };
+      } catch (error) {
+        console.log('Error parsing checkout contact data:', error);
+      }
+    }
+    return {};
+  };
+
   const registerForm = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
@@ -142,6 +190,29 @@ export default function AuthPage() {
       phone: "",
     },
   });
+
+  // Load checkout contact data and populate form when component mounts
+  useEffect(() => {
+    const loadCheckoutData = async () => {
+      const checkoutData = await getCheckoutContactData();
+      if (Object.keys(checkoutData).length > 0) {
+        console.log('🔄 AUTH: Pre-populating registration form with checkout data:', checkoutData);
+        registerForm.reset({
+          email: checkoutData.email || "",
+          password: "",
+          confirmPassword: "",
+          firstName: checkoutData.firstName || "",
+          lastName: checkoutData.lastName || "",
+          companyName: checkoutData.companyName || "",
+          phone: checkoutData.phone || "",
+        });
+      }
+    };
+    
+    if (!isLogin) {
+      loadCheckoutData();
+    }
+  }, [isLogin, registerForm]);
 
   const loginMutation = useMutation({
     mutationFn: async (data: LoginForm) => {
