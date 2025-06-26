@@ -77,7 +77,7 @@ export const services = pgTable("services", {
 export const orders = pgTable("orders", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: varchar("user_id").references(() => users.id).notNull(),
-  serviceId: uuid("service_id").references(() => services.id),
+  serviceId: varchar("service_id").references(() => services.id),
   customRequest: text("custom_request"),
   totalPrice: varchar("total_price").notNull(), // Changed to varchar for easier handling
   status: orderStatusEnum("status").default("pending"),
