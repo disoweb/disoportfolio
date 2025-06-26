@@ -321,12 +321,22 @@ export default function Landing() {
               </Button>
             </div>
 
-            {/* Refund Policy */}
-            <div className="mt-6 mb-3">
-              <p className="text-sm text-slate-600 flex items-center justify-center">
-                <Shield className="h-5 w-5 mr-1 text-green-600 -mt-1" />
-                30-day money-back guarantee
-              </p>
+            {/* Trust Indicators */}
+            <div className="mt-8 mb-6">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8">
+                <div className="flex items-center text-sm text-slate-600">
+                  <Shield className="h-4 w-4 mr-2 text-green-600" />
+                  30-day money-back guarantee
+                </div>
+                <div className="flex items-center text-sm text-slate-600">
+                  <CheckCircle className="h-4 w-4 mr-2 text-blue-600" />
+                  Free consultation included
+                </div>
+                <div className="flex items-center text-sm text-slate-600">
+                  <Clock className="h-4 w-4 mr-2 text-orange-600" />
+                  7-day delivery guarantee
+                </div>
+              </div>
             </div>
 
             {/* Live Project Counter */}
