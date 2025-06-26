@@ -358,9 +358,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const paymentUrl = await storage.reactivatePayment(orderId, userId);
+      console.log('🔄 Route returning payment URL:', paymentUrl);
       auditLog('payment_reactivated', userId, { orderId, clientIP });
       
-      res.json({ paymentUrl });
+      const response = { paymentUrl };
+      console.log('📤 Route response:', response);
+      res.json(response);
     } catch (error) {
       console.error("Error reactivating payment:", error);
       auditLog('payment_reactivation_failed', req.user?.id, { orderId: req.params.orderId, error: (error as Error).message, clientIP: req.ip });

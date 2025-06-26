@@ -69,10 +69,13 @@ export default function ClientDashboard() {
     },
     onSuccess: (response: any) => {
       setProcessingOrderId(null);
+      console.log('🔄 Frontend received response:', response);
       if (response?.paymentUrl) {
+        console.log('💳 Redirecting to:', response.paymentUrl);
         // Redirect to Paystack payment page
         window.location.href = response.paymentUrl;
       } else {
+        console.log('❌ No paymentUrl in response:', response);
         toast({
           title: "Payment Issue",
           description: "Payment URL not received. Please try again.",

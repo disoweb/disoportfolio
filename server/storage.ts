@@ -363,6 +363,7 @@ export class DatabaseStorage implements IStorage {
     }
 
     // Initialize payment using existing order data
+    console.log('🔄 Reactivating payment for order:', existingOrder.id, 'Amount:', existingOrder.totalPrice);
     const paymentUrl = await this.initializePayment({
       orderId: existingOrder.id,
       amount: parseInt(existingOrder.totalPrice),
@@ -370,6 +371,7 @@ export class DatabaseStorage implements IStorage {
       userId: existingOrder.userId,
     });
 
+    console.log('💳 Payment URL generated:', paymentUrl);
     return paymentUrl;
   }
 
@@ -525,9 +527,16 @@ export class DatabaseStorage implements IStorage {
       }
 
       const data = await response.json();
+      console.log('📊 Paystack response:', JSON.stringify(data, null, 2));
 
       if (!data.status) {
+        console.log('❌ Paystack error:', data.message);
         throw new Error(data.message || "Failed to initialize payment");
+      }
+
+      if (!data.data?.authorization_url) {
+        console.log('❌ No authorization URL in response:', data);
+        throw new Error("No payment URL received from Paystack");
       }
 
     // Store payment record
@@ -541,6 +550,7 @@ export class DatabaseStorage implements IStorage {
       status: "pending" as any,
     });
 
+      console.log('✅ Payment URL success:', data.data.authorization_url);
       return data.data.authorization_url;
     } catch (error) {
       throw new Error(`Payment initialization failed: ${(error as Error).message}`);
