@@ -219,8 +219,8 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
             console.log('🔄 [AUTO-SUBMIT] Setting PaymentLoader to true BEFORE timeout');
             setShowPaymentLoader(true);
             
-            // Force immediate re-render to ensure PaymentLoader shows
-            setTimeout(() => {}, 0);
+            // Set global payment flag to prevent dashboard flash
+            sessionStorage.setItem('payment_in_progress', 'true');
             
             // Auto-submit the payment after ensuring user is properly authenticated
             setTimeout(() => {

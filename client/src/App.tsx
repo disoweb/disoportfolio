@@ -39,14 +39,9 @@ function Router() {
         sessionStorage.removeItem('payment_in_progress');
         setPaymentInProgress(false);
       } else {
-        // Check if payment is in progress OR if there's a pending checkout with authenticated user
+        // Check if payment is in progress
         const inProgress = sessionStorage.getItem('payment_in_progress') === 'true';
-        const pendingCheckout = sessionStorage.getItem('pendingCheckout');
-        
-        if (inProgress || (isAuthenticated && pendingCheckout)) {
-          console.log('🌐 [APP] Setting payment in progress to prevent dashboard flash');
-          setPaymentInProgress(true);
-        }
+        setPaymentInProgress(inProgress);
       }
     }
   }, [isAuthenticated]);
