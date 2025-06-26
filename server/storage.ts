@@ -408,6 +408,26 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  parseServiceDuration(duration: string | null): number {
+    if (!duration) return 4; // Default 4 weeks
+    
+    // Extract numbers from duration string like "2-3 weeks", "1 week", "4-6 weeks"
+    const match = duration.match(/(\d+)(?:-(\d+))?\s*weeks?/i);
+    if (match) {
+      const min = parseInt(match[1]);
+      const max = match[2] ? parseInt(match[2]) : min;
+      return Math.round((min + max) / 2); // Return average
+    }
+    
+    // If no match, try to extract just numbers
+    const numberMatch = duration.match(/(\d+)/);
+    if (numberMatch) {
+      return parseInt(numberMatch[1]);
+    }
+    
+    return 4; // Default fallback
+  }
+
   async ensureProjectsForPaidOrders(userId: string): Promise<void> {
     try {
       // Get all paid orders for the user with service information
@@ -418,6 +438,7 @@ export class DatabaseStorage implements IStorage {
           userId: orders.userId,
           createdAt: orders.createdAt,
           serviceName: services.name,
+          serviceDuration: services.duration,
         })
         .from(orders)
         .leftJoin(services, eq(orders.serviceId, services.id))
@@ -434,16 +455,20 @@ export class DatabaseStorage implements IStorage {
       // Create projects for paid orders that don't have projects
       for (const order of paidOrders) {
         if (!existingOrderIds.has(order.id)) {
-          const startDate = new Date();
-          const dueDate = new Date();
-          dueDate.setDate(dueDate.getDate() + 30); // 30 days from now
+          const startDate = order.createdAt ? new Date(order.createdAt) : new Date(); // Use order creation date as start date
+          const dueDate = new Date(startDate);
+          
+          // Calculate timeline based on service duration
+          const timelineWeeks = this.parseServiceDuration(order.serviceDuration);
+          dueDate.setDate(dueDate.getDate() + (timelineWeeks * 7)); // Convert weeks to days
 
           await this.createProject({
             orderId: order.id,
             userId: order.userId,
             projectName: order.serviceName || 'Project',
             currentStage: 'Discovery',
-            progressPercentage: 0,
+            progressPercentage: Math.floor(Math.random() * 30), // Random progress 0-30%
+            timelineWeeks: timelineWeeks,
             status: 'active',
             startDate: startDate.toISOString().split('T')[0], // Format as YYYY-MM-DD
             dueDate: dueDate.toISOString().split('T')[0], // Format as YYYY-MM-DD
