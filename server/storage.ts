@@ -410,20 +410,22 @@ export class DatabaseStorage implements IStorage {
 
   async ensureProjectsForPaidOrders(userId: string): Promise<void> {
     try {
-      // Get all paid orders for the user
+      // Get all paid orders for the user with service information
       const paidOrders = await db
         .select({
           id: orders.id,
-          serviceName: orders.serviceName,
+          serviceId: orders.serviceId,
           userId: orders.userId,
           createdAt: orders.createdAt,
+          serviceName: services.name,
         })
         .from(orders)
+        .leftJoin(services, eq(orders.serviceId, services.id))
         .where(and(eq(orders.userId, userId), eq(orders.status, 'paid')));
 
       // Get existing projects for this user
       const existingProjects = await db
-        .select({ orderId: projects.orderId })
+        .select()
         .from(projects)
         .where(eq(projects.userId, userId));
 
@@ -440,13 +442,11 @@ export class DatabaseStorage implements IStorage {
             orderId: order.id,
             userId: order.userId,
             projectName: order.serviceName || 'Project',
-            title: order.serviceName || 'Project',
             currentStage: 'Discovery',
-            progress: 0,
-            timeProgress: 3, // Start with 3% time progress
+            progressPercentage: 0,
             status: 'active',
-            startDate: startDate.toISOString(),
-            dueDate: dueDate.toISOString(),
+            startDate: startDate.toISOString().split('T')[0], // Format as YYYY-MM-DD
+            dueDate: dueDate.toISOString().split('T')[0], // Format as YYYY-MM-DD
           });
         }
       }
