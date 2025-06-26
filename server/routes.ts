@@ -24,34 +24,37 @@ import {
   authRateLimit,
   validateRequestSize,
   securityHeaders,
-  getSecurityDelay
+  getSecurityDelay,
+  validateEmail,
+  validateOrderId,
+  validateUserId
 } from "./security";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware - always use standard auth
   await setupAuth(app);
 
-  // Create admin user if it doesn't exist - use environment variable for password
+  // Create admin user if it doesn't exist - REQUIRE environment variable for security
   try {
     const adminEmail = 'admin@diso.com';
     const existingAdmin = await storage.getUserByEmail(adminEmail);
     if (!existingAdmin) {
-      const adminPassword = process.env.ADMIN_PASSWORD || 'TempAdmin123!@#';
-      console.log('Creating admin user with environment password...');
+      // SECURITY: Mandatory environment variable - no fallback password
+      const adminPassword = process.env.ADMIN_PASSWORD;
+      if (!adminPassword) {
+        throw new Error('ADMIN_PASSWORD environment variable must be set for admin user creation');
+      }
       
       // Hash the password securely
       const bcrypt = require('bcrypt');
       const hashedPassword = await bcrypt.hash(adminPassword, 12);
       
       await storage.createAdminUser(adminEmail, hashedPassword);
-      console.log('Admin user created successfully');
-      
-      if (!process.env.ADMIN_PASSWORD) {
-        console.warn('⚠️  WARNING: Using temporary admin password. Set ADMIN_PASSWORD environment variable for production!');
-      }
+      auditLog('admin_user_created', 'system', { email: adminEmail });
     }
   } catch (error) {
-    console.error('Error creating admin user:', error);
+    auditLog('admin_creation_failed', 'system', { error: (error as Error).message });
+    throw error; // Fail startup if admin cannot be created securely
   }
 
   // No need for separate auth routes as they're handled in setupAuth
@@ -356,8 +359,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const { orderId } = req.params;
         const clientIP = req.ip || req.connection.remoteAddress;
         
-        // Validate order ID format
-        if (!orderId || typeof orderId !== 'string' || orderId.length < 10) {
+        // Enhanced order ID validation
+        if (!validateOrderId(orderId)) {
+          auditLog('security_violation', userId, { 
+            type: 'invalid_order_id', 
+            orderId: orderId?.substring(0, 10) + '...', 
+            clientIP 
+          });
           return res.status(400).json({ message: "Invalid order ID format" });
         }
         

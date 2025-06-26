@@ -183,23 +183,15 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
       }
 
       try {
-        console.log('💰 CHECKOUT-FORM: Making API request to /api/orders with data:', orderData);
         const response = await apiRequest("POST", "/api/orders", orderData);
         const responseData = await response.json();
-        console.log('💰 CHECKOUT-FORM: API response received:', responseData);
         return responseData;
       } catch (error) {
-        console.error('❌ ORDER-ERROR: API request failed:', error);
         throw new Error(error instanceof Error ? error.message : 'Failed to create order');
       }
     },
     onSuccess: (data) => {
-      console.log('🎉 ORDER-SUCCESS: Payment order created successfully');
-      console.log('🎉 ORDER-SUCCESS: Response data:', data);
-      
       if (data && data.paymentUrl) {
-        console.log('🎉 ORDER-SUCCESS: Payment URL received:', data.paymentUrl);
-        
         // Clear stored form data and pending checkout on successful order
         localStorage.removeItem('checkout_contact_data');
         sessionStorage.removeItem('pendingCheckout');
@@ -209,16 +201,15 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
         // Clear payment loader state
         sessionStorage.removeItem('payment_in_progress');
         
-        console.log('🎉 ORDER-SUCCESS: Cleaned up session storage');
-        console.log('🎉 ORDER-SUCCESS: Redirecting to Paystack...');
-        
         // Immediate redirect to Paystack
         window.location.href = data.paymentUrl;
-        
         onSuccess();
       } else {
-        console.error('❌ ORDER-ERROR: No payment URL in response');
-        console.error('❌ ORDER-ERROR: Full response:', data);
+        toast({
+          title: "Payment Error",
+          description: "Failed to initialize payment. Please try again.",
+          variant: "destructive",
+        });
       }
     },
     onError: (error) => {
@@ -246,13 +237,10 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
 
   // SINGLE consolidated auto-payment logic
   useEffect(() => {
-    console.log('💰 CHECKOUT-FORM: Main auto-payment useEffect triggered');
+
     
     if (!user || !sessionData) {
-      console.log('💰 CHECKOUT-FORM: Waiting for user and sessionData:', {
-        hasUser: !!user,
-        hasSessionData: !!sessionData
-      });
+
       return;
     }
 
@@ -263,19 +251,12 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
     const shouldAutoSubmit = autoSubmitPayment === 'true' || 
       (stepParam === 'payment' && sessionData?.contactData);
     
-    console.log('💰 CHECKOUT-FORM: Auto-payment decision:', {
-      autoSubmitPayment,
-      stepParam,
-      hasContactData: !!sessionData?.contactData,
-      shouldAutoSubmit,
-      userEmail: user.email,
-      orderMutationPending: orderMutation.isPending
-    });
+
 
     // Security: Server-side validation will prevent unauthorized payments
     // Client-side flags are for UX only
     if (shouldAutoSubmit && sessionData?.contactData && !orderMutation.isPending) {
-      console.log('💰 CHECKOUT-FORM: ✅ EXECUTING AUTO-PAYMENT NOW');
+
       
       // Clear the auto-submit flag immediately to prevent replay
       sessionStorage.removeItem('auto_submit_payment');
@@ -288,12 +269,6 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
         ...sessionData.contactData,
         paymentMethod: 'paystack',
         timeline: 'standard'
-      });
-    } else {
-      console.log('💰 CHECKOUT-FORM: ❌ Auto-submit conditions NOT met:', {
-        reason: !shouldAutoSubmit ? 'shouldAutoSubmit=false' : 
-                !sessionData?.contactData ? 'no contactData' : 
-                orderMutation.isPending ? 'mutation pending' : 'unknown'
       });
     }
   }, [user, sessionData, orderMutation]);

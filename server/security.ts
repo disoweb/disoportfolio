@@ -168,10 +168,39 @@ export function sanitizeSqlInput(input: string): string {
     .substring(0, 500);
 }
 
-// Email validation
+// Enhanced email validation with security checks
 export function validateEmail(email: string): boolean {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!email || typeof email !== 'string') return false;
+  if (email.length > 254) return false; // RFC 5321 limit
+  
+  // Enhanced email regex with stricter validation
+  const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+  
+  // Additional security checks
+  if (email.includes('..') || email.startsWith('.') || email.endsWith('.')) return false;
+  if (email.includes('<') || email.includes('>') || email.includes('"')) return false;
+  
   return emailRegex.test(email);
+}
+
+// Enhanced order ID validation
+export function validateOrderId(orderId: string): boolean {
+  if (!orderId || typeof orderId !== 'string') return false;
+  if (orderId.length < 10 || orderId.length > 50) return false;
+  
+  // Only allow alphanumeric and safe characters
+  const orderIdRegex = /^[a-zA-Z0-9_-]+$/;
+  return orderIdRegex.test(orderId);
+}
+
+// Enhanced user ID validation
+export function validateUserId(userId: string): boolean {
+  if (!userId || typeof userId !== 'string') return false;
+  if (userId.length < 1 || userId.length > 100) return false;
+  
+  // Allow alphanumeric, underscore, dash, and dot for various ID formats
+  const userIdRegex = /^[a-zA-Z0-9._-]+$/;
+  return userIdRegex.test(userId);
 }
 
 // Enhanced password strength validation

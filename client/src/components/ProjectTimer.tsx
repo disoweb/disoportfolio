@@ -35,7 +35,7 @@ export default function ProjectTimer({ project }: ProjectTimerProps) {
       
       // Debug: Only log if there are different due dates
       if (project.projectName === "E-commerce Solution" || project.projectName?.includes("17:51:29")) {
-        console.log(`Timer Debug - ${project.projectName}: Due ${project.dueDate}, Days: ${Math.floor(timeDiff / (1000 * 60 * 60 * 24))}`);
+
       }
       
       if (timeDiff <= 0) {
