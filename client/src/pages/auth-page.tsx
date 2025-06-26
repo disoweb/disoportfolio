@@ -301,24 +301,27 @@ export default function AuthPage() {
     onSuccess: async (data) => {
       console.log('🚀 [REGISTER SUCCESS] User created:', data.user.email);
       
-      // Set the user data in React Query cache
+      // Set the user data in React Query cache immediately
       queryClient.setQueryData(["/api/auth/user"], data.user);
       toast({ title: "Welcome!", description: "Your account has been created successfully." });
       
-      console.log('🚀 [REGISTER SUCCESS] Waiting for session establishment...');
-      // Wait for session to be established
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      console.log('🚀 [REGISTER SUCCESS] Checking for checkout context...');
       
       // Check if this is checkout-initiated registration
       const checkoutSessionToken = sessionStorage.getItem('checkoutSessionToken');
       const tokenFromUrl = new URLSearchParams(window.location.search).get('checkout');
       
       if (checkoutSessionToken || tokenFromUrl) {
-        console.log('🔄 REGISTER: Checkout context detected, will redirect to payment completion');
-        // Let the useEffect handle checkout redirect
+        console.log('🔄 REGISTER: Checkout context detected, triggering redirect logic');
+        
+        // Wait for session establishment then let useEffect handle redirect
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Force trigger the redirect useEffect by updating state
+        setRedirectHandled(false);
       } else {
-        console.log('🔄 REGISTER: Direct registration detected, will redirect to dashboard');
-        // Let the useEffect handle dashboard redirect
+        console.log('🔄 REGISTER: Direct registration detected, redirecting to dashboard');
+        setLocation("/dashboard");
       }
     },
     onError: (error: any) => {
