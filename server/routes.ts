@@ -205,6 +205,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (order && order.id) {
         try {
           const email = customRequestData.contactInfo.email;
+          console.log('💳 [PAYMENT INIT] Attempting to initialize payment for order:', order.id);
+          console.log('💳 [PAYMENT INIT] Payment details:', { orderId: order.id, amount: parseInt(orderData.totalPrice), email, userId });
+          
           const paymentUrl = await storage.initializePayment({
             orderId: order.id,
             amount: parseInt(orderData.totalPrice),
@@ -212,12 +215,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
             userId,
           });
           
-          res.json({ ...order, paymentUrl });
+          console.log('💳 [PAYMENT INIT] Payment URL generated:', paymentUrl);
+          const response = { ...order, paymentUrl };
+          console.log('💳 [PAYMENT INIT] Sending response with payment URL:', response);
+          res.json(response);
         } catch (paymentError) {
+          console.error('💳 [PAYMENT ERROR] Payment initialization failed:', paymentError);
           // Return order without payment URL if payment fails
+          console.log('💳 [PAYMENT ERROR] Returning order without payment URL');
           res.json(order);
         }
       } else {
+        console.log('💳 [ORDER ERROR] No order created or missing order ID');
         res.json(order);
       }
     } catch (error) {

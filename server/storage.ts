@@ -403,10 +403,13 @@ export class DatabaseStorage implements IStorage {
     email: string;
     userId: string;
   }): Promise<string> {
+    console.log('💳 [STORAGE] initializePayment called with params:', params);
     const paystackSecretKey = process.env.PAYSTACK_SECRET_KEY;
     if (!paystackSecretKey) {
+      console.error('💳 [STORAGE] Paystack secret key not configured');
       throw new Error("Paystack secret key not configured");
     }
+    console.log('💳 [STORAGE] Paystack secret key found, proceeding with payment initialization');
 
     const reference = `PSK_${Date.now()}_${Math.random()
       .toString(36)
@@ -435,10 +438,13 @@ export class DatabaseStorage implements IStorage {
     );
 
     const data = await response.json();
+    console.log('💳 [STORAGE] Paystack API response:', data);
 
     if (!data.status) {
+      console.error('💳 [STORAGE] Paystack initialization failed:', data.message);
       throw new Error(data.message || "Failed to initialize payment");
     }
+    console.log('💳 [STORAGE] Payment initialization successful, URL:', data.data.authorization_url);
 
     // Store payment record
     await db.insert(payments).values({
