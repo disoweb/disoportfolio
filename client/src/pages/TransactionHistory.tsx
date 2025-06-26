@@ -11,7 +11,7 @@ import { Link } from 'wouter';
 import Navigation from '@/components/Navigation';
 
 export default function TransactionHistory() {
-  const [statusFilter, setStatusFilter] = React.useState<'all' | 'paid' | 'pending' | 'cancelled'>('all');
+  const [statusFilter, setStatusFilter] = React.useState<'all' | 'paid' | 'pending' | 'cancelled'>('paid');
   const [searchQuery, setSearchQuery] = React.useState('');
   const [currentPage, setCurrentPage] = React.useState(1);
   const [itemsPerPage] = React.useState(8); // Reduced for better mobile experience
@@ -26,6 +26,17 @@ export default function TransactionHistory() {
     queryKey: ["/api/client/stats"],
   });
 
+  // Smart default filter based on available data
+  React.useEffect(() => {
+    if (Array.isArray(orders) && orders.length > 0 && statusFilter === 'paid') {
+      const hasPaid = orders.some((order: any) => order.status === 'paid');
+      if (!hasPaid) {
+        const hasPending = orders.some((order: any) => order.status === 'pending');
+        setStatusFilter(hasPending ? 'pending' : 'all');
+      }
+    }
+  }, [orders, statusFilter]);
+
   // Filter orders based on status and search query
   const filteredOrders = React.useMemo(() => {
     if (!orders) return [];
@@ -37,60 +48,32 @@ export default function TransactionHistory() {
       filtered = filtered.filter((order: any) => order.status === statusFilter);
     }
     
-    // Filter by search query - debug false positives
+    // Filter by search query with exact word matching
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
-      console.log('🔍 Searching for:', query);
       
       filtered = filtered.filter((order: any) => {
-        // Create search fields with better validation
         const searchFields = [
           (order.contactName || '').toString().toLowerCase(),
           (order.contactEmail || '').toString().toLowerCase(), 
           (order.companyName || '').toString().toLowerCase(),
           (order.serviceName || '').toString().toLowerCase(),
           (order.customRequest || '').toString().toLowerCase(),
-        ].filter(field => field.length > 0); // Remove empty fields
+        ].filter(field => field.length > 0);
         
-        // Add order ID variants only if they are meaningful
         const orderId = (order.id || '').toString().toLowerCase();
         if (orderId.length >= 6) {
           searchFields.push(orderId);
-          searchFields.push(orderId.slice(-6)); // Short order ID
-          searchFields.push(orderId.slice(-8)); // Medium order ID
+          searchFields.push(orderId.slice(-6));
+          searchFields.push(orderId.slice(-8));
         }
         
-        // Debug: log all search fields and actual values for problematic searches
-        if (query === 'good') {
-          console.log(`Order ${order.id?.slice(-6)}:`, {
-            contactName: order.contactName,
-            contactEmail: order.contactEmail,
-            companyName: order.companyName,
-            serviceName: order.serviceName,
-            customRequest: order.customRequest,
-            searchFields: searchFields
-          });
-        }
-        
-        // Check for word boundary matches to prevent false positives
-        const hasMatch = searchFields.some(field => {
-          // Split field into words and check for exact word matches
+        return searchFields.some(field => {
           const words = field.toLowerCase().split(/\s+|[^\w]/);
-          const exactWordMatch = words.some(word => word === query);
-          
-          // For longer queries (6+ chars), also allow substring matching
+          const exactWordMatch = words.some((word: string) => word === query);
           const substringMatch = query.length >= 6 && field.includes(query);
-          
-          const foundMatch = exactWordMatch || substringMatch;
-          
-          if (foundMatch && query === 'good') {
-            console.log(`✓ Match found in: "${field}" (words: ${words.join(', ')}, exact: ${exactWordMatch}, substring: ${substringMatch})`);
-          }
-          
-          return foundMatch;
+          return exactWordMatch || substringMatch;
         });
-        
-        return hasMatch;
       });
     }
     
