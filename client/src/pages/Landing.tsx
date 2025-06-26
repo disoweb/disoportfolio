@@ -302,25 +302,19 @@ export default function Landing() {
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <Button
                 size="lg"
-                className="bg-blue-600 hover:bg-blue-700 px-8 py-6 text-lg relative"
+                className="bg-blue-600 hover:bg-blue-700 px-8 py-6 text-lg w-auto"
                 onClick={() => (window.location.href = "/services")}
               >
                 <ShoppingCart className="mr-2 h-5 w-5" />
                 View Packages
-                <Badge
-                  variant="destructive"
-                  className="absolute -top-2 -right-2 text-xs"
-                >
-                  Claim Offer
-                </Badge>
               </Button>
               <Button
                 variant="outline"
                 size="lg"
-                className="rounded border-blue-600 text-blue-600 px-8 py-6 text-lg"
+                className="rounded border-blue-600 text-blue-600 hover:bg-blue-50 px-8 py-6 text-lg w-auto"
                 onClick={() => (window.location.href = "/contact")}
               >
                 Schedule Free Consultation
