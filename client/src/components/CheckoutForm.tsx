@@ -223,7 +223,6 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
                   description: "Please log in again to complete your order.",
                   variant: "destructive",
                 });
-                setLocation('/auth');
                 return;
               }
               
@@ -268,7 +267,7 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
         }
       }
     }
-  }, [user, orderMutation.isPending, currentStep, setLocation, toast]);
+  }, [user, orderMutation.isPending, setLocation, toast]);
 
   const onContactSubmit = (data: ContactForm) => {
     // Store contact data persistently
@@ -280,32 +279,15 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
   const onPaymentSubmit = (data: PaymentForm) => {
     if (!contactData) return;
     
-    // Check if user is authenticated first
-    if (!user) {
-      // Store all checkout data in sessionStorage for later restoration
-      const checkoutData = {
-        service,
-        totalPrice,
-        selectedAddOns,
-        contactData,
-        paymentData: data,
-        returnUrl: `/checkout?service=${service.id}&price=${totalPrice}&addons=${selectedAddOns.join(',')}`,
-        timestamp: Date.now()
-      };
-      
-      sessionStorage.setItem('pendingCheckout', JSON.stringify(checkoutData));
-      
-      // Redirect to auth page
-      setLocation('/auth');
-      return;
-    }
+    // Always proceed with payment if we're at step 2 - user must be authenticated to reach this step
+    // The authentication check happens at component mount and in useEffect
     
-    // User is authenticated - show loader immediately and proceed with payment
+    // Show loader immediately and proceed with payment
     setShowPaymentLoader(true);
     
     // Prepare the final data
     const finalContactData = { ...contactData };
-    if (!finalContactData.email && user.email) {
+    if (!finalContactData.email && user?.email) {
       finalContactData.email = user.email;
     }
     
