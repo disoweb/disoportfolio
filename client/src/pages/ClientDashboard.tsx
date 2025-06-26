@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ProjectCard from "@/components/ProjectCard";
 import MessagesList from "@/components/MessagesList";
 import OrderDetailsModal from "@/components/OrderDetailsModal";
@@ -24,7 +25,8 @@ import {
   CreditCard,
   Calendar,
   X,
-  RefreshCw
+  RefreshCw,
+  Filter
 } from "lucide-react";
 
 export default function ClientDashboard() {
@@ -35,6 +37,7 @@ export default function ClientDashboard() {
   const [isOrderModalOpen, setIsOrderModalOpen] = React.useState(false);
   const [processingOrderId, setProcessingOrderId] = React.useState<string | null>(null);
   const [cancellingOrderId, setCancellingOrderId] = React.useState<string | null>(null);
+  const [orderFilter, setOrderFilter] = React.useState<'all' | 'pending' | 'paid' | 'cancelled'>('all');
 
   // Cancel order mutation
   const cancelOrderMutation = useMutation({
@@ -170,6 +173,35 @@ export default function ClientDashboard() {
     }, 0);
   }, [orders]);
 
+  // Filter orders based on selected filter
+  const filteredOrders = React.useMemo(() => {
+    if (!orders) return [];
+    if (orderFilter === 'all') return orders;
+    return orders.filter((order: any) => {
+      switch (orderFilter) {
+        case 'pending':
+          return order.status === 'pending';
+        case 'paid':
+          return order.status === 'paid';
+        case 'cancelled':
+          return order.status === 'cancelled';
+        default:
+          return true;
+      }
+    });
+  }, [orders, orderFilter]);
+
+  // Calculate filter counts
+  const filterCounts = React.useMemo(() => {
+    if (!orders) return { all: 0, pending: 0, paid: 0, cancelled: 0 };
+    return {
+      all: orders.length,
+      pending: orders.filter((o: any) => o.status === 'pending').length,
+      paid: orders.filter((o: any) => o.status === 'paid').length,
+      cancelled: orders.filter((o: any) => o.status === 'cancelled').length,
+    };
+  }, [orders]);
+
   const { data: stats } = useQuery({
     queryKey: ["/api/client/stats"],
   });
@@ -263,27 +295,47 @@ export default function ClientDashboard() {
             {/* Orders Section */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-xl font-bold text-slate-900">Service Orders</CardTitle>
+                <CardTitle className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                  <Filter className="h-5 w-5" />
+                  Service Orders
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                {orders && orders.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {orders.map((order: any) => (
-                      <div 
-                        key={order.id} 
-                        className="border border-slate-200 rounded-lg p-4 hover:shadow-lg hover:border-blue-300 transition-all cursor-pointer group"
-                        onClick={() => {
-                          setSelectedOrder(order);
-                          setIsOrderModalOpen(true);
-                        }}
-                      >
-                        <div className="flex justify-between items-start mb-3">
-                          <h4 className="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors">Service Order</h4>
-                          <Badge variant={order.status === 'paid' ? 'default' : order.status === 'pending' ? 'secondary' : 'outline'}>
-                            {order.status}
-                          </Badge>
-                        </div>
-                        <div className="space-y-2">
+                <Tabs value={orderFilter} onValueChange={(value: any) => setOrderFilter(value)} className="w-full">
+                  <TabsList className="grid w-full grid-cols-4 mb-6">
+                    <TabsTrigger value="all" className="text-xs sm:text-sm">
+                      All ({filterCounts.all})
+                    </TabsTrigger>
+                    <TabsTrigger value="pending" className="text-xs sm:text-sm">
+                      Pending ({filterCounts.pending})
+                    </TabsTrigger>
+                    <TabsTrigger value="paid" className="text-xs sm:text-sm">
+                      Completed ({filterCounts.paid})
+                    </TabsTrigger>
+                    <TabsTrigger value="cancelled" className="text-xs sm:text-sm">
+                      Cancelled ({filterCounts.cancelled})
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value={orderFilter} className="mt-0">
+                    {filteredOrders && filteredOrders.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {filteredOrders.map((order: any) => (
+                          <div 
+                            key={order.id} 
+                            className="border border-slate-200 rounded-lg p-4 hover:shadow-lg hover:border-blue-300 transition-all cursor-pointer group"
+                            onClick={() => {
+                              setSelectedOrder(order);
+                              setIsOrderModalOpen(true);
+                            }}
+                          >
+                            <div className="flex justify-between items-start mb-3">
+                              <h4 className="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors">Service Order</h4>
+                              <Badge variant={order.status === 'paid' ? 'default' : order.status === 'pending' ? 'secondary' : 'outline'}>
+                                {order.status}
+                              </Badge>
+                            </div>
+                            <div className="space-y-2">
                           {(() => {
                             try {
                               // Try to parse JSON contact info if it exists
@@ -389,20 +441,32 @@ export default function ClientDashboard() {
                               </Button>
                             </div>
                           )}
-                        </div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <CreditCard className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-slate-900 mb-2">No Orders Yet</h3>
-                    <p className="text-slate-600 mb-4">Place your first order to get started with our services.</p>
-                    <Button onClick={() => setLocation("/services")}>Browse Services</Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                    ) : (
+                      <div className="text-center py-8">
+                        <CreditCard className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                        <h3 className="text-lg font-medium text-slate-900 mb-2">
+                          {orderFilter === 'all' ? 'No Orders Yet' : 
+                           orderFilter === 'pending' ? 'No Pending Orders' :
+                           orderFilter === 'paid' ? 'No Completed Orders' : 'No Cancelled Orders'}
+                        </h3>
+                        <p className="text-slate-600 mb-4">
+                          {orderFilter === 'all' ? 'Place your first order to get started with our services.' :
+                           orderFilter === 'pending' ? 'All your orders have been processed.' :
+                           orderFilter === 'paid' ? 'No completed orders to display.' : 'No cancelled orders found.'}
+                        </p>
+                        {orderFilter === 'all' && (
+                          <Button onClick={() => setLocation("/services")}>Browse Services</Button>
+                        )}
+                      </div>
+                    )}
+                    </TabsContent>
+                  </Tabs>
+                </CardContent>
+              </Card>
 
             {/* Projects Section */}
             <Card>
