@@ -93,6 +93,10 @@ export interface IStorage {
   updateCheckoutSession(sessionToken: string, updates: Partial<InsertCheckoutSession>): Promise<CheckoutSession>;
   deleteCheckoutSession(sessionToken: string): Promise<void>;
   cleanupExpiredCheckoutSessions(): Promise<void>;
+
+  // Admin project management
+  getProjectById(id: string): Promise<Project | undefined>;
+  deleteProject(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1095,6 +1099,16 @@ export class DatabaseStorage implements IStorage {
         estimatedDelivery: "Unknown"
       };
     }
+  }
+
+  // Admin project management methods
+  async getProjectById(id: string): Promise<Project | undefined> {
+    const [project] = await db.select().from(projects).where(eq(projects.id, id));
+    return project;
+  }
+
+  async deleteProject(id: string): Promise<void> {
+    await db.delete(projects).where(eq(projects.id, id));
   }
 }
 

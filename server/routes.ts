@@ -853,6 +853,241 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin project deletion (only for cancelled projects)
+  app.delete('/api/admin/projects/:id', isAuthenticated, securityHeaders, validateContentType, validateRequestSize(), authRateLimit('project_delete'), async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.role !== 'admin') {
+        auditLog('unauthorized_project_delete_attempt', userId, { projectId: req.params.id });
+        return sendSafeErrorResponse(res, 403, new Error("Unauthorized"), 'unauthorized_project_delete');
+      }
+
+      const { id } = req.params;
+      
+      // Validate project ID format
+      if (!id || typeof id !== 'string' || id.length < 10) {
+        return sendSafeErrorResponse(res, 400, new Error("Invalid project ID"), 'invalid_project_id');
+      }
+
+      // Get project to verify it's cancelled
+      const project = await storage.getProjectById(id);
+      if (!project) {
+        return sendSafeErrorResponse(res, 404, new Error("Project not found"), 'project_not_found');
+      }
+
+      if (project.status !== 'cancelled') {
+        auditLog('project_delete_denied_not_cancelled', userId, { projectId: id, currentStatus: project.status });
+        return sendSafeErrorResponse(res, 400, new Error("Only cancelled projects can be deleted"), 'project_not_cancelled');
+      }
+
+      await storage.deleteProject(id);
+      auditLog('project_deleted', userId, { projectId: id, projectName: project.projectName });
+      
+      res.json({ message: "Project deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting project:", error);
+      sendSafeErrorResponse(res, 500, error, 'project_delete_error');
+    }
+  });
+
+  // Admin create new project
+  app.post('/api/admin/projects', isAuthenticated, securityHeaders, validateContentType, validateRequestSize(), authRateLimit('project_create'), async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.role !== 'admin') {
+        auditLog('unauthorized_project_create_attempt', userId);
+        return sendSafeErrorResponse(res, 403, new Error("Unauthorized"), 'unauthorized_project_create');
+      }
+
+      // Validate and sanitize input
+      const projectData = {
+        ...req.body,
+        projectName: sanitizeInput(req.body.projectName || ''),
+        userId: sanitizeInput(req.body.userId || ''),
+        description: sanitizeInput(req.body.description || ''),
+        notes: sanitizeInput(req.body.notes || '')
+      };
+
+      const validatedProject = insertProjectSchema.parse(projectData);
+      const project = await storage.createProject(validatedProject);
+      
+      auditLog('project_created', userId, { 
+        projectId: project.id, 
+        projectName: project.projectName,
+        targetUserId: project.userId 
+      });
+      
+      res.json(project);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return sendSafeErrorResponse(res, 400, new Error("Invalid project data"), 'invalid_project_data');
+      }
+      console.error("Error creating project:", error);
+      sendSafeErrorResponse(res, 500, error, 'project_create_error');
+    }
+  });
+
+  // Admin update order status and payment
+  app.patch('/api/admin/orders/:id', isAuthenticated, securityHeaders, validateContentType, validateRequestSize(), authRateLimit('order_update'), async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.role !== 'admin') {
+        auditLog('unauthorized_order_update_attempt', userId, { orderId: req.params.id });
+        return sendSafeErrorResponse(res, 403, new Error("Unauthorized"), 'unauthorized_order_update');
+      }
+
+      const { id } = req.params;
+      const { status, paymentId } = req.body;
+
+      // Validate order ID
+      if (!validateOrderId(id)) {
+        return sendSafeErrorResponse(res, 400, new Error("Invalid order ID"), 'invalid_order_id');
+      }
+
+      // Sanitize inputs
+      const sanitizedStatus = sanitizeInput(status || '');
+      const sanitizedPaymentId = sanitizeInput(paymentId || '');
+
+      const updates: any = {};
+      if (sanitizedStatus) updates.status = sanitizedStatus;
+      if (sanitizedPaymentId) updates.paymentId = sanitizedPaymentId;
+
+      const updatedOrder = await storage.updateOrderStatus(id, sanitizedStatus);
+      
+      auditLog('order_updated_by_admin', userId, { 
+        orderId: id, 
+        newStatus: sanitizedStatus,
+        paymentId: sanitizedPaymentId 
+      });
+      
+      res.json(updatedOrder);
+    } catch (error) {
+      console.error("Error updating order:", error);
+      sendSafeErrorResponse(res, 500, error, 'order_update_error');
+    }
+  });
+
+  // Admin service package CRUD operations
+  app.get('/api/admin/services', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.role !== 'admin') {
+        return sendSafeErrorResponse(res, 403, new Error("Unauthorized"), 'unauthorized_service_access');
+      }
+
+      const services = await storage.getAllServices();
+      res.json(services);
+    } catch (error) {
+      console.error("Error fetching admin services:", error);
+      sendSafeErrorResponse(res, 500, error, 'service_fetch_error');
+    }
+  });
+
+  app.post('/api/admin/services', isAuthenticated, securityHeaders, validateContentType, validateRequestSize(), authRateLimit('service_create'), async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.role !== 'admin') {
+        auditLog('unauthorized_service_create_attempt', userId);
+        return sendSafeErrorResponse(res, 403, new Error("Unauthorized"), 'unauthorized_service_create');
+      }
+
+      // Sanitize input data
+      const serviceData = {
+        ...req.body,
+        name: sanitizeInput(req.body.name || ''),
+        description: sanitizeInput(req.body.description || ''),
+        category: sanitizeInput(req.body.category || ''),
+        features: Array.isArray(req.body.features) ? req.body.features.map((f: string) => sanitizeInput(f)) : []
+      };
+
+      const validatedService = insertServiceSchema.parse(serviceData);
+      const service = await storage.createService(validatedService);
+      
+      auditLog('service_created', userId, { 
+        serviceId: service.id, 
+        serviceName: service.name 
+      });
+      
+      res.json(service);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return sendSafeErrorResponse(res, 400, new Error("Invalid service data"), 'invalid_service_data');
+      }
+      console.error("Error creating service:", error);
+      sendSafeErrorResponse(res, 500, error, 'service_create_error');
+    }
+  });
+
+  app.patch('/api/admin/services/:id', isAuthenticated, securityHeaders, validateContentType, validateRequestSize(), authRateLimit('service_update'), async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.role !== 'admin') {
+        auditLog('unauthorized_service_update_attempt', userId, { serviceId: req.params.id });
+        return sendSafeErrorResponse(res, 403, new Error("Unauthorized"), 'unauthorized_service_update');
+      }
+
+      const { id } = req.params;
+      
+      // Sanitize update data
+      const updates = {
+        ...req.body,
+        name: req.body.name ? sanitizeInput(req.body.name) : undefined,
+        description: req.body.description ? sanitizeInput(req.body.description) : undefined,
+        category: req.body.category ? sanitizeInput(req.body.category) : undefined,
+        features: Array.isArray(req.body.features) ? req.body.features.map((f: string) => sanitizeInput(f)) : undefined
+      };
+
+      // Remove undefined values
+      Object.keys(updates).forEach(key => updates[key] === undefined && delete updates[key]);
+
+      const updatedService = await storage.updateService(id, updates);
+      
+      auditLog('service_updated', userId, { 
+        serviceId: id, 
+        updates: Object.keys(updates) 
+      });
+      
+      res.json(updatedService);
+    } catch (error) {
+      console.error("Error updating service:", error);
+      sendSafeErrorResponse(res, 500, error, 'service_update_error');
+    }
+  });
+
+  app.delete('/api/admin/services/:id', isAuthenticated, securityHeaders, validateContentType, validateRequestSize(), authRateLimit('service_delete'), async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.role !== 'admin') {
+        auditLog('unauthorized_service_delete_attempt', userId, { serviceId: req.params.id });
+        return sendSafeErrorResponse(res, 403, new Error("Unauthorized"), 'unauthorized_service_delete');
+      }
+
+      const { id } = req.params;
+      await storage.deleteService(id);
+      
+      auditLog('service_deleted', userId, { serviceId: id });
+      
+      res.json({ message: "Service deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting service:", error);
+      sendSafeErrorResponse(res, 500, error, 'service_delete_error');
+    }
+  });
+
   // Contact form route (public)
   app.post('/api/contact', async (req, res) => {
     try {

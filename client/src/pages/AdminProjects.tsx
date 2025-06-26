@@ -116,6 +116,14 @@ export default function AdminProjects() {
     notes: "",
     dueDate: ""
   });
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    projectName: "",
+    userId: "",
+    description: "",
+    timelineWeeks: "",
+    notes: ""
+  });
 
   // Fetch all projects
   const { data: projects = [], isLoading } = useQuery<Project[]>({
@@ -140,6 +148,56 @@ export default function AdminProjects() {
       toast({
         title: "Error",
         description: error.message || "Failed to update project",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Create project mutation
+  const createProjectMutation = useMutation({
+    mutationFn: async (projectData: any) => {
+      return await apiRequest('POST', '/api/admin/projects', projectData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      setIsCreateDialogOpen(false);
+      setCreateForm({
+        projectName: "",
+        userId: "",
+        description: "",
+        timelineWeeks: "",
+        notes: ""
+      });
+      toast({
+        title: "Project created",
+        description: "New project has been created successfully.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create project",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete project mutation (only for cancelled projects)
+  const deleteProjectMutation = useMutation({
+    mutationFn: async (projectId: string) => {
+      return await apiRequest('DELETE', `/api/admin/projects/${projectId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      toast({
+        title: "Project deleted",
+        description: "Cancelled project has been deleted successfully.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete project",
         variant: "destructive",
       });
     },

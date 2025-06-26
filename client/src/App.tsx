@@ -20,6 +20,7 @@ import ActiveProjects from "@/pages/ActiveProjects";
 import TransactionHistory from "@/pages/TransactionHistory";
 import AdminDashboard from "@/pages/AdminDashboard";
 import AdminProjects from "@/pages/AdminProjects";
+import AdminServices from "@/pages/AdminServices";
 import AdminLogin from "@/pages/AdminLogin";
 import Checkout from "@/pages/Checkout";
 import WhatsAppFloat from "@/components/WhatsAppFloat";
@@ -126,6 +127,7 @@ function Router() {
         <Route path="/admin" component={AdminLogin} />
         <Route path="/admin-dashboard" component={AdminDashboard} />
         <Route path="/admin/projects" component={AdminProjects} />
+        <Route path="/admin/services" component={AdminServices} />
         <Route path="/dashboard" component={ClientDashboard} />
         <Route path="/active-projects" component={ActiveProjects} />
         <Route path="/transactions" component={TransactionHistory} />
