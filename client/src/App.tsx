@@ -16,6 +16,8 @@ import ProjectDetails from "./pages/ProjectDetails";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 import ClientDashboard from "@/pages/ClientDashboard";
+import ActiveProjects from "@/pages/ActiveProjects";
+import TransactionHistory from "@/pages/TransactionHistory";
 import AdminDashboard from "@/pages/AdminDashboard";
 import AdminProjects from "@/pages/AdminProjects";
 import AdminLogin from "@/pages/AdminLogin";
@@ -125,6 +127,8 @@ function Router() {
         <Route path="/admin-dashboard" component={AdminDashboard} />
         <Route path="/admin/projects" component={AdminProjects} />
         <Route path="/dashboard" component={ClientDashboard} />
+        <Route path="/active-projects" component={ActiveProjects} />
+        <Route path="/transactions" component={TransactionHistory} />
         <Route path="/services" component={Services} />
         <Route path="/service/:id" component={ServiceDetails} />
         <Route path="/checkout" component={Checkout} />
