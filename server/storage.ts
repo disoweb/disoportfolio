@@ -412,14 +412,24 @@ export class DatabaseStorage implements IStorage {
     if (!duration) return 4; // Default 4 weeks
     
     // Extract numbers from duration string like "2-3 weeks", "1 week", "4-6 weeks"
-    const match = duration.match(/(\d+)(?:-(\d+))?\s*weeks?/i);
-    if (match) {
-      const min = parseInt(match[1]);
-      const max = match[2] ? parseInt(match[2]) : min;
+    const weeksMatch = duration.match(/(\d+)(?:-(\d+))?\s*weeks?/i);
+    if (weeksMatch) {
+      const min = parseInt(weeksMatch[1]);
+      const max = weeksMatch[2] ? parseInt(weeksMatch[2]) : min;
       return Math.round((min + max) / 2); // Return average
     }
     
-    // If no match, try to extract just numbers
+    // Extract numbers from duration string like "3-5 days", "4 days", "1-2 days"
+    const daysMatch = duration.match(/(\d+)(?:-(\d+))?\s*days?/i);
+    if (daysMatch) {
+      const min = parseInt(daysMatch[1]);
+      const max = daysMatch[2] ? parseInt(daysMatch[2]) : min;
+      const avgDays = Math.round((min + max) / 2);
+      // Convert days to weeks (7 days = 1 week, but minimum 0.5 weeks for short projects)
+      return Math.max(avgDays / 7, 0.5);
+    }
+    
+    // If no match, try to extract just numbers (assume weeks)
     const numberMatch = duration.match(/(\d+)/);
     if (numberMatch) {
       return parseInt(numberMatch[1]);
