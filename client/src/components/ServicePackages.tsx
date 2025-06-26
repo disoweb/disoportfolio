@@ -387,31 +387,31 @@ export default function ServicePackages() {
   }
 
   return (
-    <section className="py-8 bg-slate-50" id="service-packages">
-      <div className="container mx-auto px-4 sm:px-6">
-        <div className="text-center mb-8">
-          <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-3">
+    <section className="py-6 bg-slate-50" id="service-packages">
+      <div className="container mx-auto px-4">
+        <div className="text-center mb-6">
+          <h2 className="text-2xl font-bold text-slate-800 mb-2">
             Choose Your Perfect Package
           </h2>
-          <p className="text-slate-600 max-w-2xl mx-auto text-sm sm:text-base px-2">
+          <p className="text-slate-600 max-w-2xl mx-auto text-sm">
             Professional web solutions tailored to your industry needs. Select your industry to see recommended packages.
           </p>
         </div>
 
         {/* Industry Selection */}
-        <div className="mb-8">
-          <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
+        <div className="mb-6">
+          <div className="flex flex-wrap justify-center gap-2">
             {industries.map((industry) => (
               <button
                 key={industry.id}
                 onClick={() => setSelectedIndustry(industry.id)}
-                className={`px-4 py-2.5 rounded-full text-sm font-medium transition-all ${
+                className={`px-3 py-2 rounded-full text-xs font-medium transition-all ${
                   selectedIndustry === industry.id
-                    ? "bg-blue-600 text-white shadow-lg"
-                    : "bg-white text-slate-700 hover:bg-slate-100 border border-slate-300 shadow-sm"
+                    ? "bg-blue-600 text-white shadow-md"
+                    : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
                 }`}
               >
-                <span className="mr-2">{industry.icon}</span>
+                <span className="mr-1">{industry.icon}</span>
                 {industry.label}
               </button>
             ))}
@@ -419,14 +419,14 @@ export default function ServicePackages() {
         </div>
 
         {/* Services Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-sm mx-auto md:max-w-none">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {recommendedServices.map((service) => (
             <Card
               key={service.id}
-              className={`relative transition-all duration-300 hover:shadow-lg bg-white rounded-lg border ${
+              className={`relative transition-all duration-300 hover:shadow-lg ${
                 service.recommended
                   ? "ring-2 ring-blue-500 shadow-lg"
-                  : "hover:shadow-md border-slate-200"
+                  : "hover:shadow-md"
               }`}
             >
               {service.recommended && (
@@ -438,43 +438,43 @@ export default function ServicePackages() {
                 </div>
               )}
 
-              <CardHeader className="pb-4 pt-6">
-                <div className="space-y-3">
+              <CardHeader className="pb-3">
+                <div className="flex justify-between items-start">
                   <div>
-                    <CardTitle className="text-xl font-bold text-slate-800 mb-2">
+                    <CardTitle className="text-lg font-bold text-slate-800">
                       {service.name}
                     </CardTitle>
-                    <CardDescription className="text-slate-600 text-sm leading-relaxed">
+                    <CardDescription className="text-slate-600 text-sm">
                       {service.description}
                     </CardDescription>
                   </div>
+                </div>
 
-                  <div className="flex items-center space-x-4 text-sm text-slate-500">
-                    <div className="flex items-center">
-                      <Clock className="h-4 w-4 mr-1" />
-                      {service.duration}
-                    </div>
-                    <div className="flex items-center">
-                      <Calendar className="h-4 w-4 mr-1" />
-                      {service.deliveryDate}
-                    </div>
+                <div className="flex items-center space-x-4 text-xs text-slate-500">
+                  <div className="flex items-center">
+                    <Clock className="h-3 w-3 mr-1" />
+                    {service.duration}
                   </div>
+                  <div className="flex items-center">
+                    <Calendar className="h-3 w-3 mr-1" />
+                    {service.deliveryDate}
+                  </div>
+                </div>
 
-                  <div className="flex items-center justify-between pt-2">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-2xl font-bold text-blue-600">
-                        ₦{(priceUpdates[service.id] || service.price).toLocaleString()}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-xl font-bold text-blue-600">
+                      ₦{(priceUpdates[service.id] || service.price).toLocaleString()}
+                    </span>
+                    {service.originalPrice > service.price && (
+                      <span className="text-sm text-slate-500 line-through">
+                        ₦{service.originalPrice.toLocaleString()}
                       </span>
-                      {service.originalPrice > service.price && (
-                        <span className="text-sm text-slate-500 line-through">
-                          ₦{service.originalPrice.toLocaleString()}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center text-sm text-slate-500">
-                      <Users className="h-4 w-4 mr-1" />
-                      {service.spots}/{service.totalSpots} spots
-                    </div>
+                    )}
+                  </div>
+                  <div className="flex items-center text-xs text-slate-500">
+                    <Users className="h-3 w-3 mr-1" />
+                    {service.spots}/{service.totalSpots} spots
                   </div>
                 </div>
               </CardHeader>
