@@ -74,6 +74,30 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
   const { toast } = useToast();
   const { user } = useAuth();
 
+  // Check for post-authentication auto-payment
+  useEffect(() => {
+    const autoSubmitPayment = sessionStorage.getItem('auto_submit_payment');
+    if (autoSubmitPayment === 'true' && isPostAuthRedirect && sessionData?.contactData && user) {
+      console.log('CheckoutForm - Auto-submitting payment after authentication');
+      setContactData(sessionData.contactData);
+      setShowPaymentLoader(true);
+      sessionStorage.setItem('payment_in_progress', 'true');
+      sessionStorage.removeItem('auto_submit_payment');
+      
+      // Auto-submit payment directly without showing the form
+      const paymentData = {
+        paymentMethod: "paystack" as const,
+        timeline: "standard",
+        overrideSelectedAddOns: sessionData.selectedAddOns,
+        overrideTotalAmount: sessionData.totalPrice
+      };
+      
+      setTimeout(() => {
+        orderMutation.mutate(paymentData);
+      }, 1000); // Delay to ensure mutation is ready
+    }
+  }, [isPostAuthRedirect, sessionData, user]);
+
   // Step 1: Contact Form with persistent data
   const storedContactData = getStoredFormData('checkout_contact_data');
   const contactForm = useForm<ContactForm>({
@@ -194,14 +218,16 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
         // Clear stored form data and pending checkout on successful order
         localStorage.removeItem('checkout_contact_data');
         sessionStorage.removeItem('pendingCheckout');
+        sessionStorage.removeItem('checkoutSessionToken');
+        sessionStorage.removeItem('auto_submit_payment');
         
         // Clear payment loader state
         sessionStorage.removeItem('payment_in_progress');
         
-        // Small delay before redirect to ensure loader is visible
-        setTimeout(() => {
-          window.location.href = data.paymentUrl;
-        }, 100);
+        console.log('Order created successfully, redirecting to Paystack:', data.paymentUrl);
+        
+        // Immediate redirect to Paystack
+        window.location.href = data.paymentUrl;
         
         onSuccess();
       }
