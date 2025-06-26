@@ -18,14 +18,11 @@ export default function ActiveProjects() {
 
   // Filter for only active projects
   const projects = React.useMemo(() => {
-    console.log('🚀 ActiveProjects - allProjects:', allProjects);
-    console.log('🚀 ActiveProjects - isLoading:', isLoading);
-    console.log('🚀 ActiveProjects - error:', error);
-    if (!allProjects) return [];
-    const activeProjects = allProjects.filter((project: any) => project.status === 'active');
-    console.log('🚀 ActiveProjects - filtered active projects:', activeProjects);
-    return activeProjects;
-  }, [allProjects, isLoading, error]);
+    if (!allProjects || !Array.isArray(allProjects)) {
+      return [];
+    }
+    return allProjects.filter((project: any) => project.status === 'active');
+  }, [allProjects]);
 
   if (isLoading) {
     return (
