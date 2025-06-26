@@ -113,34 +113,11 @@ export default function Checkout() {
   const pendingCheckoutAtRender = sessionStorage.getItem('pendingCheckout');
   console.log('🔍 [CHECKOUT PAGE] Pending checkout at render:', !!pendingCheckoutAtRender);
 
-  // Final check for pending checkout data before showing error
-  if (!serviceId && !serviceData) {
-    const finalCheck = sessionStorage.getItem('pendingCheckout');
-    if (finalCheck) {
-      try {
-        const checkoutData = JSON.parse(finalCheck);
-        if (checkoutData.service) {
-          console.log('🔍 [CHECKOUT PAGE] ✅ Found service in final check, forcing update');
-          // Force update the state if we found service data
-          setServiceData(checkoutData.service);
-          setTotalPrice(checkoutData.totalPrice || 0);
-          setSelectedAddOns(checkoutData.selectedAddOns || []);
-          // Return loading while state updates
-          return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                <p className="text-gray-600">Loading checkout...</p>
-              </div>
-            </div>
-          );
-        }
-      } catch (error) {
-        console.error('Error in final check:', error);
-      }
-    }
-    
-    console.log('🔍 [CHECKOUT PAGE] ❌ Showing Service Not Found page');
+  // Check if we should show Service Not Found - but be more lenient with pending checkout
+  const shouldShowServiceNotFound = !serviceId && !serviceData && !sessionStorage.getItem('pendingCheckout');
+  
+  if (shouldShowServiceNotFound) {
+    console.log('🔍 [CHECKOUT PAGE] ❌ Showing Service Not Found page - no service data and no pending checkout');
     return (
       <div className="min-h-screen bg-gray-50">
         <Navigation />
@@ -155,6 +132,34 @@ export default function Checkout() {
           </div>
         </div>
         <Footer />
+      </div>
+    );
+  }
+  
+  // If no service data but pending checkout exists, show loading while we restore it
+  if (!serviceData && sessionStorage.getItem('pendingCheckout')) {
+    // Try to restore service data immediately
+    const pendingCheckout = sessionStorage.getItem('pendingCheckout');
+    if (pendingCheckout) {
+      try {
+        const checkoutData = JSON.parse(pendingCheckout);
+        if (checkoutData.service) {
+          console.log('🔍 [CHECKOUT PAGE] ✅ Restoring service data from pending checkout during render');
+          setServiceData(checkoutData.service);
+          setTotalPrice(checkoutData.totalPrice || 0);
+          setSelectedAddOns(checkoutData.selectedAddOns || []);
+        }
+      } catch (error) {
+        console.error('Error restoring service data:', error);
+      }
+    }
+    
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Restoring checkout...</p>
+        </div>
       </div>
     );
   }
