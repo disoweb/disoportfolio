@@ -12,11 +12,9 @@ export default function ActiveProjects() {
     queryKey: ["/api/projects"],
   });
 
-  const { data: statsData } = useQuery({
+  const { data: stats } = useQuery({
     queryKey: ["/api/client/stats"],
   });
-  
-  const stats = (statsData as any) || { activeProjects: 0 };
 
   // Filter for only active projects
   const projects = React.useMemo(() => {
