@@ -102,6 +102,10 @@ export default function AdminDashboard() {
   const [isOrdersModalOpen, setIsOrdersModalOpen] = useState(false);
   const [isClientsModalOpen, setIsClientsModalOpen] = useState(false);
   const [isProjectsModalOpen, setIsProjectsModalOpen] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [selectedClient, setSelectedClient] = useState<any>(null);
+  const [selectedProjectDetail, setSelectedProjectDetail] = useState<any>(null);
   const [updateForm, setUpdateForm] = useState({
     stage: "",
     progress: "",
@@ -255,7 +259,11 @@ export default function AdminDashboard() {
                   {orders && Array.isArray(orders) && orders
                     .filter((order: any) => order.status === 'paid')
                     .map((order: any) => (
-                    <div key={order.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div 
+                      key={order.id} 
+                      className="flex items-center justify-between p-4 border rounded-lg cursor-pointer hover:bg-slate-50 transition-colors"
+                      onClick={() => setSelectedTransaction(order)}
+                    >
                       <div className="flex items-center gap-3">
                         <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                         <div>
@@ -314,7 +322,11 @@ export default function AdminDashboard() {
                   {orders && Array.isArray(orders) && orders
                     .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
                     .map((order: any) => (
-                    <div key={order.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div 
+                      key={order.id} 
+                      className="flex items-center justify-between p-4 border rounded-lg cursor-pointer hover:bg-slate-50 transition-colors"
+                      onClick={() => setSelectedOrder(order)}
+                    >
                       <div className="flex items-center gap-3">
                         <Badge variant={order.status === 'paid' ? 'default' : 'secondary'}>
                           {order.status}
@@ -404,7 +416,11 @@ export default function AdminDashboard() {
                       const activeProject = clientProjects.find((p: any) => p.status === 'active');
                       
                       return (
-                        <div key={order.user?.email} className="flex items-center justify-between p-4 border rounded-lg">
+                        <div 
+                          key={order.user?.email} 
+                          className="flex items-center justify-between p-4 border rounded-lg cursor-pointer hover:bg-slate-50 transition-colors"
+                          onClick={() => setSelectedClient({...order.user, projects: clientProjects, activeProject})}
+                        >
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
                               <span className="text-purple-600 font-semibold">
@@ -488,7 +504,11 @@ export default function AdminDashboard() {
                       const daysUntilDue = Math.ceil((new Date(project.dueDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
                       
                       return (
-                        <div key={project.id} className="flex items-center justify-between p-4 border rounded-lg">
+                        <div 
+                          key={project.id} 
+                          className="flex items-center justify-between p-4 border rounded-lg cursor-pointer hover:bg-slate-50 transition-colors"
+                          onClick={() => setSelectedProjectDetail(project)}
+                        >
                           <div className="flex items-center gap-3">
                             <div className={`w-2 h-2 rounded-full ${isOverdue ? 'bg-red-500' : daysUntilDue <= 7 ? 'bg-yellow-500' : 'bg-green-500'}`}></div>
                             <div>
@@ -554,6 +574,315 @@ export default function AdminDashboard() {
                 )}
               </div>
             </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Transaction Detail Modal */}
+        <Dialog open={!!selectedTransaction} onOpenChange={() => setSelectedTransaction(null)}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <DollarSign className="h-5 w-5 text-green-600" />
+                Transaction Details
+              </DialogTitle>
+            </DialogHeader>
+            {selectedTransaction && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <h3 className="font-semibold text-slate-900">Transaction ID</h3>
+                    <p className="text-sm text-slate-600 font-mono">{selectedTransaction.id}</p>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-slate-900">Amount</h3>
+                    <p className="text-lg font-bold text-green-600">₦{parseInt(selectedTransaction.totalPrice || selectedTransaction.amount).toLocaleString()}</p>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <h3 className="font-semibold text-slate-900">Client</h3>
+                    <p className="text-slate-600">{selectedTransaction.user?.firstName} {selectedTransaction.user?.lastName}</p>
+                    <p className="text-sm text-slate-500">{selectedTransaction.user?.email}</p>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-slate-900">Date</h3>
+                    <p className="text-slate-600">{new Date(selectedTransaction.createdAt).toLocaleDateString()}</p>
+                    <p className="text-sm text-slate-500">{new Date(selectedTransaction.createdAt).toLocaleTimeString()}</p>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="font-semibold text-slate-900">Service Details</h3>
+                  {selectedTransaction.service?.name ? (
+                    <div className="mt-2 p-3 bg-slate-50 rounded-lg">
+                      <p className="font-medium">{selectedTransaction.service.name}</p>
+                      <p className="text-sm text-slate-600 capitalize">{selectedTransaction.service.category} Package</p>
+                    </div>
+                  ) : (
+                    <div className="mt-2 p-3 bg-slate-50 rounded-lg">
+                      <p className="font-medium">Custom Service Request</p>
+                      <p className="text-sm text-slate-600 whitespace-pre-wrap">{selectedTransaction.customRequest}</p>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <h3 className="font-semibold text-slate-900">Status</h3>
+                  <div className="mt-2">
+                    <Badge variant="default" className="bg-green-100 text-green-700">
+                      {selectedTransaction.status}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Order Detail Modal */}
+        <Dialog open={!!selectedOrder} onOpenChange={() => setSelectedOrder(null)}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <ShoppingCart className="h-5 w-5 text-blue-600" />
+                Order Details
+              </DialogTitle>
+            </DialogHeader>
+            {selectedOrder && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <h3 className="font-semibold text-slate-900">Order ID</h3>
+                    <p className="text-sm text-slate-600 font-mono">{selectedOrder.id}</p>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-slate-900">Status</h3>
+                    <Badge variant={selectedOrder.status === 'paid' ? 'default' : 'secondary'}>
+                      {selectedOrder.status}
+                    </Badge>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <h3 className="font-semibold text-slate-900">Client Information</h3>
+                    <p className="font-medium">{selectedOrder.user?.firstName} {selectedOrder.user?.lastName}</p>
+                    <p className="text-sm text-slate-600">{selectedOrder.user?.email}</p>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-slate-900">Order Value</h3>
+                    <p className="text-xl font-bold text-blue-600">₦{parseInt(selectedOrder.totalPrice || selectedOrder.amount).toLocaleString()}</p>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="font-semibold text-slate-900">Service/Product</h3>
+                  {selectedOrder.service?.name ? (
+                    <div className="mt-2 p-4 bg-blue-50 rounded-lg">
+                      <h4 className="font-medium text-blue-900">{selectedOrder.service.name}</h4>
+                      <p className="text-sm text-blue-700 capitalize mt-1">{selectedOrder.service.category} Package</p>
+                      {selectedOrder.service.description && (
+                        <p className="text-sm text-blue-600 mt-2">{selectedOrder.service.description}</p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="mt-2 p-4 bg-blue-50 rounded-lg">
+                      <h4 className="font-medium text-blue-900">Custom Service Request</h4>
+                      <p className="text-sm text-blue-600 mt-2 whitespace-pre-wrap">{selectedOrder.customRequest}</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <h3 className="font-semibold text-slate-900">Order Date</h3>
+                    <p className="text-slate-600">{new Date(selectedOrder.createdAt).toLocaleDateString()}</p>
+                    <p className="text-sm text-slate-500">{new Date(selectedOrder.createdAt).toLocaleTimeString()}</p>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-slate-900">Payment Status</h3>
+                    <div className="flex items-center gap-2">
+                      <div className={`w-2 h-2 rounded-full ${selectedOrder.status === 'paid' ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
+                      <span className="text-sm">{selectedOrder.status === 'paid' ? 'Payment Received' : 'Payment Pending'}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Client Detail Modal */}
+        <Dialog open={!!selectedClient} onOpenChange={() => setSelectedClient(null)}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5 text-purple-600" />
+                Client Details
+              </DialogTitle>
+            </DialogHeader>
+            {selectedClient && (
+              <div className="space-y-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center">
+                    <span className="text-purple-600 font-bold text-xl">
+                      {selectedClient.firstName?.[0]}{selectedClient.lastName?.[0]}
+                    </span>
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-900">{selectedClient.firstName} {selectedClient.lastName}</h3>
+                    <p className="text-slate-600">{selectedClient.email}</p>
+                    <p className="text-sm text-slate-500">Client ID: {selectedClient.id}</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <h4 className="font-semibold text-slate-900">Account Status</h4>
+                    <div className="flex items-center gap-2 mt-1">
+                      {selectedClient.activeProject ? (
+                        <Badge variant="default" className="bg-green-100 text-green-700">
+                          Active Client
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary">
+                          Inactive
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-slate-900">Total Projects</h4>
+                    <p className="text-2xl font-bold text-purple-600">{selectedClient.projects?.length || 0}</p>
+                  </div>
+                </div>
+
+                {selectedClient.projects && selectedClient.projects.length > 0 && (
+                  <div>
+                    <h4 className="font-semibold text-slate-900 mb-3">Projects</h4>
+                    <div className="space-y-2">
+                      {selectedClient.projects.map((project: any) => (
+                        <div key={project.id} className="p-3 bg-slate-50 rounded-lg">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="font-medium">{project.projectName}</p>
+                              <p className="text-sm text-slate-600">Due: {new Date(project.dueDate).toLocaleDateString()}</p>
+                            </div>
+                            <div className="text-right">
+                              <Badge variant={project.status === 'active' ? 'default' : 'secondary'} className="capitalize">
+                                {project.status.replace('_', ' ')}
+                              </Badge>
+                              <p className="text-sm text-slate-600 mt-1">{project.progressPercentage}% complete</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <h4 className="font-semibold text-slate-900">Member Since</h4>
+                    <p className="text-slate-600">{new Date(selectedClient.createdAt).toLocaleDateString()}</p>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-slate-900">Role</h4>
+                    <p className="text-slate-600 capitalize">{selectedClient.role || 'Client'}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Project Detail Modal */}
+        <Dialog open={!!selectedProjectDetail} onOpenChange={() => setSelectedProjectDetail(null)}>
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <ChartGantt className="h-5 w-5 text-orange-600" />
+                Project Details
+              </DialogTitle>
+            </DialogHeader>
+            {selectedProjectDetail && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-6">
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-900">{selectedProjectDetail.projectName}</h3>
+                    <p className="text-sm text-slate-600 mt-1">Project ID: {selectedProjectDetail.id}</p>
+                  </div>
+                  <div className="text-right">
+                    <Badge variant={selectedProjectDetail.status === 'active' ? 'default' : 'secondary'} className="capitalize">
+                      {selectedProjectDetail.status.replace('_', ' ')}
+                    </Badge>
+                    <p className="text-sm text-slate-600 mt-1">Progress: {selectedProjectDetail.progressPercentage}%</p>
+                    <Progress value={selectedProjectDetail.progressPercentage} className="w-full h-2 mt-2" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-6">
+                  <div>
+                    <h4 className="font-semibold text-slate-900">Client Information</h4>
+                    <div className="mt-2 p-3 bg-slate-50 rounded-lg">
+                      <p className="font-medium">{selectedProjectDetail.order?.user?.firstName} {selectedProjectDetail.order?.user?.lastName}</p>
+                      <p className="text-sm text-slate-600">{selectedProjectDetail.order?.user?.email}</p>
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-slate-900">Timeline</h4>
+                    <div className="mt-2 space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-600">Start Date:</span>
+                        <span>{new Date(selectedProjectDetail.startDate).toLocaleDateString()}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-600">Due Date:</span>
+                        <span className={new Date(selectedProjectDetail.dueDate) < new Date() ? 'text-red-600' : ''}>
+                          {new Date(selectedProjectDetail.dueDate).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-600">Duration:</span>
+                        <span>{selectedProjectDetail.timelineWeeks} weeks</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold text-slate-900">Project Description</h4>
+                  <div className="mt-2 p-4 bg-orange-50 rounded-lg">
+                    <p className="text-slate-700">{selectedProjectDetail.description || 'No description available'}</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <h4 className="font-semibold text-slate-900">Current Stage</h4>
+                    <p className="text-slate-600 capitalize">{selectedProjectDetail.currentStage?.replace('_', ' ') || 'Planning'}</p>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-slate-900">Priority</h4>
+                    <p className="text-slate-600 capitalize">{selectedProjectDetail.priority || 'Normal'}</p>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-slate-900">Created</h4>
+                    <p className="text-slate-600">{new Date(selectedProjectDetail.createdAt).toLocaleDateString()}</p>
+                  </div>
+                </div>
+
+                {selectedProjectDetail.notes && (
+                  <div>
+                    <h4 className="font-semibold text-slate-900">Latest Notes</h4>
+                    <div className="mt-2 p-3 bg-slate-50 rounded-lg">
+                      <p className="text-sm text-slate-700 whitespace-pre-wrap">{selectedProjectDetail.notes}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </DialogContent>
         </Dialog>
 
