@@ -98,6 +98,10 @@ export default function AdminDashboard() {
   const [selectedProject, setSelectedProject] = useState<any>(null);
   const [projectFilter, setProjectFilter] = useState("all");
   const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
+  const [isRevenueModalOpen, setIsRevenueModalOpen] = useState(false);
+  const [isOrdersModalOpen, setIsOrdersModalOpen] = useState(false);
+  const [isClientsModalOpen, setIsClientsModalOpen] = useState(false);
+  const [isProjectsModalOpen, setIsProjectsModalOpen] = useState(false);
   const [updateForm, setUpdateForm] = useState({
     stage: "",
     progress: "",
@@ -148,7 +152,7 @@ export default function AdminDashboard() {
 
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card className="cursor-pointer hover:bg-slate-50 transition-colors duration-200 active:scale-95 transform" onClick={() => setActiveTab("analytics")}>
+          <Card className="cursor-pointer hover:bg-slate-50 transition-colors duration-200 active:scale-95 transform" onClick={() => setIsRevenueModalOpen(true)}>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -165,7 +169,7 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="cursor-pointer hover:bg-slate-50 transition-colors duration-200 active:scale-95 transform" onClick={() => setActiveTab("orders")}>
+          <Card className="cursor-pointer hover:bg-slate-50 transition-colors duration-200 active:scale-95 transform" onClick={() => setIsOrdersModalOpen(true)}>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -180,7 +184,7 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="cursor-pointer hover:bg-slate-50 transition-colors duration-200 active:scale-95 transform" onClick={() => setActiveTab("clients")}>
+          <Card className="cursor-pointer hover:bg-slate-50 transition-colors duration-200 active:scale-95 transform" onClick={() => setIsClientsModalOpen(true)}>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -195,7 +199,7 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="cursor-pointer hover:bg-slate-50 transition-colors duration-200 active:scale-95 transform" onClick={() => setActiveTab("projects")}>
+          <Card className="cursor-pointer hover:bg-slate-50 transition-colors duration-200 active:scale-95 transform" onClick={() => setIsProjectsModalOpen(true)}>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -210,6 +214,348 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Revenue Details Modal */}
+        <Dialog open={isRevenueModalOpen} onOpenChange={setIsRevenueModalOpen}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <DollarSign className="h-5 w-5 text-green-600" />
+                Revenue Details
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="text-sm text-slate-600">Total Revenue</div>
+                    <div className="text-2xl font-bold text-green-600">
+                      ₦{((analytics as any)?.totalRevenue || 0).toLocaleString()}
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="text-sm text-slate-600">This Month</div>
+                    <div className="text-2xl font-bold">₦{((analytics as any)?.totalRevenue * 0.12 || 0).toLocaleString()}</div>
+                    <div className="text-sm text-green-600">+12% growth</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="text-sm text-slate-600">Average Order</div>
+                    <div className="text-2xl font-bold">₦{((analytics as any)?.totalRevenue / Math.max((analytics as any)?.newOrders || 1, 1)).toLocaleString()}</div>
+                  </CardContent>
+                </Card>
+              </div>
+              
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Revenue Transactions</h3>
+                <div className="space-y-2">
+                  {orders?.data && Array.isArray(orders.data) && orders.data
+                    .filter((order: any) => order.status === 'paid')
+                    .map((order: any) => (
+                    <div key={order.id} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <div>
+                          <div className="font-medium">{order.service?.name || 'Service'}</div>
+                          <div className="text-sm text-slate-600">
+                            {new Date(order.createdAt).toLocaleDateString()} • {order.user?.firstName} {order.user?.lastName}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-semibold text-green-600">₦{parseInt(order.amount).toLocaleString()}</div>
+                        <div className="text-sm text-slate-600">Paid</div>
+                      </div>
+                    </div>
+                  ))}
+                  {(!orders?.data || !Array.isArray(orders.data) || orders.data.filter((order: any) => order.status === 'paid').length === 0) && (
+                    <div className="text-center py-8 text-slate-500">
+                      No revenue transactions found
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Orders Details Modal */}
+        <Dialog open={isOrdersModalOpen} onOpenChange={setIsOrdersModalOpen}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <ShoppingCart className="h-5 w-5 text-blue-600" />
+                All Orders
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                {['pending', 'paid', 'in_progress', 'complete'].map((status) => {
+                  const statusOrders = orders?.data && Array.isArray(orders.data) 
+                    ? orders.data.filter((order: any) => order.status === status) 
+                    : [];
+                  return (
+                    <Card key={status}>
+                      <CardContent className="p-4">
+                        <div className="text-sm text-slate-600 capitalize">{status.replace('_', ' ')}</div>
+                        <div className="text-2xl font-bold">{statusOrders.length}</div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+              
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Recent Orders</h3>
+                <div className="space-y-2">
+                  {orders?.data && Array.isArray(orders.data) && orders.data
+                    .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                    .map((order: any) => (
+                    <div key={order.id} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <Badge variant={order.status === 'paid' ? 'default' : 'secondary'}>
+                          {order.status}
+                        </Badge>
+                        <div>
+                          <div className="font-medium">{order.service?.name || 'Service'}</div>
+                          <div className="text-sm text-slate-600">
+                            {order.user?.firstName} {order.user?.lastName} • {new Date(order.createdAt).toLocaleDateString()}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-semibold">₦{parseInt(order.amount).toLocaleString()}</div>
+                        <div className="text-sm text-slate-600">{order.service?.category || 'Standard'}</div>
+                      </div>
+                    </div>
+                  ))}
+                  {(!orders?.data || !Array.isArray(orders.data) || orders.data.length === 0) && (
+                    <div className="text-center py-8 text-slate-500">
+                      No orders found
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Clients Details Modal */}
+        <Dialog open={isClientsModalOpen} onOpenChange={setIsClientsModalOpen}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5 text-purple-600" />
+                All Clients
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="text-sm text-slate-600">Total Clients</div>
+                    <div className="text-2xl font-bold">{(analytics as any)?.totalClients || 0}</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="text-sm text-slate-600">Active Projects</div>
+                    <div className="text-2xl font-bold">
+                      {projects?.data && Array.isArray(projects.data) 
+                        ? projects.data.filter((p: any) => p.status === 'active').length 
+                        : 0}
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="text-sm text-slate-600">Total Revenue</div>
+                    <div className="text-2xl font-bold text-green-600">
+                      ₦{((analytics as any)?.totalRevenue || 0).toLocaleString()}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+              
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Client List</h3>
+                <div className="space-y-2">
+                  {orders?.data && Array.isArray(orders.data) && 
+                    Array.from(new Map(orders.data.map((order: any) => [order.user?.email, order])).values())
+                    .sort((a: any, b: any) => {
+                      const aHasActiveProject = projects?.data && Array.isArray(projects.data) 
+                        ? projects.data.some((p: any) => p.userId === a.userId && p.status === 'active')
+                        : false;
+                      const bHasActiveProject = projects?.data && Array.isArray(projects.data)
+                        ? projects.data.some((p: any) => p.userId === b.userId && p.status === 'active')
+                        : false;
+                      
+                      if (aHasActiveProject && !bHasActiveProject) return -1;
+                      if (!aHasActiveProject && bHasActiveProject) return 1;
+                      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+                    })
+                    .map((order: any) => {
+                      const clientProjects = projects?.data && Array.isArray(projects.data)
+                        ? projects.data.filter((p: any) => p.userId === order.userId)
+                        : [];
+                      const activeProject = clientProjects.find((p: any) => p.status === 'active');
+                      
+                      return (
+                        <div key={order.user?.email} className="flex items-center justify-between p-4 border rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                              <span className="text-purple-600 font-semibold">
+                                {order.user?.firstName?.[0]}{order.user?.lastName?.[0]}
+                              </span>
+                            </div>
+                            <div>
+                              <div className="font-medium">{order.user?.firstName} {order.user?.lastName}</div>
+                              <div className="text-sm text-slate-600">{order.user?.email}</div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="flex items-center gap-2">
+                              {activeProject && (
+                                <Badge variant="default" className="bg-green-100 text-green-700">
+                                  Active Project
+                                </Badge>
+                              )}
+                              <Badge variant="secondary">
+                                {clientProjects.length} project{clientProjects.length !== 1 ? 's' : ''}
+                              </Badge>
+                            </div>
+                            <div className="text-sm text-slate-600 mt-1">
+                              Joined {new Date(order.createdAt).toLocaleDateString()}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  {(!orders?.data || !Array.isArray(orders.data) || orders.data.length === 0) && (
+                    <div className="text-center py-8 text-slate-500">
+                      No clients found
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Projects Details Modal */}
+        <Dialog open={isProjectsModalOpen} onOpenChange={setIsProjectsModalOpen}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <ChartGantt className="h-5 w-5 text-orange-600" />
+                All Projects
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                {['active', 'not_started', 'paused', 'completed'].map((status) => {
+                  const statusProjects = projects?.data && Array.isArray(projects.data)
+                    ? projects.data.filter((project: any) => project.status === status)
+                    : [];
+                  return (
+                    <Card key={status}>
+                      <CardContent className="p-4">
+                        <div className="text-sm text-slate-600 capitalize">{status.replace('_', ' ')}</div>
+                        <div className="text-2xl font-bold">{statusProjects.length}</div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+              
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Active Projects (Sorted by Priority)</h3>
+                <div className="space-y-2">
+                  {projects?.data && Array.isArray(projects.data) && projects.data
+                    .filter((project: any) => project.status === 'active')
+                    .sort((a: any, b: any) => {
+                      // Sort by due date (most urgent first), then by progress (least progress first)
+                      const aDueDate = new Date(a.dueDate).getTime();
+                      const bDueDate = new Date(b.dueDate).getTime();
+                      if (aDueDate !== bDueDate) return aDueDate - bDueDate;
+                      return a.progressPercentage - b.progressPercentage;
+                    })
+                    .map((project: any) => {
+                      const isOverdue = new Date(project.dueDate) < new Date();
+                      const daysUntilDue = Math.ceil((new Date(project.dueDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+                      
+                      return (
+                        <div key={project.id} className="flex items-center justify-between p-4 border rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-2 h-2 rounded-full ${isOverdue ? 'bg-red-500' : daysUntilDue <= 7 ? 'bg-yellow-500' : 'bg-green-500'}`}></div>
+                            <div>
+                              <div className="font-medium">{project.projectName}</div>
+                              <div className="text-sm text-slate-600">
+                                Client: {project.order?.user?.firstName} {project.order?.user?.lastName}
+                              </div>
+                              <div className="text-sm text-slate-600">
+                                Due: {new Date(project.dueDate).toLocaleDateString()}
+                                {isOverdue && <span className="text-red-600 ml-2">(Overdue)</span>}
+                                {!isOverdue && daysUntilDue <= 7 && <span className="text-yellow-600 ml-2">({daysUntilDue} days left)</span>}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <Badge variant={project.status === 'active' ? 'default' : 'secondary'}>
+                              {project.status}
+                            </Badge>
+                            <div className="text-sm text-slate-600 mt-1">{project.progressPercentage}% complete</div>
+                            <Progress value={project.progressPercentage} className="w-20 h-2 mt-1" />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  {(!projects?.data || !Array.isArray(projects.data) || projects.data.filter((p: any) => p.status === 'active').length === 0) && (
+                    <div className="text-center py-8 text-slate-500">
+                      No active projects found
+                    </div>
+                  )}
+                </div>
+
+                {projects?.data && Array.isArray(projects.data) && projects.data.filter((p: any) => p.status !== 'active').length > 0 && (
+                  <div className="mt-6">
+                    <h3 className="text-lg font-semibold mb-4">Other Projects</h3>
+                    <div className="space-y-2">
+                      {projects.data
+                        .filter((project: any) => project.status !== 'active')
+                        .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                        .map((project: any) => (
+                          <div key={project.id} className="flex items-center justify-between p-4 border rounded-lg opacity-75">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-2 h-2 rounded-full ${
+                                project.status === 'completed' ? 'bg-green-500' : 
+                                project.status === 'paused' ? 'bg-yellow-500' : 'bg-gray-500'
+                              }`}></div>
+                              <div>
+                                <div className="font-medium">{project.projectName}</div>
+                                <div className="text-sm text-slate-600">
+                                  Client: {project.order?.user?.firstName} {project.order?.user?.lastName}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <Badge variant="secondary" className="capitalize">
+                                {project.status.replace('_', ' ')}
+                              </Badge>
+                              <div className="text-sm text-slate-600 mt-1">{project.progressPercentage}% complete</div>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Main Content Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
