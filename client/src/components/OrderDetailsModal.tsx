@@ -65,9 +65,37 @@ export default function OrderDetailsModal({ order, isOpen, onClose }: OrderDetai
 
   if (!order) return null;
 
-  const serviceName = order.customRequest?.split('\n')[0]?.replace('Service: ', '') || 'Custom Service';
-  const timeline = order.customRequest?.match(/Timeline: ([^\n]+)/)?.[1] || 'Not specified';
-  const contactInfo = order.customRequest?.match(/Contact: ([^\n]+)/)?.[1] || 'Not provided';
+  // Parse order data properly
+  const getOrderData = () => {
+    try {
+      // Try to parse JSON contact info if it exists
+      if (order.customRequest && order.customRequest.includes('contactInfo')) {
+        const data = JSON.parse(order.customRequest);
+        return {
+          serviceName: order.service?.name || 'Custom Service',
+          contactInfo: data.contactInfo || {},
+          projectDetails: data.projectDetails || {},
+          selectedAddOns: data.selectedAddOns || []
+        };
+      }
+      // Fallback for old data format
+      return {
+        serviceName: order.customRequest?.split('\n')[0]?.replace('Service: ', '') || order.service?.name || 'Custom Service',
+        contactInfo: { fullName: 'Contact details available', email: '', phone: '' },
+        projectDetails: { description: order.customRequest || 'Project details available' },
+        selectedAddOns: []
+      };
+    } catch (error) {
+      return {
+        serviceName: order.service?.name || 'Custom Service',
+        contactInfo: { fullName: 'Contact details available', email: '', phone: '' },
+        projectDetails: { description: 'Project details available' },
+        selectedAddOns: []
+      };
+    }
+  };
+
+  const orderData = getOrderData();
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -84,7 +112,7 @@ export default function OrderDetailsModal({ order, isOpen, onClose }: OrderDetai
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-slate-900">{serviceName}</h3>
+                <h3 className="font-semibold text-slate-900">{orderData.serviceName}</h3>
                 <Badge variant={getStatusVariant(order.status)}>
                   <div className={`w-2 h-2 rounded-full ${getStatusColor(order.status)} mr-2`} />
                   {order.status}
@@ -133,34 +161,58 @@ export default function OrderDetailsModal({ order, isOpen, onClose }: OrderDetai
               </p>
             </div>
 
-            {timeline && (
-              <div>
-                <label className="text-sm font-medium text-slate-500">Timeline</label>
-                <p className="text-sm text-slate-900 mt-1">{timeline}</p>
+            <div>
+              <label className="text-sm font-medium text-slate-500">Contact Information</label>
+              <div className="text-sm text-slate-900 mt-1 space-y-1">
+                <p><strong>Name:</strong> {orderData.contactInfo.fullName}</p>
+                {orderData.contactInfo.email && (
+                  <p><strong>Email:</strong> {orderData.contactInfo.email}</p>
+                )}
+                {orderData.contactInfo.phone && (
+                  <p><strong>Phone:</strong> {orderData.contactInfo.phone}</p>
+                )}
               </div>
-            )}
+            </div>
 
-            {contactInfo && (
+            <div>
+              <label className="text-sm font-medium text-slate-500">Project Details</label>
+              <p className="text-sm text-slate-900 mt-1 whitespace-pre-wrap">
+                {orderData.projectDetails.description}
+              </p>
+            </div>
+
+            {orderData.selectedAddOns && orderData.selectedAddOns.length > 0 && (
               <div>
-                <label className="text-sm font-medium text-slate-500">Contact Information</label>
-                <p className="text-sm text-slate-900 mt-1">{contactInfo}</p>
+                <label className="text-sm font-medium text-slate-500">Selected Add-ons</label>
+                <ul className="text-sm text-slate-900 mt-1 list-disc list-inside">
+                  {orderData.selectedAddOns.map((addon: string, index: number) => (
+                    <li key={index}>{addon}</li>
+                  ))}
+                </ul>
               </div>
             )}
           </div>
 
           <Separator />
 
-          {/* Full Request Details */}
-          <div>
-            <label className="text-sm font-medium text-slate-500 mb-2 block">
-              Project Requirements
-            </label>
-            <div className="bg-slate-50 p-3 rounded-lg">
-              <pre className="text-sm text-slate-700 whitespace-pre-wrap font-sans">
-                {order.customRequest || 'No additional details provided'}
-              </pre>
+          {/* Service Package Details */}
+          {order.service && (
+            <div>
+              <label className="text-sm font-medium text-slate-500 mb-2 block">
+                Service Package
+              </label>
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <h4 className="font-medium text-blue-900">{order.service.name}</h4>
+                <p className="text-sm text-blue-700 capitalize mt-1">{order.service.category} Package</p>
+                {order.service.description && (
+                  <p className="text-sm text-blue-600 mt-2">{order.service.description}</p>
+                )}
+                <div className="text-lg font-semibold text-green-600 mt-2">
+                  ₦{order.service.price?.toLocaleString()}
+                </div>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Action Buttons */}
           <div className="flex gap-3 pt-2">

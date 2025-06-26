@@ -196,9 +196,42 @@ export default function ClientDashboard() {
                           </Badge>
                         </div>
                         <div className="space-y-2">
-                          <p className="text-sm text-slate-600">
-                            {order.customRequest?.split('\n')[0]?.replace('Service: ', '') || 'Custom Service'}
-                          </p>
+                          {(() => {
+                            try {
+                              // Try to parse JSON contact info if it exists
+                              if (order.customRequest && order.customRequest.includes('contactInfo')) {
+                                const data = JSON.parse(order.customRequest);
+                                const contactInfo = data.contactInfo || {};
+                                const projectDetails = data.projectDetails || {};
+                                
+                                return (
+                                  <div className="space-y-1">
+                                    <p className="text-sm font-medium text-slate-900">
+                                      {order.service?.name || 'Custom Service'}
+                                    </p>
+                                    <p className="text-xs text-slate-600">
+                                      Client: {contactInfo.fullName}
+                                    </p>
+                                    <p className="text-xs text-slate-500 truncate">
+                                      {projectDetails.description || 'Project details available'}
+                                    </p>
+                                  </div>
+                                );
+                              }
+                              // Fallback for old data format
+                              return (
+                                <p className="text-sm text-slate-600">
+                                  {order.customRequest?.split('\n')[0]?.replace('Service: ', '') || order.service?.name || 'Custom Service'}
+                                </p>
+                              );
+                            } catch (error) {
+                              return (
+                                <p className="text-sm text-slate-600">
+                                  {order.service?.name || 'Custom Service'}
+                                </p>
+                              );
+                            }
+                          })()}
                           <p className="text-lg font-semibold text-green-600">
                             ₦{(typeof order.totalPrice === 'string' ? parseInt(order.totalPrice) : (order.totalPrice || 0)).toLocaleString()}
                           </p>
