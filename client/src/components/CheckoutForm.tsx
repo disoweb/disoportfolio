@@ -121,147 +121,147 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
 
   return (
     <Card className="w-full max-w-2xl mx-auto">
-      <CardHeader>
+      <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-xl font-semibold">
+          <CardTitle className="text-lg font-semibold">
             {currentStep === 1 ? "Contact Details" : "Payment"}
           </CardTitle>
-          <div className="flex items-center space-x-2 text-sm text-gray-500">
+          <div className="flex items-center space-x-1 text-xs text-gray-500">
             <div className={`flex items-center ${currentStep === 1 ? 'text-blue-600' : 'text-green-600'}`}>
-              <User className="h-4 w-4 mr-1" />
-              <span>Step 1</span>
+              <User className="h-3 w-3 mr-1" />
+              <span>1</span>
             </div>
-            <ArrowRight className="h-4 w-4" />
+            <ArrowRight className="h-3 w-3" />
             <div className={`flex items-center ${currentStep === 2 ? 'text-blue-600' : 'text-gray-400'}`}>
-              <CreditCard className="h-4 w-4 mr-1" />
-              <span>Step 2</span>
+              <CreditCard className="h-3 w-3 mr-1" />
+              <span>2</span>
             </div>
           </div>
         </div>
       </CardHeader>
-      <CardContent>
-        {/* Order Summary - Always Visible */}
-        <div className="bg-gray-50 p-4 rounded-lg mb-6">
-          <h3 className="font-semibold text-lg mb-2">{service.name}</h3>
-          <p className="text-gray-600 text-sm mb-4">{service.description}</p>
-          {selectedAddOns.length > 0 && (
-            <div className="mb-3">
-              <p className="text-sm font-medium mb-1">Add-ons:</p>
-              <ul className="text-sm text-gray-600">
-                {selectedAddOns.map((addon, index) => (
-                  <li key={index}>• {addon}</li>
-                ))}
-              </ul>
+      <CardContent className="pt-0">
+        {/* Compact Order Summary */}
+        <div className="bg-gray-50 p-3 rounded-lg mb-4">
+          <div className="flex justify-between items-start mb-2">
+            <div className="flex-1 min-w-0">
+              <h3 className="font-medium text-sm truncate">{service.name}</h3>
+              {selectedAddOns.length > 0 && (
+                <p className="text-xs text-gray-600 mt-1">
+                  +{selectedAddOns.length} add-on{selectedAddOns.length > 1 ? 's' : ''}
+                </p>
+              )}
             </div>
-          )}
-          <div className="flex justify-between items-center">
-            <span className="text-lg font-semibold">Total:</span>
-            <span className="text-2xl font-bold text-blue-600">
-              ₦{totalPrice.toLocaleString()}
-            </span>
+            <div className="text-right">
+              <span className="text-lg font-bold text-blue-600">
+                ₦{totalPrice.toLocaleString()}
+              </span>
+            </div>
           </div>
         </div>
 
         {/* Step 1: Contact Details */}
         {currentStep === 1 && (
-          <form onSubmit={contactForm.handleSubmit(onContactSubmit)} className="space-y-6">
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <form onSubmit={contactForm.handleSubmit(onContactSubmit)} className="space-y-3">
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Full Name *</label>
+                  <label className="block text-xs font-medium mb-1">Full Name *</label>
                   <Input
                     {...contactForm.register("fullName")}
                     placeholder="John Doe"
+                    className="h-9 text-sm"
                   />
                   {contactForm.formState.errors.fullName && (
-                    <p className="text-red-500 text-sm mt-1">
+                    <p className="text-red-500 text-xs mt-1">
                       {contactForm.formState.errors.fullName.message}
                     </p>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">Email *</label>
+                  <label className="block text-xs font-medium mb-1">Email *</label>
                   <Input
                     {...contactForm.register("email")}
                     type="email"
                     placeholder="john@example.com"
+                    className="h-9 text-sm"
                   />
                   {contactForm.formState.errors.email && (
-                    <p className="text-red-500 text-sm mt-1">
+                    <p className="text-red-500 text-xs mt-1">
                       {contactForm.formState.errors.email.message}
                     </p>
                   )}
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Phone *</label>
+                  <label className="block text-xs font-medium mb-1">Phone *</label>
                   <Input
                     {...contactForm.register("phone")}
                     placeholder="+234 123 456 7890"
+                    className="h-9 text-sm"
                   />
                   {contactForm.formState.errors.phone && (
-                    <p className="text-red-500 text-sm mt-1">
+                    <p className="text-red-500 text-xs mt-1">
                       {contactForm.formState.errors.phone.message}
                     </p>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">Company</label>
+                  <label className="block text-xs font-medium mb-1">Company</label>
                   <Input
                     {...contactForm.register("company")}
-                    placeholder="Company Name (Optional)"
+                    placeholder="Company (Optional)"
+                    className="h-9 text-sm"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">Project Description *</label>
+                <label className="block text-xs font-medium mb-1">Project Description *</label>
                 <Textarea
                   {...contactForm.register("projectDescription")}
-                  placeholder="Describe your project requirements, goals, and any specific features you need..."
-                  className="min-h-[100px]"
+                  placeholder="Brief description of your project requirements..."
+                  className="min-h-[60px] text-sm resize-none"
+                  rows={3}
                 />
                 {contactForm.formState.errors.projectDescription && (
-                  <p className="text-red-500 text-sm mt-1">
+                  <p className="text-red-500 text-xs mt-1">
                     {contactForm.formState.errors.projectDescription.message}
                   </p>
                 )}
               </div>
             </div>
 
-            <Button type="submit" className="w-full py-3 text-lg">
+            <Button type="submit" className="w-full h-10 text-sm">
               Continue to Payment
-              <ArrowRight className="ml-2 h-4 w-4" />
+              <ArrowRight className="ml-2 h-3 w-3" />
             </Button>
           </form>
         )}
 
         {/* Step 2: Payment */}
         {currentStep === 2 && (
-          <form onSubmit={paymentForm.handleSubmit(onPaymentSubmit)} className="space-y-6">
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Payment Method</h3>
-              
-              <div className="border rounded-lg p-4 bg-blue-50 border-blue-200">
-                <div className="flex items-center space-x-3">
-                  <CreditCard className="h-6 w-6 text-blue-600" />
+          <form onSubmit={paymentForm.handleSubmit(onPaymentSubmit)} className="space-y-3">
+            <div className="space-y-3">
+              <div className="border rounded-lg p-3 bg-blue-50 border-blue-200">
+                <div className="flex items-center space-x-2">
+                  <CreditCard className="h-4 w-4 text-blue-600" />
                   <div>
-                    <h4 className="font-medium text-blue-900">Secure Payment via Paystack</h4>
-                    <p className="text-sm text-blue-700">
-                      Pay securely with your debit card, bank transfer, or other payment methods
+                    <h4 className="font-medium text-sm text-blue-900">Secure Payment via Paystack</h4>
+                    <p className="text-xs text-blue-700">
+                      Debit card, bank transfer, and other payment methods
                     </p>
                   </div>
                 </div>
               </div>
 
               {contactData && (
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h4 className="font-medium mb-2">Contact Information</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-600">
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <h4 className="font-medium text-xs mb-2">Contact Information</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-xs text-gray-600">
                     <p><strong>Name:</strong> {contactData.fullName}</p>
                     <p><strong>Email:</strong> {contactData.email}</p>
                     <p><strong>Phone:</strong> {contactData.phone}</p>
@@ -271,31 +271,31 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
               )}
             </div>
 
-            <div className="flex space-x-3">
+            <div className="flex space-x-2">
               <Button
                 type="button"
                 variant="outline"
                 onClick={goBackToStep1}
-                className="flex-1 py-3"
+                className="flex-1 h-10 text-sm"
               >
-                <ArrowLeft className="mr-2 h-4 w-4" />
+                <ArrowLeft className="mr-1 h-3 w-3" />
                 Back
               </Button>
               
               <Button
                 type="submit"
-                className="flex-1 py-3 text-lg"
+                className="flex-1 h-10 text-sm"
                 disabled={orderMutation.isPending}
               >
                 {orderMutation.isPending ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
                     Processing...
                   </>
                 ) : (
                   <>
                     Pay ₦{totalPrice.toLocaleString()}
-                    <CreditCard className="ml-2 h-4 w-4" />
+                    <CreditCard className="ml-1 h-3 w-3" />
                   </>
                 )}
               </Button>

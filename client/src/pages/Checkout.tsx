@@ -91,100 +91,35 @@ export default function Checkout() {
     <div className="min-h-screen bg-gray-50">
       <Navigation />
       
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-6">
+      <div className="container mx-auto px-3 py-4 max-w-lg">
+        <div className="mb-4">
           <Button 
             variant="ghost" 
             onClick={() => setLocation('/')}
-            className="mb-4"
+            className="mb-2 h-8 px-2"
+            size="sm"
           >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Services
+            <ArrowLeft className="mr-1 h-3 w-3" />
+            Back
           </Button>
           
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Complete Your Order</h1>
-          <p className="text-gray-600">Fill out the form below to get started with your project</p>
+          <h1 className="text-xl font-bold text-gray-900">Checkout</h1>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Order Summary */}
-          <div className="lg:col-span-1 order-2 lg:order-1">
-            <Card className="sticky top-8">
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  Order Summary
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <h3 className="font-semibold text-lg text-gray-900">{serviceData?.name || 'Service'}</h3>
-                  <p className="text-gray-600 text-sm mt-1">{serviceData?.description || 'Service description'}</p>
-                </div>
-
-                <div className="flex items-center text-gray-600">
-                  <Clock className="mr-2 h-4 w-4" />
-                  <span className="text-sm">{serviceData?.duration || 'N/A'}</span>
-                </div>
-
-                <div className="flex items-center text-gray-600">
-                  <Calendar className="mr-2 h-4 w-4" />
-                  <span className="text-sm">Delivery: {serviceData?.deliveryDate || 'TBD'}</span>
-                </div>
-
-                <Separator />
-
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Base Price:</span>
-                    <span className="font-medium">₦{basePrice.toLocaleString()}</span>
-                  </div>
-
-                  {selectedAddOns.length > 0 && (
-                    <>
-                      <div className="text-sm font-medium text-gray-700 mt-3 mb-2">Add-ons:</div>
-                      {selectedAddOns.map((addonName) => {
-                        const addon = serviceData.addOns?.find((a: any) => a.name === addonName);
-                        return addon ? (
-                          <div key={addonName} className="flex justify-between text-sm">
-                            <span className="text-gray-600 flex items-center">
-                              <Plus className="mr-1 h-3 w-3" />
-                              {addon.name}
-                            </span>
-                            <span className="text-gray-700">₦{addon.price.toLocaleString()}</span>
-                          </div>
-                        ) : null;
-                      })}
-                    </>
-                  )}
-                </div>
-
-                <Separator />
-
-                <div className="flex justify-between text-lg font-bold">
-                  <span>Total:</span>
-                  <span className="text-blue-600">₦{finalTotal.toLocaleString()}</span>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Checkout Form */}
-          <div className="lg:col-span-2 order-1 lg:order-2">
-            <CheckoutForm 
-              service={{
-                id: serviceData.id,
-                name: serviceData.name,
-                price: finalTotal.toString(),
-                description: serviceData.description,
-              }}
-              totalPrice={finalTotal}
-              selectedAddOns={selectedAddOns}
-              onSuccess={() => {
-                setLocation('/dashboard');
-              }}
-            />
-          </div>
-        </div>
+        {/* Streamlined Checkout Form */}
+        <CheckoutForm 
+          service={{
+            id: serviceData.id,
+            name: serviceData.name,
+            price: finalTotal.toString(),
+            description: serviceData.description,
+          }}
+          totalPrice={finalTotal}
+          selectedAddOns={selectedAddOns}
+          onSuccess={() => {
+            setLocation('/dashboard');
+          }}
+        />
       </div>
 
       <Footer />
