@@ -66,14 +66,12 @@ export default function Checkout() {
         let selectedAddonsList: string[] = [];
         if (addons) {
           selectedAddonsList = addons.split(',').filter(addon => addon.length > 0);
-          console.log('DEBUG: Parsed add-ons from URL:', selectedAddonsList);
           setSelectedAddOns(selectedAddonsList);
         }
         
         // Set total price from URL or calculate based on service + add-ons
         if (price) {
           const servicePrice = parseInt(price, 10);
-          console.log('DEBUG: Using price from URL:', servicePrice);
           setTotalPrice(servicePrice);
         } else {
           // Calculate price from service + addons
@@ -81,11 +79,9 @@ export default function Checkout() {
           const addonPrice = selectedAddonsList.reduce((total, addonName) => {
             const addon = service.addOns?.find((a: any) => a.name === addonName);
             const addonCost = addon?.price || 0;
-            console.log('DEBUG: Adding addon:', addonName, 'cost:', addonCost);
             return total + addonCost;
           }, 0);
           const calculatedTotal = basePrice + addonPrice;
-          console.log('DEBUG: Calculated total:', basePrice, '+', addonPrice, '=', calculatedTotal);
           setTotalPrice(calculatedTotal);
         }
       }

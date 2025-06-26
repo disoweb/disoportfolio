@@ -119,28 +119,21 @@ export default function AuthPage() {
       
       // Check for pending checkout and redirect appropriately
       const pendingCheckout = sessionStorage.getItem('pendingCheckout');
-      console.log('🚀 [LOGIN SUCCESS] Checking for pending checkout in sessionStorage');
-      console.log('🚀 [LOGIN SUCCESS] pendingCheckout raw value:', pendingCheckout);
+
       
       if (pendingCheckout) {
         try {
           const checkoutData = JSON.parse(pendingCheckout);
-          console.log('🚀 [LOGIN SUCCESS] Successfully parsed pending checkout data:', checkoutData);
           const redirectUrl = checkoutData.returnUrl || '/checkout';
-          console.log('🚀 [LOGIN SUCCESS] Redirecting to checkout page:', redirectUrl);
           
           // Add a small delay to ensure authentication state is fully set
           setTimeout(() => {
             setLocation(redirectUrl);
           }, 100);
         } catch (error) {
-          console.error('🚀 [LOGIN SUCCESS] Error parsing pending checkout data:', error);
-          console.log('🚀 [LOGIN SUCCESS] Fallback redirect to dashboard');
           setLocation("/dashboard");
         }
       } else {
-        console.log('🚀 [LOGIN SUCCESS] No pending checkout found in sessionStorage');
-        console.log('🚀 [LOGIN SUCCESS] Redirecting to dashboard');
         setLocation("/dashboard");
       }
     },
@@ -167,7 +160,7 @@ export default function AuthPage() {
       if (pendingCheckout) {
         try {
           const checkoutData = JSON.parse(pendingCheckout);
-          console.log('🔍 [REGISTER SUCCESS] Found pending checkout, redirecting to:', checkoutData.returnUrl || '/checkout');
+
           setLocation(checkoutData.returnUrl || '/checkout');
         } catch (error) {
           console.error('🔍 [REGISTER SUCCESS] Error parsing pending checkout:', error);

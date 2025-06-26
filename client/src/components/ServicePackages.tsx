@@ -113,8 +113,7 @@ function PricingCalculator({
         ? prev.filter((name) => name !== addonName)
         : [...prev, addonName];
       
-      console.log('DEBUG: PricingCalculator - Add-on changed:', addonName);
-      console.log('DEBUG: PricingCalculator - New selection:', newSelection);
+
       
       // Update parent component's state
       onAddOnsChange(service.id, newSelection);
@@ -368,13 +367,7 @@ export default function ServicePackages() {
     const finalPrice = priceUpdates[serviceId] || service.price;
     const addOns = selectedAddOns[serviceId] || [];
 
-    console.log('DEBUG: ServicePackages - Purchase initiated');
-    console.log('DEBUG: ServicePackages - Service ID:', serviceId);
-    console.log('DEBUG: ServicePackages - Final Price:', finalPrice);
-    console.log('DEBUG: ServicePackages - Service Base Price:', service.price);
-    console.log('DEBUG: ServicePackages - Selected Add-ons:', addOns);
-    console.log('DEBUG: ServicePackages - Price Updates:', priceUpdates);
-    console.log('DEBUG: ServicePackages - All Selected Add-ons:', selectedAddOns);
+
 
     // Navigate to checkout with service details (guest checkout allowed)
     setLocation(`/checkout?service=${serviceId}&price=${finalPrice}&addons=${addOns.join(',')}`);
