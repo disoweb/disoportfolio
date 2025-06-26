@@ -198,21 +198,9 @@ export default function AuthPage() {
             
             console.log('🚀 [LOGIN SUCCESS] Submitting order directly:', orderData);
             
-            // Submit order directly using fetch to bypass component state issues
-            fetch('/api/orders', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              credentials: 'include', // Include cookies for authentication
-              body: JSON.stringify(orderData),
-            })
-            .then(response => {
-              if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
-              }
-              return response.json();
-            })
+            // Submit order directly using the authenticated API request helper
+            apiRequest("POST", "/api/orders", orderData)
+            .then(response => response.json())
             .then(data => {
               console.log('🚀 [LOGIN SUCCESS] Order created successfully:', data);
               if (data.paymentUrl) {
