@@ -41,18 +41,34 @@ export default function TransactionHistory() {
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
       filtered = filtered.filter((order: any) => {
+        // Debug: log what we're actually searching
+        console.log('Searching order:', {
+          id: order.id,
+          contactName: order.contactName,
+          contactEmail: order.contactEmail,
+          companyName: order.companyName,
+          serviceName: order.serviceName,
+          customRequest: order.customRequest
+        });
+        
         const searchFields = [
-          order.contactName?.toLowerCase() || '',
-          order.contactEmail?.toLowerCase() || '',
-          order.companyName?.toLowerCase() || '',
-          order.serviceName?.toLowerCase() || '',
-          order.customRequest?.toLowerCase() || '',
-          order.id?.toLowerCase() || '',
-          order.id?.slice(-6)?.toLowerCase() || '', // Short order ID
-          order.id?.slice(-8)?.toLowerCase() || '', // Medium order ID
+          (order.contactName || '').toString().toLowerCase(),
+          (order.contactEmail || '').toString().toLowerCase(),
+          (order.companyName || '').toString().toLowerCase(),
+          (order.serviceName || '').toString().toLowerCase(),
+          (order.customRequest || '').toString().toLowerCase(),
+          (order.id || '').toString().toLowerCase(),
+          (order.id || '').toString().slice(-6).toLowerCase(), // Short order ID
+          (order.id || '').toString().slice(-8).toLowerCase(), // Medium order ID
         ];
         
-        return searchFields.some(field => field.includes(query));
+        const matches = searchFields.some(field => field.includes(query));
+        
+        if (matches) {
+          console.log('Match found for query "' + query + '" in order:', order.id, 'fields:', searchFields.filter(f => f.includes(query)));
+        }
+        
+        return matches;
       });
     }
     
