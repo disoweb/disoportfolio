@@ -168,6 +168,20 @@ export const auditLogs = pgTable("audit_logs", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Checkout sessions table for reliable data persistence
+export const checkoutSessions = pgTable("checkout_sessions", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  sessionId: varchar("session_id").notNull(), // Browser session ID or temporary ID
+  serviceId: varchar("service_id").notNull(),
+  serviceData: jsonb("service_data").notNull(), // Complete service object
+  contactData: jsonb("contact_data"), // Contact form data
+  selectedAddOns: jsonb("selected_add_ons").default("[]"), // Array of selected add-ons
+  totalPrice: integer("total_price").notNull(),
+  isCompleted: boolean("is_completed").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  expiresAt: timestamp("expires_at").notNull(), // Auto-expire after 1 hour
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   orders: many(orders),
@@ -231,6 +245,10 @@ export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
   user: one(users, { fields: [auditLogs.userId], references: [users.id] }),
 }));
 
+export const checkoutSessionsRelations = relations(checkoutSessions, ({ one }) => ({
+  service: one(services, { fields: [checkoutSessions.serviceId], references: [services.id] }),
+}));
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   createdAt: true,
@@ -273,6 +291,11 @@ export const insertSupportRequestSchema = createInsertSchema(supportRequests).om
   createdAt: true,
 });
 
+export const insertCheckoutSessionSchema = createInsertSchema(checkoutSessions).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -293,3 +316,5 @@ export type SupportRequest = typeof supportRequests.$inferSelect;
 export type ProjectStage = typeof projectStages.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
 export type AuditLog = typeof auditLogs.$inferSelect;
+export type InsertCheckoutSession = z.infer<typeof insertCheckoutSessionSchema>;
+export type CheckoutSession = typeof checkoutSessions.$inferSelect;

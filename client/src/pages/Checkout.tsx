@@ -22,6 +22,7 @@ export default function Checkout() {
   const serviceId = urlParams.get('service');
   const price = urlParams.get('price');
   const addons = urlParams.get('addons');
+  const checkoutParam = urlParams.get('checkout');
 
   // Fetch service data
   const { data: services = [], isLoading: servicesLoading } = useQuery({
@@ -32,64 +33,95 @@ export default function Checkout() {
     // Scroll to top when component mounts
     window.scrollTo(0, 0);
     
-    // First priority: Check for pending checkout data (for post-auth users)
-    const pendingCheckout = sessionStorage.getItem('pendingCheckout');
-    console.log('Checkout page - Pending checkout data:', pendingCheckout ? 'Found' : 'Not found');
-    console.log('Checkout page - Service ID from URL:', serviceId);
-    console.log('Checkout page - Current serviceData:', serviceData ? 'Set' : 'Not set');
+    console.log('Checkout page - URL params:', {
+      serviceId,
+      price,
+      addons,
+      checkout: checkoutParam
+    });
     
+    // First priority: Restore from pending checkout if available
+    const pendingCheckout = sessionStorage.getItem('pendingCheckout');
     if (pendingCheckout && !serviceData) {
       try {
         const checkoutData = JSON.parse(pendingCheckout);
-        console.log('Checkout page - Parsed checkout data:', checkoutData);
+        console.log('Checkout page - Restoring from pending checkout:', checkoutData);
+        
         if (checkoutData.service) {
-          console.log('Checkout page - Setting service data from pending checkout');
-          setServiceData(checkoutData.service);
+          // Transform service data to ensure price field compatibility
+          const transformedService = {
+            ...checkoutData.service,
+            price: checkoutData.service.price || parseInt(checkoutData.service.priceUsd || '0')
+          };
+          
+          setServiceData(transformedService);
           setTotalPrice(checkoutData.totalPrice || 0);
           setSelectedAddOns(checkoutData.selectedAddOns || []);
-          return; // Exit early since we got data from pending checkout
+          
+          console.log('Checkout page - Successfully restored service data');
+          return;
         }
       } catch (error) {
-        console.error('Error parsing pending checkout:', error);
+        console.error('Checkout page - Error parsing pending checkout:', error);
         sessionStorage.removeItem('pendingCheckout');
       }
     }
     
-    // Second priority: Use URL parameters to find service
-    if (serviceId && Array.isArray(services) && services.length > 0) {
+    // Second priority: Load service from URL parameters and API
+    if (serviceId && Array.isArray(services) && services.length > 0 && !serviceData) {
       const service = services.find((s: any) => s.id === serviceId);
       
       if (service) {
-        setServiceData(service);
+        console.log('Checkout page - Found service from API:', service);
         
-        // Parse add-ons from URL first
+        // Transform service data to ensure consistent price handling
+        const transformedService = {
+          ...service,
+          price: service.price || parseInt(service.priceUsd || '0')
+        };
+        
+        setServiceData(transformedService);
+        
+        // Parse add-ons from URL
         let selectedAddonsList: string[] = [];
         if (addons) {
           selectedAddonsList = addons.split(',').filter(addon => addon.length > 0);
           setSelectedAddOns(selectedAddonsList);
         }
         
-        // Set total price from URL or calculate based on service + add-ons
+        // Set total price from URL or calculate
         if (price) {
           const servicePrice = parseInt(price, 10);
           setTotalPrice(servicePrice);
         } else {
           // Calculate price from service + addons
-          const basePrice = service.price || parseInt(service.priceUsd || '0');
+          const basePrice = transformedService.price;
           const addonPrice = selectedAddonsList.reduce((total, addonName) => {
             const addon = service.addOns?.find((a: any) => a.name === addonName);
-            const addonCost = addon?.price || 0;
-            return total + addonCost;
+            return total + (addon?.price || 0);
           }, 0);
-          const calculatedTotal = basePrice + addonPrice;
-          setTotalPrice(calculatedTotal);
+          setTotalPrice(basePrice + addonPrice);
         }
+        
+        console.log('Checkout page - Service data set from URL params');
+      } else {
+        console.log('Checkout page - Service not found in API response');
       }
     }
   }, [serviceId, services, price, addons, serviceData]);
 
-  // Only show error if no serviceId AND no serviceData AND no pending checkout
-  if (!serviceId && !serviceData && !sessionStorage.getItem('pendingCheckout')) {
+  // Only show error if we have no way to get service data
+  const hasPendingCheckout = sessionStorage.getItem('pendingCheckout');
+  
+  console.log('Checkout page - Checking error conditions:', {
+    serviceId: !!serviceId,
+    serviceData: !!serviceData,
+    hasPendingCheckout: !!hasPendingCheckout,
+    hasCheckoutParam: !!checkoutParam,
+    servicesLoading
+  });
+  
+  if (!serviceId && !serviceData && !hasPendingCheckout && !checkoutParam && !servicesLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navigation />

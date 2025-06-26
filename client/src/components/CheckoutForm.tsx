@@ -285,9 +285,14 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
     
     // Check if user is authenticated before proceeding with payment
     if (!user) {
-      // Store comprehensive pending checkout data for after authentication
+      // Store comprehensive pending checkout data with service information
       const pendingCheckout = {
-        service,
+        service: {
+          id: service.id,
+          name: service.name,
+          price: service.price,
+          description: service.description
+        },
         totalPrice,
         selectedAddOns,
         contactData,
@@ -302,8 +307,12 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
       sessionStorage.removeItem('auth_completed');
       sessionStorage.removeItem('auth_timestamp');
       
-      // Redirect to auth page
-      setLocation('/auth');
+      // Store a simple session ID for URL-based recovery
+      const sessionId = `checkout_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      sessionStorage.setItem('checkoutSessionId', sessionId);
+      
+      // Redirect to auth page with session identifier
+      setLocation(`/auth?checkout=${sessionId}`);
       return;
     }
     

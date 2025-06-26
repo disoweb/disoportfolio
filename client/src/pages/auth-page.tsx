@@ -46,38 +46,43 @@ export default function AuthPage() {
   const [redirectHandled, setRedirectHandled] = useState(false);
 
   // Handle pending checkout completion and redirect if already logged in
-  // Only auto-redirect if we haven't already handled it
   useEffect(() => {
     if (!isLoading && user && !redirectHandled) {
       const pendingCheckout = sessionStorage.getItem('pendingCheckout');
+      const urlParams = new URLSearchParams(window.location.search);
+      const checkoutParam = urlParams.get('checkout');
+      
+      console.log('Auth page - User authenticated, checking for checkout data');
+      console.log('Auth page - Pending checkout:', pendingCheckout ? 'Found' : 'Not found');
+      console.log('Auth page - Checkout URL param:', checkoutParam);
       
       if (pendingCheckout) {
         try {
           const checkoutData = JSON.parse(pendingCheckout);
-          const returnUrl = checkoutData.returnUrl || '/checkout';
           
-          console.log('Auth page - Found pending checkout:', checkoutData);
-          
-          // Add session stabilization flag for post-auth checkout
+          // Add session stabilization flags
           sessionStorage.setItem('auth_completed', 'true');
           sessionStorage.setItem('auth_timestamp', Date.now().toString());
           
           setRedirectHandled(true);
           
-          // Always redirect to checkout with service parameters to avoid "Service Not Found"
+          // Build reliable checkout URL with all necessary parameters
           if (checkoutData.service && checkoutData.service.id) {
-            const serviceParams = new URLSearchParams({
+            const params = new URLSearchParams({
               service: checkoutData.service.id,
-              price: checkoutData.totalPrice?.toString() || '0',
-              addons: (checkoutData.selectedAddOns || []).join(',')
+              price: checkoutData.totalPrice?.toString() || checkoutData.service.price || '0',
+              addons: (checkoutData.selectedAddOns || []).join(','),
+              checkout: checkoutParam || 'auth-redirect'
             });
-            console.log('Auth page - Redirecting to:', `/checkout?${serviceParams.toString()}`);
-            setLocation(`/checkout?${serviceParams.toString()}`);
+            
+            console.log('Auth page - Redirecting to checkout with params:', params.toString());
+            setLocation(`/checkout?${params.toString()}`);
           } else {
-            console.log('Auth page - No service data, redirecting to:', returnUrl);
-            setLocation(returnUrl);
+            console.log('Auth page - No service data, redirecting to checkout base');
+            setLocation('/checkout');
           }
         } catch (error) {
+          console.error('Auth page - Error parsing checkout data:', error);
           sessionStorage.removeItem('pendingCheckout');
           setRedirectHandled(true);
           setLocation("/");

@@ -81,6 +81,8 @@ export interface IStorage {
     message: string;
   }): Promise<void>;
   handleQuoteRequest(data: any): Promise<void>;
+
+
 }
 
 export class DatabaseStorage implements IStorage {
