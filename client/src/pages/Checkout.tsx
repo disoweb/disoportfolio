@@ -15,6 +15,7 @@ export default function Checkout() {
   const [serviceData, setServiceData] = useState<any>(null);
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
   const [totalPrice, setTotalPrice] = useState<number>(0);
+  const [sessionData, setSessionData] = useState<any>(null);
   const { user } = useAuth();
 
   // Parse URL parameters
@@ -51,25 +52,20 @@ export default function Checkout() {
       
       fetch(`/api/checkout-sessions/${sessionToken}`)
       .then(res => res.json())
-      .then(sessionData => {
-        if (sessionData && !sessionData.error) {
-          console.log('Checkout page - Restored from database session:', sessionData);
+      .then(fetchedSessionData => {
+        if (fetchedSessionData && !fetchedSessionData.error) {
+          console.log('Checkout page - Restored from database session:', fetchedSessionData);
           
-          const service = sessionData.serviceData;
+          setSessionData(fetchedSessionData); // Store session data for CheckoutForm
+          
+          const service = fetchedSessionData.serviceData;
           if (service) {
             setServiceData({
               ...service,
               price: service.price || parseInt(service.priceUsd || '0')
             });
-            setTotalPrice(sessionData.totalPrice || 0);
-            setSelectedAddOns(sessionData.selectedAddOns || []);
-            
-            // Check if this is a post-authentication redirect to payment step
-            if (sessionData.contactData && user && (stepParam === 'payment' || isReadyForPayment)) {
-              // Auto-redirect to payment step for authenticated users with contact data
-              sessionStorage.removeItem('checkout_ready_for_payment'); // Clear flag
-              console.log('Checkout page - User authenticated, auto-redirecting to payment step');
-            }
+            setTotalPrice(fetchedSessionData.totalPrice || 0);
+            setSelectedAddOns(fetchedSessionData.selectedAddOns || []);
             
             console.log('Checkout page - Successfully restored service data from database');
           }

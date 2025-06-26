@@ -88,7 +88,9 @@ export default function AuthPage() {
             });
             
             console.log('Auth page - Redirecting to payment step with session:', tokenToUse);
-            setLocation(`/checkout?${params.toString()}`);
+            
+            // Use window.location.href for immediate redirect to ensure it works
+            window.location.href = `/checkout?${params.toString()}`;
           } else {
             console.log('Auth page - No valid checkout session found');
             sessionStorage.removeItem('checkoutSessionToken');

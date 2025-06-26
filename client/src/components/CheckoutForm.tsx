@@ -61,10 +61,12 @@ interface CheckoutFormProps {
   };
   totalPrice: number;
   selectedAddOns: string[];
+  sessionData?: any;
+  isPostAuthRedirect?: boolean;
   onSuccess: () => void;
 }
 
-export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSuccess }: CheckoutFormProps) {
+export default function CheckoutForm({ service, totalPrice, selectedAddOns, sessionData, isPostAuthRedirect, onSuccess }: CheckoutFormProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [contactData, setContactData] = useState<ContactForm | null>(null);
   const [showPaymentLoader, setShowPaymentLoader] = useState(false);
