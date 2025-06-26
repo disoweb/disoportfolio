@@ -429,6 +429,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   private extractProjectDataFromOrder(order: any): any {
+    // Use actual order creation date as project start date
     const startDate = order.createdAt ? new Date(order.createdAt) : new Date();
     const dueDate = new Date(startDate);
     
@@ -475,13 +476,15 @@ export class DatabaseStorage implements IStorage {
       }
     }
     
-    // Calculate progress based on time elapsed
+    // Calculate progress based on actual time elapsed since order
     const totalDays = timelineWeeks * 7;
     const daysSinceStart = Math.floor((Date.now() - startDate.getTime()) / (1000 * 60 * 60 * 24));
     const timeProgress = Math.min(Math.round((daysSinceStart / totalDays) * 100), 95);
     
-    // Adjust progress based on time elapsed (more realistic)
-    progressPercentage = Math.min(progressPercentage + Math.floor(timeProgress * 0.3), 85);
+    // Create realistic progress based on time elapsed and add some randomness
+    const baseProgress = Math.max(timeProgress * 0.4, 5); // Minimum 5% progress
+    const randomVariation = Math.floor(Math.random() * 15); // 0-15% random
+    progressPercentage = Math.min(Math.floor(baseProgress + randomVariation), 85);
     
     // Set stage based on progress
     if (progressPercentage < 20) currentStage = 'Discovery';
