@@ -20,30 +20,57 @@ export default function Checkout() {
   const price = urlParams.get('price');
   const addons = urlParams.get('addons');
 
-  // Check for pending checkout data immediately
-  const pendingCheckout = typeof window !== 'undefined' ? sessionStorage.getItem('pendingCheckout') : null;
-  let initialServiceData = null;
-  let initialAddOns: string[] = [];
-  let initialPrice = 0;
-
-  if (pendingCheckout) {
-    try {
-      const checkoutData = JSON.parse(pendingCheckout);
-      console.log('🔍 [INIT] Found pending checkout data:', checkoutData);
-      if (checkoutData.service) {
-        initialServiceData = checkoutData.service;
-        initialAddOns = checkoutData.selectedAddOns || [];
-        initialPrice = checkoutData.totalPrice || 0;
-        console.log('🔍 [INIT] Initialized with service:', checkoutData.service.name);
+  // Robust service data initialization with multiple fallbacks
+  const initializeServiceData = () => {
+    // First check: Direct pending checkout access
+    if (typeof window !== 'undefined') {
+      const pendingCheckout = sessionStorage.getItem('pendingCheckout');
+      if (pendingCheckout) {
+        try {
+          const checkoutData = JSON.parse(pendingCheckout);
+          console.log('🔍 [INIT] Found pending checkout data:', checkoutData);
+          if (checkoutData.service) {
+            console.log('🔍 [INIT] Using service from pending checkout:', checkoutData.service.name);
+            return {
+              serviceData: checkoutData.service,
+              selectedAddOns: checkoutData.selectedAddOns || [],
+              totalPrice: checkoutData.totalPrice || 0
+            };
+          }
+        } catch (error) {
+          console.error('🔍 [INIT] Error parsing pending checkout:', error);
+        }
       }
-    } catch (error) {
-      console.error('Error parsing pending checkout:', error);
+      
+      // Second check: Look for backup service data
+      const backupService = sessionStorage.getItem('backup_service_data');
+      if (backupService) {
+        try {
+          const serviceData = JSON.parse(backupService);
+          console.log('🔍 [INIT] Using backup service data:', serviceData);
+          return {
+            serviceData: serviceData.service,
+            selectedAddOns: serviceData.selectedAddOns || [],
+            totalPrice: serviceData.totalPrice || 0
+          };
+        } catch (error) {
+          console.error('🔍 [INIT] Error parsing backup service:', error);
+        }
+      }
     }
-  }
+    
+    console.log('🔍 [INIT] No service data found, using defaults');
+    return {
+      serviceData: null,
+      selectedAddOns: [],
+      totalPrice: 0
+    };
+  };
 
-  const [serviceData, setServiceData] = useState<any>(initialServiceData);
-  const [selectedAddOns, setSelectedAddOns] = useState<string[]>(initialAddOns);
-  const [totalPrice, setTotalPrice] = useState<number>(initialPrice);
+  const initialState = initializeServiceData();
+  const [serviceData, setServiceData] = useState<any>(initialState.serviceData);
+  const [selectedAddOns, setSelectedAddOns] = useState<string[]>(initialState.selectedAddOns);
+  const [totalPrice, setTotalPrice] = useState<number>(initialState.totalPrice);
 
   // Fetch service data
   const { data: services = [], isLoading: servicesLoading } = useQuery({

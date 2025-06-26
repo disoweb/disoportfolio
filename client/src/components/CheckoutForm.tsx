@@ -164,8 +164,9 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
         
         console.log('✅ [ORDER SUCCESS] Redirecting to Paystack URL:', data.paymentUrl);
         
-        // Clear pending checkout before redirect
+        // Clear all checkout-related data before redirect
         sessionStorage.removeItem('pendingCheckout');
+        sessionStorage.removeItem('backup_service_data');
         
         // Force immediate redirect to Paystack
         setTimeout(() => {
@@ -278,7 +279,19 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
         timestamp: Date.now()
       };
       
+      // Store primary checkout data
       sessionStorage.setItem('pendingCheckout', JSON.stringify(checkoutData));
+      
+      // Store backup service data as failsafe
+      const backupServiceData = {
+        service,
+        totalPrice,
+        selectedAddOns,
+        timestamp: Date.now()
+      };
+      sessionStorage.setItem('backup_service_data', JSON.stringify(backupServiceData));
+      
+      console.log('💾 [CHECKOUT FORM] Stored checkout data and backup service data');
       
       // Redirect to auth page
       setLocation('/auth');
