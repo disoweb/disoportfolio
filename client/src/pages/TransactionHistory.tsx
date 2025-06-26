@@ -13,13 +13,16 @@ export default function TransactionHistory() {
   const [currentPage, setCurrentPage] = React.useState(1);
   const [itemsPerPage] = React.useState(10);
 
-  const { data: orders, isLoading } = useQuery({
+  const { data: ordersData, isLoading } = useQuery({
     queryKey: ["/api/orders"],
   });
 
-  const { data: stats } = useQuery({
+  const { data: statsData } = useQuery({
     queryKey: ["/api/client/stats"],
   });
+
+  const orders = (ordersData as any[]) || [];
+  const stats = (statsData as any) || { totalSpent: 0 };
 
   // Filter orders based on status
   const filteredOrders = React.useMemo(() => {

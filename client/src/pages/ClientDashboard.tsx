@@ -165,17 +165,20 @@ export default function ClientDashboard() {
     }
   }, [toast]);
 
-  const { data: projects, isLoading: projectsLoading } = useQuery({
+  const { data: projectsData, isLoading: projectsLoading } = useQuery({
     queryKey: ["/api/projects"],
   });
 
-  const { data: orders, isLoading: ordersLoading } = useQuery({
+  const { data: ordersData, isLoading: ordersLoading } = useQuery({
     queryKey: ["/api/orders"],
   });
 
+  const projects = (projectsData as any[]) || [];
+  const orders = (ordersData as any[]) || [];
+
   // Calculate total spent from paid orders
   const totalSpent = React.useMemo(() => {
-    if (!orders) return 0;
+    if (!orders || !Array.isArray(orders)) return 0;
     return orders.filter((o: any) => o.status === 'paid').reduce((sum: number, o: any) => {
       const price = typeof o.totalPrice === 'string' ? parseInt(o.totalPrice) : (o.totalPrice || 0);
       return sum + price;
@@ -184,7 +187,7 @@ export default function ClientDashboard() {
 
   // Filter orders based on selected filter
   const filteredOrders = React.useMemo(() => {
-    if (!orders) return [];
+    if (!orders || !Array.isArray(orders)) return [];
     if (orderFilter === 'all') return orders;
     return orders.filter((order: any) => {
       switch (orderFilter) {
@@ -215,7 +218,7 @@ export default function ClientDashboard() {
 
   // Calculate filter counts
   const filterCounts = React.useMemo(() => {
-    if (!orders) return { all: 0, pending: 0, paid: 0, cancelled: 0 };
+    if (!orders || !Array.isArray(orders)) return { all: 0, pending: 0, paid: 0, cancelled: 0 };
     return {
       all: orders.length,
       pending: orders.filter((o: any) => o.status === 'pending').length,
@@ -254,9 +257,11 @@ export default function ClientDashboard() {
     }
   }, [orders, filterCounts, hasSetDefaultFilter]);
 
-  const { data: stats } = useQuery({
+  const { data: statsData } = useQuery({
     queryKey: ["/api/client/stats"],
   });
+  
+  const stats = (statsData as any) || { activeProjects: 0, completedProjects: 0, totalSpent: 0, newMessages: 0 };
 
   if (projectsLoading || ordersLoading) {
     return (
@@ -635,7 +640,7 @@ export default function ClientDashboard() {
                 <CardTitle className="text-xl font-bold text-slate-900">Active Projects</CardTitle>
               </CardHeader>
               <CardContent>
-                {projects && projects.length > 0 ? (
+                {projects && Array.isArray(projects) && projects.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {projects.map((project: any) => (
                       <ProjectTimer key={project.id} project={project} />
@@ -676,7 +681,7 @@ export default function ClientDashboard() {
                 <CardTitle className="text-xl font-bold text-slate-900">Recent Messages</CardTitle>
               </CardHeader>
               <CardContent>
-                <MessagesList projectId={projects?.[0]?.id} />
+                <MessagesList projectId={projects && projects.length > 0 ? projects[0]?.id : undefined} />
               </CardContent>
             </Card>
 

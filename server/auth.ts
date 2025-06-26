@@ -53,9 +53,8 @@ export async function setupAuth(app: Express) {
           console.error('Session store error:', error);
         }
       });
-      console.log('Using PostgreSQL session store for persistent sessions');
-    } else {
-      console.log('Using memory store for sessions (DATABASE_URL not available)');
+      } else {
+      ');
       sessionStore = undefined;
     }
   } catch (error) {
@@ -88,9 +87,7 @@ export async function setupAuth(app: Express) {
 
   // Session debugging disabled for production
   // app.use((req, res, next) => {
-  //   console.log('Session:', req.session ? 'exists' : 'missing');
-  //   console.log('Session ID:', req.sessionID);
-  //   next();
+  //   //   //   next();
   // });
 
   // Local Strategy (Email/Password)
@@ -99,7 +96,6 @@ export async function setupAuth(app: Express) {
       { usernameField: 'email' },
       async (email, password, done) => {
         try {
-          console.log('Login attempt for email:', email);
           const user = await storage.getUserByEmail(email);
           if (!user) {
             return done(null, false, { message: 'Invalid email or password' });
@@ -116,7 +112,6 @@ export async function setupAuth(app: Express) {
             return done(null, false, { message: 'Invalid email or password' });
           }
 
-          console.log('Login successful for user:', user.id);
           return done(null, user);
         } catch (error) {
           console.error('Login strategy error:', error);
@@ -214,7 +209,6 @@ export async function setupAuth(app: Express) {
   }
 
   passport.serializeUser((user: Express.User, done) => {
-    console.log('Serializing user:', user?.id);
     if (!user || !user.id) {
       console.error('Serialization failed: User object or ID is missing');
       return done(new Error('User serialization failed'), false);
@@ -313,15 +307,12 @@ export async function setupAuth(app: Express) {
         }
       });
       
-      console.log('🚀 REGISTER: Saving session for user:', user.id);
-      
       // Save session explicitly before responding
       req.session.save((saveErr: any) => {
         if (saveErr) {
           console.error('🚀 REGISTER: Session save error after registration:', saveErr);
         } else {
-          console.log('🚀 REGISTER: Session saved successfully');
-        }
+          }
         
         // Log in the user automatically with passport
         req.login(user, (err: any) => {
@@ -329,15 +320,13 @@ export async function setupAuth(app: Express) {
             console.error('🚀 REGISTER: Auto-login error after registration:', err);
             // Even if passport login fails, we have custom session
           } else {
-            console.log('🚀 REGISTER: Passport login successful');
-          }
+            }
           
           auditLog('register_success', user.id, { email: sanitizedEmail.substring(0, 5) + '***', clientIP });
           
           const sanitizedUser = { ...user };
           delete (sanitizedUser as any).password;
           
-          console.log('🚀 REGISTER: Returning user data:', sanitizedUser.id);
           res.status(201).json({ 
             user: sanitizedUser,
             message: "User created successfully"

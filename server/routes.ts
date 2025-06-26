@@ -37,15 +37,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const existingAdmin = await storage.getUserByEmail(adminEmail);
     if (!existingAdmin) {
       const adminPassword = process.env.ADMIN_PASSWORD || 'TempAdmin123!@#';
-      console.log('Creating admin user with environment password...');
-      
       // Hash the password securely
       const bcrypt = require('bcrypt');
       const hashedPassword = await bcrypt.hash(adminPassword, 12);
       
       await storage.createAdminUser(adminEmail, hashedPassword);
-      console.log('Admin user created successfully');
-      
       if (!process.env.ADMIN_PASSWORD) {
         console.warn('⚠️  WARNING: Using temporary admin password. Set ADMIN_PASSWORD environment variable for production!');
       }
@@ -443,8 +439,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "User not found" });
       }
       
-      console.log("Projects request - User role:", user.role, "User ID:", userId);
-      
       // If admin, return all projects with user and order details
       if (user?.role === 'admin') {
         const projects = await storage.getAllProjects();
@@ -578,7 +572,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Payment callback route (for redirect after payment)
   app.get('/api/payments/callback', async (req, res) => {
 
-    
     try {
       const { reference, trxref, status } = req.query;
       const paymentReference = (reference || trxref) as string;
@@ -611,13 +604,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 status: "paid" as any
               }).where(eq(orders.id, orderId));
               
-              console.log(`Payment verified and updated for order: ${orderId}`);
-            }
+              }
             
             // Redirect to dashboard with success and clear payment flag
             return res.redirect('/?payment=success&clear_payment=true#dashboard');
           } else {
-            console.log('Payment verification failed:', verifyData);
             return res.redirect('/?payment=failed&clear_payment=true#dashboard');
           }
         } catch (verifyError) {
@@ -625,7 +616,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.redirect('/?payment=error&clear_payment=true#dashboard');
         }
       } else {
-        console.log('No payment reference provided in callback');
         return res.redirect('/?payment=failed&clear_payment=true#dashboard');
       }
     } catch (error) {
@@ -909,8 +899,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/checkout-sessions", async (req, res) => {
     try {
       const sessionData = req.body;
-      console.log('Creating checkout session with data:', sessionData);
-      
       // Generate unique session token
       const sessionToken = `checkout_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
@@ -928,7 +916,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         expiresAt,
       });
       
-      console.log('Created checkout session:', checkoutSession);
       res.json({ sessionToken: checkoutSession.sessionToken });
     } catch (error) {
       console.error("Error creating checkout session:", error);
