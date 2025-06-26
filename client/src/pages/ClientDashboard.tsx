@@ -38,6 +38,9 @@ export default function ClientDashboard() {
   const [processingOrderId, setProcessingOrderId] = React.useState<string | null>(null);
   const [cancellingOrderId, setCancellingOrderId] = React.useState<string | null>(null);
   const [orderFilter, setOrderFilter] = React.useState<'all' | 'pending' | 'paid' | 'cancelled'>('all');
+  const [hasSetDefaultFilter, setHasSetDefaultFilter] = React.useState(false);
+
+
 
   // Cancel order mutation
   const cancelOrderMutation = useMutation({
@@ -202,6 +205,36 @@ export default function ClientDashboard() {
     };
   }, [orders]);
 
+  // Get visible tabs (only show tabs with non-zero counts)
+  const visibleTabs = React.useMemo(() => {
+    const tabs = [];
+    if (filterCounts.all > 0) tabs.push({ key: 'all', label: 'All', count: filterCounts.all });
+    if (filterCounts.pending > 0) tabs.push({ key: 'pending', label: 'Pending', count: filterCounts.pending });
+    if (filterCounts.paid > 0) tabs.push({ key: 'paid', label: 'Completed', count: filterCounts.paid });
+    if (filterCounts.cancelled > 0) tabs.push({ key: 'cancelled', label: 'Cancelled', count: filterCounts.cancelled });
+    
+    // Always show at least the "All" tab if no other tabs have content
+    if (tabs.length === 0) {
+      tabs.push({ key: 'all', label: 'All', count: 0 });
+    }
+    
+    return tabs;
+  }, [filterCounts]);
+
+  // Smart default filter logic - show pending first, then paid, then all (only once)
+  React.useEffect(() => {
+    if (orders && filterCounts && !hasSetDefaultFilter) {
+      if (filterCounts.pending > 0) {
+        setOrderFilter('pending');
+      } else if (filterCounts.paid > 0) {
+        setOrderFilter('paid');
+      } else {
+        setOrderFilter('all');
+      }
+      setHasSetDefaultFilter(true);
+    }
+  }, [orders, filterCounts, hasSetDefaultFilter]);
+
   const { data: stats } = useQuery({
     queryKey: ["/api/client/stats"],
   });
@@ -302,19 +335,18 @@ export default function ClientDashboard() {
               </CardHeader>
               <CardContent>
                 <Tabs value={orderFilter} onValueChange={(value: any) => setOrderFilter(value)} className="w-full">
-                  <TabsList className="grid w-full grid-cols-4 mb-6">
-                    <TabsTrigger value="all" className="text-xs sm:text-sm">
-                      All ({filterCounts.all})
-                    </TabsTrigger>
-                    <TabsTrigger value="pending" className="text-xs sm:text-sm">
-                      Pending ({filterCounts.pending})
-                    </TabsTrigger>
-                    <TabsTrigger value="paid" className="text-xs sm:text-sm">
-                      Completed ({filterCounts.paid})
-                    </TabsTrigger>
-                    <TabsTrigger value="cancelled" className="text-xs sm:text-sm">
-                      Cancelled ({filterCounts.cancelled})
-                    </TabsTrigger>
+                  <TabsList className={`w-full mb-6 ${visibleTabs.length <= 2 ? 'grid grid-cols-2' : visibleTabs.length === 3 ? 'grid grid-cols-3' : 'grid grid-cols-2 sm:grid-cols-4'}`}>
+                    {visibleTabs.map((tab) => (
+                      <TabsTrigger 
+                        key={tab.key} 
+                        value={tab.key} 
+                        className="text-xs sm:text-sm px-2 py-1.5 whitespace-nowrap"
+                      >
+                        <span className="truncate">
+                          {tab.label} ({tab.count})
+                        </span>
+                      </TabsTrigger>
+                    ))}
                   </TabsList>
 
                   <TabsContent value={orderFilter} className="mt-0">
