@@ -412,52 +412,36 @@ export async function setupAuth(app: Express) {
 
   app.get("/api/auth/user", async (req, res) => {
     try {
-      console.log('=== Authentication Check (auth.ts) ===');
-      console.log('Session ID:', req.sessionID);
-      console.log('Session passport:', (req.session as any)?.passport);
-      console.log('User from session:', (req.session as any)?.passport?.user);
-      console.log('req.user:', req.user);
-      console.log('req.isAuthenticated():', req.isAuthenticated?.());
-      console.log('Custom session userId:', (req.session as any)?.userId);
-      
       // Check multiple sources for user authentication
       let userId = null;
       
       // Check custom session userId first
       if (req.session && (req.session as any).userId) {
         userId = (req.session as any).userId;
-        console.log('Found userId in custom session:', userId);
       }
       // Check passport session
       else if ((req.session as any)?.passport?.user) {
         const sessionUser = (req.session as any).passport.user;
         userId = sessionUser.id || sessionUser;
-        console.log('Found userId in passport session:', userId);
       }
       // Check req.user
       else if (req.user) {
         userId = (req.user as any).id || req.user;
-        console.log('Found userId in req.user:', userId);
       }
       
       if (userId) {
         const user = await storage.getUser(userId);
-        console.log('User found in database:', user?.email);
         
         if (user) {
           const sanitizedUser = { ...user };
           delete (sanitizedUser as any).password;
-          console.log('=== End Authentication Check (auth.ts) ===');
           return res.json(sanitizedUser);
         }
       }
       
-      console.log('No authenticated user found');
-      console.log('=== End Authentication Check (auth.ts) ===');
       res.json(null);
     } catch (error) {
-      console.error('Get user error:', error);
-      res.status(500).json({ message: 'Failed to get user' });
+      res.json(null);
     }
   });
 
@@ -536,28 +520,18 @@ export async function setupAuth(app: Express) {
 
 export const isAuthenticated = async (req: any, res: any, next: any) => {
   try {
-    // Debug logging disabled for production
-    // if (req.url === '/api/orders') {
-    //   console.log('Session check for order creation');
-    // }
-    
     // Check custom session userId first (from our login system)
     if (req.session && (req.session as any).userId) {
       const userId = (req.session as any).userId;
-      console.log('Found userId in session:', userId);
       const user = await storage.getUser(userId);
       if (user) {
-        console.log('User found in database:', user.email);
         req.user = user;
         return next();
-      } else {
-        console.log('User not found in database for userId:', userId);
       }
     }
 
     // Fallback check for passport session
     if (req.session && req.session.passport && req.session.passport.user) {
-      console.log('Found passport session:', req.session.passport.user);
       const user = await storage.getUser(req.session.passport.user);
       if (user) {
         req.user = user;
@@ -567,17 +541,11 @@ export const isAuthenticated = async (req: any, res: any, next: any) => {
     
     // Final fallback for req.user
     if (req.user) {
-      console.log('Using existing req.user');
       return next();
     }
     
-    console.log('Authentication failed - no valid session found');
-    if (req.url === '/api/orders') {
-      console.log('=== End Authentication Check ===');
-    }
     return res.status(401).json({ message: "Authentication required" });
   } catch (error) {
-    console.error('Authentication error:', error);
     res.status(401).json({ message: "Authentication required" });
   }
 };

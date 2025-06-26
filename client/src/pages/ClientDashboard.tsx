@@ -65,27 +65,18 @@ export default function ClientDashboard() {
   const reactivatePaymentMutation = useMutation({
     mutationFn: async (orderId: string) => {
       setProcessingOrderId(orderId);
-      console.log('🚀 FRONTEND: Starting payment reactivation for order:', orderId);
-      try {
-        const response = await apiRequest('POST', `/api/orders/${orderId}/reactivate-payment`);
-        console.log('🚀 FRONTEND: Raw response received:', response);
-        const jsonResponse = await response.json();
-        console.log('🚀 FRONTEND: Parsed response:', jsonResponse);
-        return jsonResponse;
-      } catch (error) {
-        console.log('❌ FRONTEND: API request error:', error);
-        throw error;
-      }
+      const response = await apiRequest('POST', `/api/orders/${orderId}/reactivate-payment`);
+      return await response.json();
     },
     onSuccess: (response: any) => {
       setProcessingOrderId(null);
-      console.log('🔄 Frontend received response:', response);
       if (response?.paymentUrl) {
-        console.log('💳 Redirecting to:', response.paymentUrl);
-        // Redirect to Paystack payment page
+        toast({
+          title: "Payment link generated",
+          description: "Redirecting to secure payment gateway...",
+        });
         window.location.href = response.paymentUrl;
       } else {
-        console.log('❌ No paymentUrl in response:', response);
         toast({
           title: "Payment Issue",
           description: "Payment URL not received. Please try again.",
@@ -95,9 +86,23 @@ export default function ClientDashboard() {
     },
     onError: (error: Error) => {
       setProcessingOrderId(null);
+      
+      // Enhanced error handling with user-friendly messages
+      let errorMessage = "Failed to reactivate payment. Please try again.";
+      
+      if (error.message?.includes("401")) {
+        errorMessage = "Session expired. Please refresh and try again.";
+      } else if (error.message?.includes("429")) {
+        errorMessage = "Too many attempts. Please wait a moment before retrying.";
+      } else if (error.message?.includes("404")) {
+        errorMessage = "Order not found or access denied.";
+      } else if (error.message?.includes("400")) {
+        errorMessage = "This order cannot be reactivated.";
+      }
+      
       toast({
-        title: "Payment Reactivation Failed",
-        description: error.message || "Failed to reactivate payment. Please try again.",
+        title: "Payment Error",
+        description: errorMessage,
         variant: "destructive",
       });
     },

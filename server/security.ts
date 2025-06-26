@@ -1,21 +1,37 @@
 import { Request, Response, NextFunction } from "express";
 
-// Enhanced rate limiting configuration with progressive delays
+// Production-ready security configuration with environment-based tuning
 const attemptStore = new Map();
-const RATE_LIMITS = {
-  logout: { max: 5, window: 60000 },        // 5 attempts per minute
-  login: { max: 5, window: 900000 },        // 5 attempts per 15 minutes (reduced for security)
-  register: { max: 3, window: 3600000 },    // 3 attempts per hour
-  password: { max: 3, window: 900000 },     // 3 attempts per 15 minutes
-  payment: { max: 3, window: 300000 },      // 3 attempts per 5 minutes (reduced)
-  admin: { max: 3, window: 900000 },        // 3 attempts per 15 minutes (reduced)
-  api: { max: 60, window: 60000 },          // 60 requests per minute (reduced)
-  upload: { max: 5, window: 300000 },       // 5 uploads per 5 minutes (reduced)
-  checkout: { max: 10, window: 600000 },    // 10 checkout attempts per 10 minutes
-  contact: { max: 3, window: 3600000 },     // 3 contact form submissions per hour
-  order_cancel: { max: 5, window: 300000 }, // 5 cancellations per 5 minutes
-  payment_reactivate: { max: 3, window: 300000 } // 3 payment reactivations per 5 minutes
+
+// Rate limiting multiplier from environment (default 1.0 for production)
+const RATE_MULTIPLIER = parseFloat(process.env.RATE_LIMIT_MULTIPLIER || "1.0");
+
+// Base rate limits - can be scaled by environment
+const BASE_RATE_LIMITS = {
+  logout: { max: 5, window: 60000 },         // 5 attempts per minute
+  login: { max: 5, window: 900000 },         // 5 attempts per 15 minutes
+  register: { max: 3, window: 3600000 },     // 3 attempts per hour
+  password: { max: 3, window: 900000 },      // 3 attempts per 15 minutes
+  payment_reactivation: { max: 3, window: 300000 }, // 3 payment reactivations per 5 minutes
+  admin: { max: 10, window: 900000 },        // 10 admin actions per 15 minutes
+  api: { max: 100, window: 60000 },          // 100 API calls per minute
+  upload: { max: 5, window: 300000 },        // 5 uploads per 5 minutes
+  checkout: { max: 10, window: 600000 },     // 10 checkout attempts per 10 minutes
+  contact: { max: 3, window: 3600000 },      // 3 contact form submissions per hour
+  order_cancel: { max: 5, window: 300000 },  // 5 cancellations per 5 minutes
+  auth_check: { max: 100, window: 300000 },  // 100 auth checks per 5 minutes
 };
+
+// Apply rate multiplier to create final configuration
+const RATE_LIMITS = Object.fromEntries(
+  Object.entries(BASE_RATE_LIMITS).map(([key, config]) => [
+    key,
+    {
+      max: Math.max(1, Math.floor(config.max * RATE_MULTIPLIER)),
+      window: config.window
+    }
+  ])
+);
 
 // Progressive delay based on attempt count
 export function getSecurityDelay(attemptCount: number): number {

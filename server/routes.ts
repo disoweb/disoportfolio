@@ -23,7 +23,8 @@ import {
   auditLog,
   authRateLimit,
   validateRequestSize,
-  securityHeaders
+  securityHeaders,
+  getSecurityDelay
 } from "./security";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -344,43 +345,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Reactivate payment for pending order
-  app.post('/api/orders/:orderId/reactivate-payment', authRateLimit('api'), isAuthenticated, async (req: any, res) => {
-    console.log('🚀 PAYMENT-ROUTE: Starting reactivate payment request');
-    try {
-      console.log('🚀 PAYMENT-ROUTE: req.user:', req.user);
-      const userId = req.user?.id || req.user;
-      const { orderId } = req.params;
-      const clientIP = req.ip || req.connection.remoteAddress;
-      console.log('🚀 PAYMENT-ROUTE: User ID:', userId, 'Order ID:', orderId);
-      
-      // Security check: additional rate limiting for payment reactivation
-      const rateCheck = checkRateLimit('payment_reactivate', clientIP);
-      if (!rateCheck.allowed) {
-        auditLog('rate_limit_exceeded', userId, { action: 'payment_reactivate', ip: clientIP });
-        return res.status(429).json({ message: rateCheck.message });
+  app.post('/api/orders/:orderId/reactivate-payment', 
+    authRateLimit('payment_reactivation'), 
+    validateContentType, 
+    validateRequestSize(1024), 
+    isAuthenticated, 
+    async (req: any, res) => {
+      try {
+        const userId = req.user?.id || req.user;
+        const { orderId } = req.params;
+        const clientIP = req.ip || req.connection.remoteAddress;
+        
+        // Validate order ID format
+        if (!orderId || typeof orderId !== 'string' || orderId.length < 10) {
+          return res.status(400).json({ message: "Invalid order ID format" });
+        }
+        
+        // Security delay for payment operations
+        const delay = getSecurityDelay(1);
+        if (delay > 0) {
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+        
+        const paymentUrl = await storage.reactivatePayment(orderId, userId);
+        auditLog('payment_reactivated', userId, { orderId, clientIP });
+        
+        res.json({ paymentUrl });
+      } catch (error) {
+        const userId = req.user?.id || req.user;
+        auditLog('payment_reactivation_failed', userId, { 
+          orderId: req.params.orderId, 
+          error: (error as Error).message, 
+          clientIP: req.ip 
+        });
+        
+        if ((error as Error).message.includes('not found') || (error as Error).message.includes('not authorized')) {
+          return res.status(404).json({ message: "Order not found or not authorized" });
+        }
+        if ((error as Error).message.includes('cannot reactivate')) {
+          return res.status(400).json({ message: "Payment cannot be reactivated for this order" });
+        }
+        res.status(500).json({ message: "Failed to reactivate payment" });
       }
-
-      const paymentUrl = await storage.reactivatePayment(orderId, userId);
-      console.log('🔄 Route returning payment URL:', paymentUrl);
-      auditLog('payment_reactivated', userId, { orderId, clientIP });
-      
-      const response = { paymentUrl };
-      console.log('📤 Route response:', response);
-      res.json(response);
-    } catch (error) {
-      console.error("❌ PAYMENT-ROUTE: Error reactivating payment:", error);
-      console.error("❌ PAYMENT-ROUTE: Error stack:", (error as Error).stack);
-      auditLog('payment_reactivation_failed', req.user?.id, { orderId: req.params.orderId, error: (error as Error).message, clientIP: req.ip });
-      
-      if ((error as Error).message.includes('not found') || (error as Error).message.includes('not authorized')) {
-        return res.status(404).json({ message: "Order not found or not authorized" });
-      }
-      if ((error as Error).message.includes('cannot reactivate')) {
-        return res.status(400).json({ message: "Payment cannot be reactivated for this order" });
-      }
-      res.status(500).json({ message: "Failed to reactivate payment" });
-    }
-  });
+    });
 
   app.patch('/api/orders/:id/status', authRateLimit('admin'), validateContentType, isAuthenticated, async (req: any, res) => {
     try {

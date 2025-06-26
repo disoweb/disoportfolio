@@ -13,12 +13,7 @@ export function useAuth() {
     staleTime: 0,
   });
 
-  console.log('🔐 AUTH-HOOK: useAuth called', {
-    user,
-    isLoading,
-    error,
-    isAuthenticated: !!user
-  });
+
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
