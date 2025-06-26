@@ -126,12 +126,14 @@ export default function AuthPage() {
         try {
           const checkoutData = JSON.parse(pendingCheckout);
           console.log('🚀 [LOGIN SUCCESS] Successfully parsed pending checkout data:', checkoutData);
-          const redirectUrl = checkoutData.returnUrl || '/checkout';
-          console.log('🚀 [LOGIN SUCCESS] Redirecting to checkout page:', redirectUrl);
+          console.log('🚀 [LOGIN SUCCESS] Setting payment in progress and staying on current page for auto-payment');
           
-          // Add a small delay to ensure authentication state is fully set
+          // Set payment flag and redirect to checkout for auto-payment
+          sessionStorage.setItem('payment_in_progress', 'true');
+          
+          console.log('🚀 [LOGIN SUCCESS] Redirecting to checkout for auto-payment processing');
           setTimeout(() => {
-            setLocation(redirectUrl);
+            setLocation('/checkout');
           }, 100);
         } catch (error) {
           console.error('🚀 [LOGIN SUCCESS] Error parsing pending checkout data:', error);

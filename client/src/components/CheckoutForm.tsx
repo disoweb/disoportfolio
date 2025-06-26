@@ -190,108 +190,51 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
     },
   });
 
-  // Handle pending checkout completion after authentication
+  // Handle auto-payment after authentication - only when on checkout page
   useEffect(() => {
-    console.log('🔄 [USE EFFECT] Auth flow useEffect triggered - user:', !!user, 'isPending:', orderMutation.isPending);
-    // Prevent auto-submit if already processing
-    if (user && !orderMutation.isPending) {
-      const pendingCheckout = sessionStorage.getItem('pendingCheckout');
-      console.log('🔄 [USE EFFECT] Pending checkout found:', !!pendingCheckout);
-      
-      if (pendingCheckout) {
-        try {
-          const checkoutData = JSON.parse(pendingCheckout);
-          console.log('🔄 [USE EFFECT] Parsed checkout data:', checkoutData);
+    const currentPath = window.location.pathname;
+    if (currentPath !== '/checkout' || !user || orderMutation.isPending) {
+      return;
+    }
+    
+    const pendingCheckout = sessionStorage.getItem('pendingCheckout');
+    if (pendingCheckout) {
+      try {
+        const checkoutData = JSON.parse(pendingCheckout);
+        console.log('🔄 [AUTO-SUBMIT] Processing pending checkout after authentication');
+        
+        // Remove pending checkout immediately
+        sessionStorage.removeItem('pendingCheckout');
+        
+        if (checkoutData.contactData) {
+          // Show payment loader immediately
+          setShowPaymentLoader(true);
+          sessionStorage.setItem('payment_in_progress', 'true');
           
-          // Remove pending checkout immediately to prevent race conditions
-          sessionStorage.removeItem('pendingCheckout');
-          
-          // Restore the checkout state and addon information
-          if (checkoutData.contactData) {
-            setContactData(checkoutData.contactData);
-            setCurrentStep(2);
+          setTimeout(() => {
+            const contactDataToUse = { ...checkoutData.contactData };
+            if (!contactDataToUse.email && user.email) {
+              contactDataToUse.email = user.email;
+            }
             
-            // Restore addon information if it exists
-            console.log('🔄 [AUTO-SUBMIT] Restoring checkout data:', checkoutData);
-            console.log('🔄 [AUTO-SUBMIT] Stored selectedAddOns:', checkoutData.selectedAddOns);
-            console.log('🔄 [AUTO-SUBMIT] Stored totalPrice:', checkoutData.totalPrice);
+            const combinedData = { 
+              ...contactDataToUse, 
+              paymentMethod: "paystack" as const,
+              timeline: checkoutData.paymentData?.timeline || "2-4 weeks",
+              overrideSelectedAddOns: checkoutData.selectedAddOns || [],
+              overrideTotalAmount: checkoutData.totalPrice || totalPrice
+            };
             
-            // Show loader immediately before any async operations
-            console.log('🔄 [AUTO-SUBMIT] Setting PaymentLoader to true BEFORE timeout');
-            setShowPaymentLoader(true);
-            
-            // Set global payment flag to prevent dashboard flash
-            sessionStorage.setItem('payment_in_progress', 'true');
-            
-            // Force app to re-render with payment loader immediately
-            window.dispatchEvent(new Event('storage'));
-            
-            // Auto-submit the payment after ensuring user is properly authenticated
-            setTimeout(() => {
-              console.log('🔄 [AUTO-SUBMIT] Starting auto-submit process after authentication');
-              console.log('🔄 [AUTO-SUBMIT] User data:', user);
-              console.log('🔄 [AUTO-SUBMIT] Selected addons:', selectedAddOns);
-              console.log('🔄 [AUTO-SUBMIT] Total price:', totalPrice);
-              console.log('🔄 [AUTO-SUBMIT] PaymentLoader should be visible now');
-              if (!user || !user.email) {
-                toast({
-                  title: "Authentication Error",
-                  description: "Please log in again to complete your order.",
-                  variant: "destructive",
-                });
-                setLocation('/auth');
-                return;
-              }
-              
-              // Check if mutation is already running
-              if (orderMutation.isPending) {
-                return;
-              }
-              
-              // Ensure email is populated from authenticated user if missing
-              const contactDataToUse = { ...checkoutData.contactData };
-              if (!contactDataToUse.email && user.email) {
-                contactDataToUse.email = user.email;
-              }
-              
-              // Validate that we have all required fields
-              if (!contactDataToUse.fullName || !contactDataToUse.email || !contactDataToUse.projectDescription) {
-                toast({
-                  title: "Incomplete Information",
-                  description: "Please fill out all required contact information.",
-                  variant: "destructive",
-                });
-                setCurrentStep(1);
-                return;
-              }
-              
-              // PaymentLoader is already showing, just log for debugging
-              console.log('🔄 [AUTO-SUBMIT] PaymentLoader state should already be true');
-              
-              // Prepare and submit the payment data immediately
-              const combinedData = { 
-                ...contactDataToUse, 
-                paymentMethod: "paystack" as const,
-                timeline: checkoutData.paymentData?.timeline || "2-4 weeks",
-                overrideSelectedAddOns: checkoutData.selectedAddOns || [],
-                overrideTotalAmount: checkoutData.totalPrice || totalPrice
-              };
-              
-              console.log('🔄 [AUTO-SUBMIT] Using selectedAddOns from checkout data:', checkoutData.selectedAddOns || []);
-              console.log('🔄 [AUTO-SUBMIT] Using totalPrice from checkout data:', checkoutData.totalPrice || totalPrice);
-              console.log('🔄 [AUTO-SUBMIT] Submitting order mutation with data:', combinedData);
-              console.log('🔄 [AUTO-SUBMIT] Order mutation pending status before mutate:', orderMutation.isPending);
-              console.log('🔄 [AUTO-SUBMIT] PaymentLoader state before mutate:', showPaymentLoader);
-              orderMutation.mutate(combinedData);
-              console.log('🔄 [AUTO-SUBMIT] Order mutation called, isPending after mutate:', orderMutation.isPending);
-            }, 100); // Minimal delay to ensure PaymentLoader renders
-          }
-        } catch (error) {
-          sessionStorage.removeItem('pendingCheckout');
+            console.log('🔄 [AUTO-SUBMIT] Submitting order with stored data');
+            orderMutation.mutate(combinedData);
+          }, 100);
         }
+      } catch (error) {
+        console.error('Error processing pending checkout:', error);
+        sessionStorage.removeItem('pendingCheckout');
       }
     }
-  }, [user, orderMutation.isPending, currentStep, setLocation, toast]);
+  }, [user, orderMutation.isPending, totalPrice]);
 
   const onContactSubmit = (data: ContactForm) => {
     // Store contact data persistently
