@@ -139,8 +139,9 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
       
       try {
         const response = await apiRequest("POST", "/api/orders", orderData);
-        console.log('🚀 [ORDER MUTATION] Order response received:', response);
-        return response;
+        const responseData = await response.json();
+        console.log('🚀 [ORDER MUTATION] Order response received:', responseData);
+        return responseData;
       } catch (error) {
         console.error('🚀 [ORDER MUTATION] Order failed:', error);
         throw error;
