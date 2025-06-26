@@ -49,10 +49,41 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
   const { user } = useAuth();
   const [, setLocation] = useLocation();
 
-  // Step 1: Contact Form
+  // Utility functions for persistent storage
+  const getStoredFormData = (key: string) => {
+    try {
+      const stored = localStorage.getItem(key);
+      if (stored) {
+        const { data, timestamp } = JSON.parse(stored);
+        const twentyFourHours = 24 * 60 * 60 * 1000;
+        if (Date.now() - timestamp < twentyFourHours) {
+          return data;
+        } else {
+          localStorage.removeItem(key);
+        }
+      }
+    } catch (error) {
+      localStorage.removeItem(key);
+    }
+    return null;
+  };
+
+  const storeFormData = (key: string, data: any) => {
+    try {
+      localStorage.setItem(key, JSON.stringify({
+        data,
+        timestamp: Date.now()
+      }));
+    } catch (error) {
+      // Ignore storage errors
+    }
+  };
+
+  // Step 1: Contact Form with persistent data
+  const storedContactData = getStoredFormData('checkout_contact_data');
   const contactForm = useForm<ContactForm>({
     resolver: zodResolver(contactSchema),
-    defaultValues: {
+    defaultValues: storedContactData || {
       fullName: "",
       email: "",
       phone: "",
@@ -68,6 +99,27 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
       paymentMethod: "paystack",
     },
   });
+
+  // Auto-save form data as user types
+  const watchedValues = contactForm.watch();
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const formData = contactForm.getValues();
+      if (Object.values(formData).some(value => value !== "")) {
+        storeFormData('checkout_contact_data', formData);
+      }
+    }, 1000); // Debounce for 1 second
+
+    return () => clearTimeout(timer);
+  }, [watchedValues, contactForm]);
+
+  // Restore contact data if it exists (from previous session or auth flow)
+  useEffect(() => {
+    if (storedContactData && !contactData) {
+      setContactData(storedContactData);
+      setCurrentStep(2);
+    }
+  }, [storedContactData, contactData]);
 
   const orderMutation = useMutation({
     mutationFn: async (data: ContactForm & PaymentForm) => {
@@ -109,6 +161,8 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
   });
 
   const onContactSubmit = (data: ContactForm) => {
+    // Store contact data persistently
+    storeFormData('checkout_contact_data', data);
     setContactData(data);
     setCurrentStep(2);
   };
@@ -127,7 +181,7 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
         returnUrl: window.location.pathname + window.location.search
       };
       sessionStorage.setItem('pendingCheckout', JSON.stringify(checkoutData));
-      setLocation('/login');
+      setLocation('/auth');
       return;
     }
     
