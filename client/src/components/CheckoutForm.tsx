@@ -115,7 +115,10 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
   }, [contactForm, contactData]);
 
   const orderMutation = useMutation({
-    mutationFn: async (data: PaymentForm) => {
+    mutationFn: async (data: PaymentForm & { 
+      overrideSelectedAddOns?: string[], 
+      overrideTotalAmount?: number 
+    }) => {
       if (!contactData) throw new Error("Contact data is missing");
       
       const orderData = {
@@ -129,8 +132,8 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
         projectDetails: {
           description: contactData.projectDescription,
         },
-        selectedAddOns: selectedAddOns,
-        totalAmount: totalPrice,
+        selectedAddOns: data.overrideSelectedAddOns || selectedAddOns,
+        totalAmount: data.overrideTotalAmount || totalPrice,
       };
 
       try {
@@ -199,15 +202,22 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
           // Remove pending checkout immediately to prevent race conditions
           sessionStorage.removeItem('pendingCheckout');
           
-          // Restore the checkout state
+          // Restore the checkout state and addon information
           if (checkoutData.contactData) {
             setContactData(checkoutData.contactData);
             setCurrentStep(2);
+            
+            // Restore addon information if it exists
+            console.log('🔄 [AUTO-SUBMIT] Restoring checkout data:', checkoutData);
+            console.log('🔄 [AUTO-SUBMIT] Stored selectedAddOns:', checkoutData.selectedAddOns);
+            console.log('🔄 [AUTO-SUBMIT] Stored totalPrice:', checkoutData.totalPrice);
             
             // Auto-submit the payment after ensuring user is properly authenticated
             setTimeout(() => {
               console.log('🔄 [AUTO-SUBMIT] Starting auto-submit process after authentication');
               console.log('🔄 [AUTO-SUBMIT] User data:', user);
+              console.log('🔄 [AUTO-SUBMIT] Selected addons:', selectedAddOns);
+              console.log('🔄 [AUTO-SUBMIT] Total price:', totalPrice);
               // Show loader immediately when starting auto-submit process
               setShowPaymentLoader(true);
               if (!user || !user.email) {
@@ -249,8 +259,13 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
               const combinedData = { 
                 ...contactDataToUse, 
                 paymentMethod: "paystack" as const,
-                timeline: checkoutData.paymentData?.timeline || "2-4 weeks"
+                timeline: checkoutData.paymentData?.timeline || "2-4 weeks",
+                overrideSelectedAddOns: checkoutData.selectedAddOns || [],
+                overrideTotalAmount: checkoutData.totalPrice || totalPrice
               };
+              
+              console.log('🔄 [AUTO-SUBMIT] Using selectedAddOns from checkout data:', checkoutData.selectedAddOns || []);
+              console.log('🔄 [AUTO-SUBMIT] Using totalPrice from checkout data:', checkoutData.totalPrice || totalPrice);
               console.log('🔄 [AUTO-SUBMIT] Submitting order mutation with data:', combinedData);
               console.log('🔄 [AUTO-SUBMIT] Order mutation pending status:', orderMutation.isPending);
               orderMutation.mutate(combinedData);
