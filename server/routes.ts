@@ -455,23 +455,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
               console.log(`Payment verified and updated for order: ${orderId}`);
             }
             
-            // Redirect to dashboard with success
-            return res.redirect('/?payment=success#dashboard');
+            // Redirect to dashboard with success and clear payment flag
+            return res.redirect('/?payment=success&clear_payment=true#dashboard');
           } else {
             console.log('Payment verification failed:', verifyData);
-            return res.redirect('/?payment=failed#dashboard');
+            return res.redirect('/?payment=failed&clear_payment=true#dashboard');
           }
         } catch (verifyError) {
           console.error("Error verifying payment:", verifyError);
-          return res.redirect('/?payment=error#dashboard');
+          return res.redirect('/?payment=error&clear_payment=true#dashboard');
         }
       } else {
         console.log('No payment reference provided in callback');
-        return res.redirect('/?payment=failed#dashboard');
+        return res.redirect('/?payment=failed&clear_payment=true#dashboard');
       }
     } catch (error) {
       console.error("Error handling payment callback:", error);
-      return res.redirect('/?payment=error#dashboard');
+      return res.redirect('/?payment=error&clear_payment=true#dashboard');
     }
   });
 

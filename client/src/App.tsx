@@ -25,9 +25,25 @@ import WhatsAppFloat from "@/components/WhatsAppFloat";
 function Router() {
   const { isAuthenticated, isLoading, user } = useAuth();
   const [mounted, setMounted] = useState(false);
+  const [paymentInProgress, setPaymentInProgress] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  // Clear payment flag if redirected back with clear_payment parameter
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('clear_payment') === 'true') {
+        sessionStorage.removeItem('payment_in_progress');
+        setPaymentInProgress(false);
+      } else {
+        // Check if payment is in progress
+        const inProgress = sessionStorage.getItem('payment_in_progress') === 'true';
+        setPaymentInProgress(inProgress);
+      }
+    }
   }, []);
 
   if (isLoading || !mounted) {
@@ -41,12 +57,12 @@ function Router() {
   return (
     <Switch>
       <>
-        <Route path="/" component={!isAuthenticated ? Landing : Home} />
+        <Route path="/" component={!isAuthenticated ? Landing : (paymentInProgress ? () => null : Home)} />
         <Route path="/auth" component={AuthPage} />
         <Route path="/admin" component={AdminLogin} />
         <Route path="/admin-dashboard" component={AdminDashboard} />
         <Route path="/admin/projects" component={AdminProjects} />
-        <Route path="/dashboard" component={ClientDashboard} />
+        <Route path="/dashboard" component={paymentInProgress ? () => null : ClientDashboard} />
         <Route path="/services" component={Services} />
         <Route path="/service/:id" component={ServiceDetails} />
         <Route path="/checkout" component={Checkout} />

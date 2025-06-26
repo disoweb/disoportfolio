@@ -147,12 +147,16 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
         localStorage.removeItem('checkout_contact_data');
         sessionStorage.removeItem('pendingCheckout');
         
-        // Show payment loader instead of immediate redirect
+        // Show payment loader and redirect to Paystack immediately
         setShowPaymentLoader(true);
         
-        // Keep loader showing and redirect to Paystack immediately
-        // The loader will persist until the new page loads
-        window.location.href = data.paymentUrl;
+        // Set a flag to prevent any other redirects
+        sessionStorage.setItem('payment_in_progress', 'true');
+        
+        // Redirect to Paystack immediately - loader will persist until page loads
+        setTimeout(() => {
+          window.location.href = data.paymentUrl;
+        }, 100); // Minimal delay to ensure loader renders
       } else {
         toast({
           title: "Order placed successfully!",
@@ -162,6 +166,9 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
       }
     },
     onError: (error) => {
+      // Hide loader on error
+      setShowPaymentLoader(false);
+      
       toast({
         title: "Order failed",
         description: error.message || "Something went wrong. Please try again.",
