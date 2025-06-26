@@ -22,13 +22,13 @@ export default function Checkout() {
   const addons = urlParams.get('addons');
 
   // Fetch service data
-  const { data: services = [] } = useQuery({
+  const { data: services = [], isLoading: servicesLoading } = useQuery({
     queryKey: ["/api/services"],
   });
 
   useEffect(() => {
     if (serviceId && services.length > 0) {
-      const service = services.find((s: any) => s.id === serviceId);
+      const service = (services as any[]).find((s: any) => s.id === serviceId);
       if (service) {
         setServiceData(service);
         setTotalPrice(price ? parseInt(price) : service.price);
@@ -40,7 +40,7 @@ export default function Checkout() {
     }
   }, [serviceId, services, price, addons]);
 
-  if (!serviceId || !serviceData) {
+  if (!serviceId) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navigation />
@@ -59,13 +59,29 @@ export default function Checkout() {
     );
   }
 
+  if (servicesLoading || !serviceData) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navigation />
+        <div className="container mx-auto px-4 py-16">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <h1 className="text-xl font-semibold text-gray-900 mb-2">Loading checkout...</h1>
+            <p className="text-gray-600">Please wait while we prepare your order.</p>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
   // Calculate add-on costs
   const addOnsCost = selectedAddOns.reduce((sum, addonName) => {
-    const addon = serviceData.addOns?.find((a: any) => a.name === addonName);
+    const addon = serviceData?.addOns?.find((a: any) => a.name === addonName);
     return sum + (addon ? addon.price : 0);
   }, 0);
 
-  const basePrice = serviceData.price;
+  const basePrice = serviceData?.price || 0;
   const finalTotal = basePrice + addOnsCost;
 
   return (
@@ -99,18 +115,18 @@ export default function Checkout() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <h3 className="font-semibold text-lg text-gray-900">{serviceData.name}</h3>
-                  <p className="text-gray-600 text-sm mt-1">{serviceData.description}</p>
+                  <h3 className="font-semibold text-lg text-gray-900">{serviceData?.name || 'Service'}</h3>
+                  <p className="text-gray-600 text-sm mt-1">{serviceData?.description || 'Service description'}</p>
                 </div>
 
                 <div className="flex items-center text-gray-600">
                   <Clock className="mr-2 h-4 w-4" />
-                  <span className="text-sm">{serviceData.duration}</span>
+                  <span className="text-sm">{serviceData?.duration || 'N/A'}</span>
                 </div>
 
                 <div className="flex items-center text-gray-600">
                   <Calendar className="mr-2 h-4 w-4" />
-                  <span className="text-sm">Delivery: {serviceData.deliveryDate}</span>
+                  <span className="text-sm">Delivery: {serviceData?.deliveryDate || 'TBD'}</span>
                 </div>
 
                 <Separator />
