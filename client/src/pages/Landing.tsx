@@ -476,12 +476,14 @@ export default function Landing() {
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             <Card className="p-6 hover:shadow-lg transition-shadow">
               <CardContent className="pt-0">
-                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-4">
-                  <Rocket className="h-6 w-6 text-blue-600" />
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                    <Rocket className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-blue-600">
+                    Lightning Fast
+                  </h3>
                 </div>
-                <h3 className="text-xl font-semibold mb-3 text-blue-600">
-                  Lightning Fast
-                </h3>
                 <p className="text-slate-600">
                   Optimized for speed with 99.9% uptime guarantee and sub-2
                   second load times.
@@ -491,12 +493,14 @@ export default function Landing() {
 
             <Card className="p-6 hover:shadow-lg transition-shadow">
               <CardContent className="pt-0">
-                <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mb-4">
-                  <Zap className="h-6 w-6 text-purple-600" />
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+                    <Zap className="h-6 w-6 text-purple-600" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-blue-600">
+                    Mobile-First
+                  </h3>
                 </div>
-                <h3 className="text-xl font-semibold mb-3  text-blue-600">
-                  Mobile-First
-                </h3>
                 <p className="text-slate-600">
                   Responsive design that looks perfect on all devices, from
                   phones to desktops.
@@ -506,12 +510,14 @@ export default function Landing() {
 
             <Card className="p-6 hover:shadow-lg transition-shadow">
               <CardContent className="pt-0">
-                <div className="w-12 h-12 bg-cyan-100 rounded-xl flex items-center justify-center mb-4">
-                  <Shield className="h-6 w-6 text-cyan-600" />
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 bg-cyan-100 rounded-xl flex items-center justify-center">
+                    <Shield className="h-6 w-6 text-cyan-600" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-blue-600">
+                    Secure & Reliable
+                  </h3>
                 </div>
-                <h3 className="text-xl font-semibold mb-3  text-blue-600">
-                  Secure & Reliable
-                </h3>
                 <p className="text-slate-600">
                   Enterprise-grade security with SSL certificates and regular
                   backups.
