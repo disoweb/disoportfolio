@@ -47,17 +47,25 @@ export default function AuthPage() {
   // Handle pending checkout completion and redirect if already logged in
   if (!isLoading && user) {
     const pendingCheckout = sessionStorage.getItem('pendingCheckout');
+    console.log('🔍 [AUTH PAGE] User is authenticated:', user.email);
+    console.log('🔍 [AUTH PAGE] Checking for pending checkout:', pendingCheckout);
+    
     if (pendingCheckout) {
       try {
         const checkoutData = JSON.parse(pendingCheckout);
+        console.log('🔍 [AUTH PAGE] Found pending checkout data:', checkoutData);
+        
         // Redirect back to checkout with the stored data (don't remove from sessionStorage here - let checkout component handle it)
-        setLocation(checkoutData.returnUrl || '/checkout');
+        const returnUrl = checkoutData.returnUrl || '/checkout';
+        console.log('🔍 [AUTH PAGE] Redirecting to:', returnUrl);
+        setLocation(returnUrl);
       } catch (error) {
-        console.error('Error parsing pending checkout:', error);
+        console.error('🔍 [AUTH PAGE] Error parsing pending checkout:', error);
         sessionStorage.removeItem('pendingCheckout');
         setLocation("/dashboard");
       }
     } else {
+      console.log('🔍 [AUTH PAGE] No pending checkout, redirecting to dashboard');
       setLocation("/dashboard");
     }
     return null;

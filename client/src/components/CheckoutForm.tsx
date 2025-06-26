@@ -162,28 +162,45 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
 
   // Handle pending checkout completion after authentication
   useEffect(() => {
+    console.log('🔍 [AUTH EFFECT] useEffect triggered');
+    console.log('🔍 [AUTH EFFECT] User:', !!user, user?.email);
+    
     if (user) {
       const pendingCheckout = sessionStorage.getItem('pendingCheckout');
+      console.log('🔍 [AUTH EFFECT] Pending checkout data:', pendingCheckout);
+      
       if (pendingCheckout) {
         try {
           const checkoutData = JSON.parse(pendingCheckout);
+          console.log('🔍 [AUTH EFFECT] Parsed checkout data:', checkoutData);
+          
           sessionStorage.removeItem('pendingCheckout');
+          console.log('🔍 [AUTH EFFECT] Removed pending checkout from storage');
           
           // Restore the checkout state
           if (checkoutData.contactData) {
+            console.log('🔍 [AUTH EFFECT] Restoring checkout state');
             setContactData(checkoutData.contactData);
             setCurrentStep(2);
             
             // Auto-submit the payment after a brief delay to ensure state is set
             setTimeout(() => {
-              const combinedData = { ...checkoutData.contactData, paymentMethod: "paystack" };
+              console.log('🔍 [AUTH EFFECT] Auto-submitting payment');
+              const combinedData = { 
+                ...checkoutData.contactData, 
+                paymentMethod: "paystack",
+                ...(checkoutData.paymentData || {})
+              };
+              console.log('🔍 [AUTH EFFECT] Combined data for order:', combinedData);
               orderMutation.mutate(combinedData);
             }, 500);
           }
         } catch (error) {
-          console.error('Error restoring pending checkout:', error);
+          console.error('🔍 [AUTH EFFECT] Error restoring pending checkout:', error);
           sessionStorage.removeItem('pendingCheckout');
         }
+      } else {
+        console.log('🔍 [AUTH EFFECT] No pending checkout found');
       }
     }
   }, [user, orderMutation]);
@@ -198,21 +215,34 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
   const onPaymentSubmit = (data: PaymentForm) => {
     if (!contactData) return;
     
+    console.log('🔍 [CHECKOUT DEBUG] Payment submit initiated');
+    console.log('🔍 [CHECKOUT DEBUG] User authenticated:', !!user);
+    console.log('🔍 [CHECKOUT DEBUG] Contact data:', contactData);
+    console.log('🔍 [CHECKOUT DEBUG] Payment data:', data);
+    
     // Check if user is authenticated
     if (!user) {
+      console.log('🔍 [CHECKOUT DEBUG] User not authenticated, storing checkout data');
+      
       // Store checkout data in sessionStorage and redirect to login
       const checkoutData = {
         service,
         totalPrice,
         selectedAddOns,
         contactData,
-        returnUrl: window.location.pathname + window.location.search
+        paymentData: data,
+        returnUrl: window.location.pathname + window.location.search,
+        timestamp: Date.now()
       };
+      
       sessionStorage.setItem('pendingCheckout', JSON.stringify(checkoutData));
+      console.log('🔍 [CHECKOUT DEBUG] Stored pending checkout:', checkoutData);
+      
       setLocation('/auth');
       return;
     }
     
+    console.log('🔍 [CHECKOUT DEBUG] User authenticated, proceeding with order');
     const combinedData = { ...contactData, ...data };
     orderMutation.mutate(combinedData);
   };

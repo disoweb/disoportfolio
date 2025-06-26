@@ -32,8 +32,37 @@ export default function Checkout() {
     // Scroll to top when component mounts
     window.scrollTo(0, 0);
     
+    console.log('🔍 [CHECKOUT PAGE] useEffect triggered');
+    console.log('🔍 [CHECKOUT PAGE] URL serviceId:', serviceId);
+    console.log('🔍 [CHECKOUT PAGE] URL price:', price);
+    console.log('🔍 [CHECKOUT PAGE] URL addons:', addons);
+    console.log('🔍 [CHECKOUT PAGE] Services loaded:', services.length);
+    
+    // Check for pending checkout data if no URL params
+    if (!serviceId) {
+      const pendingCheckout = sessionStorage.getItem('pendingCheckout');
+      console.log('🔍 [CHECKOUT PAGE] No serviceId in URL, checking pending checkout:', pendingCheckout);
+      
+      if (pendingCheckout) {
+        try {
+          const checkoutData = JSON.parse(pendingCheckout);
+          console.log('🔍 [CHECKOUT PAGE] Found pending checkout, using its data:', checkoutData);
+          
+          if (checkoutData.service) {
+            setServiceData(checkoutData.service);
+            setTotalPrice(checkoutData.totalPrice);
+            setSelectedAddOns(checkoutData.selectedAddOns || []);
+            return; // Exit early since we got data from pending checkout
+          }
+        } catch (error) {
+          console.error('🔍 [CHECKOUT PAGE] Error parsing pending checkout:', error);
+        }
+      }
+    }
+    
     if (serviceId && services.length > 0) {
       const service = (services as any[]).find((s: any) => s.id === serviceId);
+      console.log('🔍 [CHECKOUT PAGE] Found service by ID:', service);
       
       if (service) {
         setServiceData(service);
