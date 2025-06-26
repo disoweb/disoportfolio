@@ -261,7 +261,7 @@ export default function CheckoutForm({ service, onSuccess }: CheckoutFormProps) 
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <span>{service.name} Package</span>
-                <span>{service.price}</span>
+                <span>₦{parseInt(service.price).toLocaleString()}</span>
               </div>
               {isRush && (
                 <div className="flex justify-between items-center text-amber-600">
