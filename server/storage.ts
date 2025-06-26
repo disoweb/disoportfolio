@@ -29,7 +29,7 @@ import {
   type InsertCheckoutSession,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, count, sum, sql } from "drizzle-orm";
+import { eq, desc, and, count, sum, sql, lt } from "drizzle-orm";
 import crypto from "crypto";
 
 // Interface for storage operations
