@@ -486,7 +486,7 @@ export default function ServicePackages() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <span className="text-xl font-bold text-blue-600">
-                      ₦{(priceUpdates[service.id] || service.price).toLocaleString()}
+                      ₦{service.price.toLocaleString()}
                     </span>
                     {service.originalPrice > service.price && (
                       <span className="text-sm text-slate-500 line-through">
