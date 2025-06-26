@@ -164,6 +164,9 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
         
         console.log('✅ [ORDER SUCCESS] Redirecting to Paystack URL:', data.paymentUrl);
         
+        // Clear pending checkout before redirect
+        sessionStorage.removeItem('pendingCheckout');
+        
         // Force immediate redirect to Paystack
         setTimeout(() => {
           window.location.href = data.paymentUrl;
@@ -203,8 +206,7 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
         const checkoutData = JSON.parse(pendingCheckout);
         console.log('🔄 [AUTO-SUBMIT] Processing pending checkout after authentication');
         
-        // Remove pending checkout immediately
-        sessionStorage.removeItem('pendingCheckout');
+        // Don't remove pending checkout until after payment succeeds
         
         if (checkoutData.contactData) {
           // Show payment loader immediately

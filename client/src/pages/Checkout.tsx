@@ -38,26 +38,28 @@ export default function Checkout() {
     console.log('🔍 [CHECKOUT PAGE] URL addons:', addons);
     console.log('🔍 [CHECKOUT PAGE] Services loaded:', Array.isArray(services) ? services.length : 'not array');
     
-    // Check for pending checkout data if no URL params
-    if (!serviceId) {
-      const pendingCheckout = sessionStorage.getItem('pendingCheckout');
-      console.log('🔍 [CHECKOUT PAGE] No serviceId in URL, checking pending checkout:', pendingCheckout);
-      
-      if (pendingCheckout) {
-        try {
-          const checkoutData = JSON.parse(pendingCheckout);
-          console.log('🔍 [CHECKOUT PAGE] Found pending checkout, using its data:', checkoutData);
-          
-          if (checkoutData.service) {
-            setServiceData(checkoutData.service);
-            setTotalPrice(checkoutData.totalPrice);
-            setSelectedAddOns(checkoutData.selectedAddOns || []);
-            return; // Exit early since we got data from pending checkout
-          }
-        } catch (error) {
-
+    // Always check for pending checkout data first (handles post-auth flow)
+    const pendingCheckout = sessionStorage.getItem('pendingCheckout');
+    if (pendingCheckout) {
+      try {
+        const checkoutData = JSON.parse(pendingCheckout);
+        console.log('🔍 [CHECKOUT PAGE] Found pending checkout, using its data:', checkoutData);
+        
+        if (checkoutData.service) {
+          setServiceData(checkoutData.service);
+          setTotalPrice(checkoutData.totalPrice);
+          setSelectedAddOns(checkoutData.selectedAddOns || []);
+          return; // Exit early since we got data from pending checkout
         }
+      } catch (error) {
+        console.error('Error parsing pending checkout:', error);
+        sessionStorage.removeItem('pendingCheckout');
       }
+    }
+    
+    // Fallback to URL params if no pending checkout
+    if (!serviceId) {
+      return; // No service data available
     }
     
     if (serviceId && Array.isArray(services) && services.length > 0) {
@@ -77,7 +79,7 @@ export default function Checkout() {
     }
   }, [serviceId, services, price, addons]);
 
-  if (!serviceId) {
+  if (!serviceId && !serviceData) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navigation />
