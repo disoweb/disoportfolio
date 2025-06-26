@@ -129,3 +129,5 @@ Changelog:
 - June 25, 2025. Created dedicated admin login page at /admin with secure bcrypt authentication system for admin@diso.com credentials
 - June 25, 2025. Completely redesigned admin projects interface with modern, responsive design optimized for mobile and desktop with enhanced UX, loading states, and clean visual hierarchy
 - June 25, 2025. Successfully migrated project from Replit Agent to Replit environment with PostgreSQL database setup, dependency updates, and fixed admin authentication system with proper bcrypt password hashing
+- June 26, 2025. Enhanced admin dashboard with comprehensive clickable modals for all transactions, orders, clients, and projects with detailed drill-down information display
+- June 26, 2025. Improved landing page hero section with professional button styling (w-auto), removed unprofessional elements, and replaced with clean trust indicators
