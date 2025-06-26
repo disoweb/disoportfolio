@@ -128,7 +128,11 @@ export default function AuthPage() {
           console.log('🚀 [LOGIN SUCCESS] Successfully parsed pending checkout data:', checkoutData);
           const redirectUrl = checkoutData.returnUrl || '/checkout';
           console.log('🚀 [LOGIN SUCCESS] Redirecting to checkout page:', redirectUrl);
-          setLocation(redirectUrl);
+          
+          // Add a small delay to ensure authentication state is fully set
+          setTimeout(() => {
+            setLocation(redirectUrl);
+          }, 100);
         } catch (error) {
           console.error('🚀 [LOGIN SUCCESS] Error parsing pending checkout data:', error);
           console.log('🚀 [LOGIN SUCCESS] Fallback redirect to dashboard');

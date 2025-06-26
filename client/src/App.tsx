@@ -39,17 +39,35 @@ function Router() {
         sessionStorage.removeItem('payment_in_progress');
         setPaymentInProgress(false);
       } else {
-        // Check if payment is in progress
+        // Check if payment is in progress OR if there's a pending checkout with authenticated user
         const inProgress = sessionStorage.getItem('payment_in_progress') === 'true';
-        setPaymentInProgress(inProgress);
+        const pendingCheckout = sessionStorage.getItem('pendingCheckout');
+        
+        if (inProgress || (isAuthenticated && pendingCheckout)) {
+          console.log('🌐 [APP] Setting payment in progress to prevent dashboard flash');
+          setPaymentInProgress(true);
+        }
       }
     }
-  }, []);
+  }, [isAuthenticated]);
 
   if (isLoading || !mounted) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  // Show payment loader to prevent dashboard flash during payment processing
+  if (paymentInProgress) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <h1 className="text-xl font-semibold text-gray-900 mb-2">Processing Payment...</h1>
+          <p className="text-gray-600">Redirecting to secure payment gateway...</p>
+        </div>
       </div>
     );
   }

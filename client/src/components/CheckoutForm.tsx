@@ -159,7 +159,7 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
         // Show payment loader and redirect to Paystack immediately
         setShowPaymentLoader(true);
         
-        // Set a flag to prevent any other redirects
+        // Set a flag to prevent any other redirects and show global loader
         sessionStorage.setItem('payment_in_progress', 'true');
         
         console.log('✅ [ORDER SUCCESS] Redirecting to Paystack URL:', data.paymentUrl);
@@ -219,6 +219,9 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
             console.log('🔄 [AUTO-SUBMIT] Setting PaymentLoader to true BEFORE timeout');
             setShowPaymentLoader(true);
             
+            // Force immediate re-render to ensure PaymentLoader shows
+            setTimeout(() => {}, 0);
+            
             // Auto-submit the payment after ensuring user is properly authenticated
             setTimeout(() => {
               console.log('🔄 [AUTO-SUBMIT] Starting auto-submit process after authentication');
@@ -277,7 +280,7 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
               console.log('🔄 [AUTO-SUBMIT] PaymentLoader state before mutate:', showPaymentLoader);
               orderMutation.mutate(combinedData);
               console.log('🔄 [AUTO-SUBMIT] Order mutation called, isPending after mutate:', orderMutation.isPending);
-            }, 500); // Reduced delay to minimize dashboard flash
+            }, 100); // Minimal delay to ensure PaymentLoader renders first
           }
         } catch (error) {
           sessionStorage.removeItem('pendingCheckout');
