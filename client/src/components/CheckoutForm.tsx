@@ -150,10 +150,9 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
         // Show payment loader instead of immediate redirect
         setShowPaymentLoader(true);
         
-        // Redirect to Paystack after loader completes
-        setTimeout(() => {
-          window.location.href = data.paymentUrl;
-        }, 3500); // Give loader time to complete animation
+        // Keep loader showing and redirect to Paystack immediately
+        // The loader will persist until the new page loads
+        window.location.href = data.paymentUrl;
       } else {
         toast({
           title: "Order placed successfully!",
@@ -191,6 +190,8 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
             
             // Auto-submit the payment after ensuring user is properly authenticated
             setTimeout(() => {
+              // Show loader immediately when starting auto-submit process
+              setShowPaymentLoader(true);
               if (!user || !user.email) {
                 toast({
                   title: "Authentication Error",
@@ -223,18 +224,16 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
                 return;
               }
               
-              // Show loading screen before auto-submitting
+              // Show loading screen immediately
               setShowPaymentLoader(true);
               
-              // Auto-submit after brief delay to show loader
-              setTimeout(() => {
-                const combinedData = { 
-                  ...contactDataToUse, 
-                  paymentMethod: "paystack" as const,
-                  timeline: checkoutData.paymentData?.timeline || "2-4 weeks"
-                };
-                orderMutation.mutate(combinedData);
-              }, 500);
+              // Prepare and submit the payment data immediately
+              const combinedData = { 
+                ...contactDataToUse, 
+                paymentMethod: "paystack" as const,
+                timeline: checkoutData.paymentData?.timeline || "2-4 weeks"
+              };
+              orderMutation.mutate(combinedData);
             }, 500);
           }
         } catch (error) {
@@ -254,45 +253,42 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
   const onPaymentSubmit = (data: PaymentForm) => {
     if (!contactData) return;
     
-    // Show payment loader immediately when user submits payment
-    setShowPaymentLoader(true);
-    
-    // Add a small delay to ensure the loader renders before processing
-    setTimeout(() => {
-      // Check if user is authenticated
-      if (!user) {
-        // Store all checkout data in sessionStorage for later restoration
-        const checkoutData = {
-          service,
-          totalPrice,
-          selectedAddOns,
-          contactData,
-          paymentData: data,
-          returnUrl: `/checkout?service=${service.id}&price=${totalPrice}&addons=${selectedAddOns.join(',')}`,
-          timestamp: Date.now()
-        };
-        
-        sessionStorage.setItem('pendingCheckout', JSON.stringify(checkoutData));
-        
-        // Redirect to auth page
-        setLocation('/auth');
-        return;
-      }
-      
-      // User is authenticated, proceed with order
-      // Ensure email is populated from authenticated user if missing
-      const finalContactData = { ...contactData };
-      if (!finalContactData.email && user.email) {
-        finalContactData.email = user.email;
-      }
-      
-      const combinedData = { 
-        ...finalContactData, 
-        ...data 
+    // Check if user is authenticated first
+    if (!user) {
+      // Store all checkout data in sessionStorage for later restoration
+      const checkoutData = {
+        service,
+        totalPrice,
+        selectedAddOns,
+        contactData,
+        paymentData: data,
+        returnUrl: `/checkout?service=${service.id}&price=${totalPrice}&addons=${selectedAddOns.join(',')}`,
+        timestamp: Date.now()
       };
       
-      orderMutation.mutate(combinedData);
-    }, 300); // Small delay to ensure loader shows
+      sessionStorage.setItem('pendingCheckout', JSON.stringify(checkoutData));
+      
+      // Redirect to auth page
+      setLocation('/auth');
+      return;
+    }
+    
+    // User is authenticated - show loader immediately and proceed with payment
+    setShowPaymentLoader(true);
+    
+    // Prepare the final data
+    const finalContactData = { ...contactData };
+    if (!finalContactData.email && user.email) {
+      finalContactData.email = user.email;
+    }
+    
+    const combinedData = { 
+      ...finalContactData, 
+      ...data 
+    };
+    
+    // Submit the order immediately - the loader will persist until Paystack redirect
+    orderMutation.mutate(combinedData);
   };
 
   // Show payment loader when processing payment
