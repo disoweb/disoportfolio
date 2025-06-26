@@ -1,33 +1,32 @@
-import { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { useMutation } from "@tanstack/react-query";
-import { useLocation } from "wouter";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
-import { useAuth } from "@/hooks/useAuth";
-import { CreditCard, ArrowLeft, User, Mail, Phone, Building2, FileText } from "lucide-react";
-import PaymentLoader from "@/components/PaymentLoader";
+import { useState, useEffect } from 'react';
+import { useLocation as useWouterLocation } from 'wouter';
+import { useMutation } from '@tanstack/react-query';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { useAuth } from '@/hooks/useAuth';
+import { apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
+import { Button } from './ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from './ui/form';
+import { Input } from './ui/input';
+import { Textarea } from './ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Progress } from './ui/progress';
+import PaymentLoader from './PaymentLoader';
 
 const contactSchema = z.object({
-  fullName: z.string().min(2, "Full name must be at least 2 characters"),
-  email: z.string().email("Please enter a valid email"),
-  phone: z.string().min(10, "Please enter a valid phone number"),
+  fullName: z.string().min(2, 'Full name must be at least 2 characters'),
+  email: z.string().email('Please enter a valid email address'),
+  phone: z.string().min(10, 'Please enter a valid phone number'),
   company: z.string().optional(),
-  projectDescription: z.string().min(10, "Please provide a detailed project description"),
+  projectDescription: z.string().min(10, 'Please provide a brief description of your project')
 });
 
 const paymentSchema = z.object({
-  paymentMethod: z.literal("paystack"),
-  timeline: z.string().min(1, "Please select a timeline"),
+  timeline: z.string().min(1, 'Please select a timeline'),
+  paymentMethod: z.literal('paystack')
 });
 
 type ContactForm = z.infer<typeof contactSchema>;
@@ -46,143 +45,123 @@ interface CheckoutFormProps {
 }
 
 export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSuccess }: CheckoutFormProps) {
-  const [currentStep, setCurrentStep] = useState<1 | 2>(1);
+  const { user } = useAuth();
+  const [, setLocation] = useWouterLocation();
+  const { toast } = useToast();
+  const [currentStep, setCurrentStep] = useState(1);
   const [contactData, setContactData] = useState<ContactForm | null>(null);
   const [showPaymentLoader, setShowPaymentLoader] = useState(false);
-  const { toast } = useToast();
-  const { user } = useAuth();
-  const [, setLocation] = useLocation();
 
-  // Utility functions for persistent storage
-  const getStoredFormData = (key: string) => {
-    try {
-      const stored = localStorage.getItem(key);
-      if (stored) {
-        const { data, timestamp } = JSON.parse(stored);
-        const twentyFourHours = 24 * 60 * 60 * 1000;
-        if (Date.now() - timestamp < twentyFourHours) {
-          return data;
-        } else {
-          localStorage.removeItem(key);
-        }
-      }
-    } catch (error) {
-      localStorage.removeItem(key);
-    }
-    return null;
-  };
-
+  // Store form data persistently
   const storeFormData = (key: string, data: any) => {
     try {
-      localStorage.setItem(key, JSON.stringify({
-        data,
-        timestamp: Date.now()
-      }));
+      localStorage.setItem(key, JSON.stringify(data));
     } catch (error) {
-      // Ignore storage errors
+      console.error('Failed to store form data:', error);
     }
   };
 
-  // Auto-populate user email if authenticated
+  // Restore form data
+  const restoreFormData = (key: string) => {
+    try {
+      const stored = localStorage.getItem(key);
+      return stored ? JSON.parse(stored) : null;
+    } catch (error) {
+      console.error('Failed to restore form data:', error);
+      return null;
+    }
+  };
+
   const contactForm = useForm<ContactForm>({
     resolver: zodResolver(contactSchema),
     defaultValues: {
-      fullName: "",
-      email: user?.email || "",
-      phone: "",
-      company: "",
-      projectDescription: "",
-    },
+      fullName: '',
+      email: user?.email || '',
+      phone: '',
+      company: '',
+      projectDescription: ''
+    }
   });
 
   const paymentForm = useForm<PaymentForm>({
     resolver: zodResolver(paymentSchema),
     defaultValues: {
-      paymentMethod: "paystack",
-      timeline: "",
-    },
+      timeline: '',
+      paymentMethod: 'paystack'
+    }
   });
 
-  // Restore contact data on component mount
+  // Restore saved contact data on mount
   useEffect(() => {
-    const storedContactData = getStoredFormData('checkout_contact_data');
-    
-    if (storedContactData && !contactData) {
-      contactForm.reset(storedContactData);
-      setContactData(storedContactData);
+    const savedContactData = restoreFormData('checkout_contact_data');
+    if (savedContactData) {
+      contactForm.reset(savedContactData);
+      setContactData(savedContactData);
       setCurrentStep(2);
     }
-  }, [contactForm, contactData]);
+  }, [contactForm]);
 
   const orderMutation = useMutation({
-    mutationFn: async (data: PaymentForm & { 
-      overrideSelectedAddOns?: string[], 
-      overrideTotalAmount?: number 
+    mutationFn: async (data: ContactForm & PaymentForm & { 
+      overrideSelectedAddOns?: string[]; 
+      overrideTotalAmount?: number; 
     }) => {
-      if (!contactData) throw new Error("Contact data is missing");
+      console.log('💳 [CHECKOUT] Submitting order with data:', data);
       
       const orderData = {
         serviceId: service.id,
         contactInfo: {
-          fullName: contactData.fullName,
-          email: contactData.email,
-          phone: contactData.phone,
-          company: contactData.company,
+          fullName: data.fullName,
+          email: data.email,
+          phone: data.phone,
+          company: data.company || ''
         },
         projectDetails: {
-          description: contactData.projectDescription,
+          description: data.projectDescription
         },
         selectedAddOns: data.overrideSelectedAddOns || selectedAddOns,
-        totalAmount: data.overrideTotalAmount || totalPrice,
+        totalAmount: data.overrideTotalAmount || totalPrice
       };
 
-      try {
-        console.log('🔄 [ORDER MUTATION] Sending order data to server:', orderData);
-        const response = await apiRequest("POST", "/api/orders", orderData);
-        const responseData = await response.json();
-        console.log('🔄 [ORDER MUTATION] Server response received:', responseData);
-        console.log('🔄 [ORDER MUTATION] Payment URL in response:', responseData.paymentUrl);
-        return responseData;
-      } catch (error) {
-        console.error('🔄 [ORDER MUTATION] Error creating order:', error);
-        throw new Error(error instanceof Error ? error.message : 'Failed to create order');
+      console.log('💳 [CHECKOUT] Final order data being sent:', orderData);
+      
+      const response = await apiRequest('POST', '/api/orders', orderData);
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(`Failed to create order: ${errorData}`);
       }
+
+      return response.json();
     },
     onSuccess: (data) => {
-      console.log('✅ [ORDER SUCCESS] Order mutation successful, response data:', data);
+      console.log('✅ [ORDER SUCCESS] Order created successfully:', data);
       if (data && data.paymentUrl) {
-        console.log('✅ [ORDER SUCCESS] Payment URL found, showing loader and redirecting to Paystack');
-        // Clear any pending checkout data since we're proceeding to payment
+        console.log('✅ [ORDER SUCCESS] Redirecting to Paystack:', data.paymentUrl);
+        
+        // Clear stored data since we're proceeding to payment
         localStorage.removeItem('checkout_contact_data');
         sessionStorage.removeItem('pendingCheckout');
         
-        // Show payment loader and redirect to Paystack immediately
-        setShowPaymentLoader(true);
-        
-        // Set a flag to prevent any other redirects and show global loader
+        // Set payment flag and redirect immediately
         sessionStorage.setItem('payment_in_progress', 'true');
-        
-        console.log('✅ [ORDER SUCCESS] Redirecting to Paystack URL:', data.paymentUrl);
-        
-        // Immediate redirect to Paystack to minimize any potential flash
         window.location.href = data.paymentUrl;
       } else {
         console.log('✅ [ORDER SUCCESS] No payment URL, showing success message');
         toast({
           title: "Order placed successfully!",
-          description: "We'll contact you soon to discuss your project.",
+          description: "We'll contact you shortly to discuss your project.",
         });
-        // For non-payment orders, don't call onSuccess which might redirect
-        // Just show a success message and stay on page
+        onSuccess();
       }
     },
     onError: (error) => {
-      // Hide loader on error
+      console.error('❌ [ORDER ERROR] Order creation failed:', error);
       setShowPaymentLoader(false);
-      
+      sessionStorage.removeItem('payment_in_progress');
       toast({
         title: "Order failed",
-        description: error.message || "Something went wrong. Please try again.",
+        description: error instanceof Error ? error.message : "Please try again later.",
         variant: "destructive",
       });
     },
@@ -190,8 +169,8 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
 
   // Handle pending checkout completion after authentication
   useEffect(() => {
-    console.log('🔄 [USE EFFECT] Auth flow useEffect triggered - user:', !!user, 'isPending:', orderMutation.isPending);
-    // Prevent auto-submit if already processing
+    console.log('🔄 [USE EFFECT] Auth flow triggered - user:', !!user, 'isPending:', orderMutation.isPending);
+    
     if (user && !orderMutation.isPending) {
       const pendingCheckout = sessionStorage.getItem('pendingCheckout');
       console.log('🔄 [USE EFFECT] Pending checkout found:', !!pendingCheckout);
@@ -201,98 +180,68 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
           const checkoutData = JSON.parse(pendingCheckout);
           console.log('🔄 [USE EFFECT] Parsed checkout data:', checkoutData);
           
-          // Remove pending checkout immediately to prevent race conditions
+          // Remove pending checkout immediately
           sessionStorage.removeItem('pendingCheckout');
           
-          // Restore the checkout state and addon information
-          if (checkoutData.contactData) {
-            setContactData(checkoutData.contactData);
-            setCurrentStep(2);
-            
-            // Restore addon information if it exists
-            console.log('🔄 [AUTO-SUBMIT] Restoring checkout data:', checkoutData);
-            console.log('🔄 [AUTO-SUBMIT] Stored selectedAddOns:', checkoutData.selectedAddOns);
-            console.log('🔄 [AUTO-SUBMIT] Stored totalPrice:', checkoutData.totalPrice);
-            
-            // Show loader immediately before any async operations
-            console.log('🔄 [AUTO-SUBMIT] Setting PaymentLoader to true BEFORE timeout');
-            setShowPaymentLoader(true);
-            
-            // Set global payment flag to prevent dashboard flash
-            sessionStorage.setItem('payment_in_progress', 'true');
-            
-            // Force app to re-render with payment loader immediately
-            window.dispatchEvent(new Event('storage'));
-            
-            // Auto-submit the payment after ensuring user is properly authenticated
-            setTimeout(() => {
-              console.log('🔄 [AUTO-SUBMIT] Starting auto-submit process after authentication');
-              console.log('🔄 [AUTO-SUBMIT] User data:', user);
-              console.log('🔄 [AUTO-SUBMIT] Selected addons:', selectedAddOns);
-              console.log('🔄 [AUTO-SUBMIT] Total price:', totalPrice);
-              console.log('🔄 [AUTO-SUBMIT] PaymentLoader should be visible now');
-              if (!user || !user.email) {
-                toast({
-                  title: "Authentication Error",
-                  description: "Please log in again to complete your order.",
-                  variant: "destructive",
-                });
-                setLocation('/auth');
-                return;
-              }
-              
-              // Check if mutation is already running
-              if (orderMutation.isPending) {
-                return;
-              }
-              
-              // Ensure email is populated from authenticated user if missing
-              const contactDataToUse = { ...checkoutData.contactData };
-              if (!contactDataToUse.email && user.email) {
-                contactDataToUse.email = user.email;
-              }
-              
-              // Validate that we have all required fields
-              if (!contactDataToUse.fullName || !contactDataToUse.email || !contactDataToUse.projectDescription) {
-                toast({
-                  title: "Incomplete Information",
-                  description: "Please fill out all required contact information.",
-                  variant: "destructive",
-                });
-                setCurrentStep(1);
-                return;
-              }
-              
-              // PaymentLoader is already showing, just log for debugging
-              console.log('🔄 [AUTO-SUBMIT] PaymentLoader state should already be true');
-              
-              // Prepare and submit the payment data immediately
-              const combinedData = { 
-                ...contactDataToUse, 
-                paymentMethod: "paystack" as const,
-                timeline: checkoutData.paymentData?.timeline || "2-4 weeks",
-                overrideSelectedAddOns: checkoutData.selectedAddOns || [],
-                overrideTotalAmount: checkoutData.totalPrice || totalPrice
-              };
-              
-              console.log('🔄 [AUTO-SUBMIT] Using selectedAddOns from checkout data:', checkoutData.selectedAddOns || []);
-              console.log('🔄 [AUTO-SUBMIT] Using totalPrice from checkout data:', checkoutData.totalPrice || totalPrice);
-              console.log('🔄 [AUTO-SUBMIT] Submitting order mutation with data:', combinedData);
-              console.log('🔄 [AUTO-SUBMIT] Order mutation pending status before mutate:', orderMutation.isPending);
-              console.log('🔄 [AUTO-SUBMIT] PaymentLoader state before mutate:', showPaymentLoader);
-              orderMutation.mutate(combinedData);
-              console.log('🔄 [AUTO-SUBMIT] Order mutation called, isPending after mutate:', orderMutation.isPending);
-            }, 100); // Minimal delay to ensure PaymentLoader renders
+          // Set payment flags immediately to show loader
+          sessionStorage.setItem('payment_in_progress', 'true');
+          setShowPaymentLoader(true);
+          
+          // Process payment directly without showing checkout form
+          console.log('🔄 [AUTO-SUBMIT] Processing payment directly, bypassing checkout form');
+          
+          // Validate user authentication
+          if (!user.email) {
+            toast({
+              title: "Authentication Error",
+              description: "Please log in again to complete your order.",
+              variant: "destructive",
+            });
+            setLocation('/auth');
+            return;
           }
+          
+          // Prepare payment data immediately
+          const contactDataToUse = { ...checkoutData.contactData };
+          if (!contactDataToUse.email && user.email) {
+            contactDataToUse.email = user.email;
+          }
+          
+          // Validate required fields
+          if (!contactDataToUse.fullName || !contactDataToUse.email || !contactDataToUse.projectDescription) {
+            toast({
+              title: "Incomplete Information",
+              description: "Please fill out all required contact information.",
+              variant: "destructive",
+            });
+            setShowPaymentLoader(false);
+            sessionStorage.removeItem('payment_in_progress');
+            return;
+          }
+          
+          // Submit payment immediately
+          const combinedData = { 
+            ...contactDataToUse, 
+            paymentMethod: "paystack" as const,
+            timeline: checkoutData.paymentData?.timeline || "2-4 weeks",
+            overrideSelectedAddOns: checkoutData.selectedAddOns || [],
+            overrideTotalAmount: checkoutData.totalPrice || totalPrice
+          };
+          
+          console.log('🔄 [AUTO-SUBMIT] Submitting payment data:', combinedData);
+          orderMutation.mutate(combinedData);
+          
         } catch (error) {
+          console.error('🔄 [AUTO-SUBMIT] Error processing pending checkout:', error);
           sessionStorage.removeItem('pendingCheckout');
+          setShowPaymentLoader(false);
+          sessionStorage.removeItem('payment_in_progress');
         }
       }
     }
-  }, [user, orderMutation.isPending, currentStep, setLocation, toast]);
+  }, [user, orderMutation.isPending, totalPrice, setLocation, toast, orderMutation]);
 
   const onContactSubmit = (data: ContactForm) => {
-    // Store contact data persistently
     storeFormData('checkout_contact_data', data);
     setContactData(data);
     setCurrentStep(2);
@@ -303,7 +252,7 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
     
     // Check if user is authenticated first
     if (!user) {
-      // Store all checkout data in sessionStorage for later restoration
+      // Store all checkout data for after authentication
       const checkoutData = {
         service,
         totalPrice,
@@ -321,7 +270,7 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
       return;
     }
     
-    // User is authenticated - show loader immediately and proceed with payment
+    // User is authenticated - show loader and proceed with payment
     setShowPaymentLoader(true);
     
     // Prepare the final data
@@ -330,241 +279,242 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
       finalContactData.email = user.email;
     }
     
-    const combinedData = { 
-      ...finalContactData, 
-      ...data 
-    };
-    
-    // Submit the order immediately - the loader will persist until Paystack redirect
+    const combinedData = { ...finalContactData, ...data };
     orderMutation.mutate(combinedData);
   };
 
-  // Show payment loader when processing payment - this should take priority over everything
-  if (showPaymentLoader || orderMutation.isPending) {
-    console.log('🔄 [RENDER] Showing PaymentLoader - showPaymentLoader:', showPaymentLoader, 'isPending:', orderMutation.isPending);
+  // Show PaymentLoader if it's active or if authenticated user has pending checkout
+  const pendingCheckout = typeof window !== 'undefined' && sessionStorage.getItem('pendingCheckout');
+  const shouldShowLoader = showPaymentLoader || orderMutation.isPending || (user && pendingCheckout);
+  
+  if (shouldShowLoader) {
     return (
-      <PaymentLoader
+      <PaymentLoader 
         serviceName={service.name}
         amount={totalPrice}
-        onComplete={() => {
-          // This will be called when the loader animation completes
-          // The actual redirect happens in the timeout above
-        }}
+        onComplete={onSuccess}
       />
     );
   }
 
   return (
-    <Card className="w-full max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <CreditCard className="h-5 w-5" />
-          Secure Checkout
-        </CardTitle>
-        <CardDescription>
-          Complete your order for {service.name}
-        </CardDescription>
-      </CardHeader>
-      
-      <CardContent className="space-y-6">
-        {/* Progress Steps */}
-        <div className="flex items-center justify-center space-x-4 mb-6">
-          <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${
-            currentStep >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
-          }`}>
-            1
+    <div className="max-w-2xl mx-auto space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
+              💳
+            </div>
+            Secure Checkout
+          </CardTitle>
+          <CardDescription>
+            Complete your order for {service.name}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Progress Indicator */}
+          <div className="flex items-center justify-between">
+            <div className={`flex items-center gap-2 ${currentStep >= 1 ? 'text-primary' : 'text-muted-foreground'}`}>
+              <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-sm font-medium ${currentStep >= 1 ? 'bg-primary text-primary-foreground border-primary' : 'border-muted-foreground'}`}>
+                1
+              </div>
+              <span className="hidden sm:inline">Contact</span>
+            </div>
+            <div className="flex-1 mx-4">
+              <Progress value={currentStep >= 2 ? 100 : 0} className="h-2" />
+            </div>
+            <div className={`flex items-center gap-2 ${currentStep >= 2 ? 'text-primary' : 'text-muted-foreground'}`}>
+              <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-sm font-medium ${currentStep >= 2 ? 'bg-primary text-primary-foreground border-primary' : 'border-muted-foreground'}`}>
+                2
+              </div>
+              <span className="hidden sm:inline">Payment</span>
+            </div>
           </div>
-          <div className={`h-0.5 w-16 ${currentStep >= 2 ? 'bg-blue-600' : 'bg-gray-200'}`} />
-          <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${
-            currentStep >= 2 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
-          }`}>
-            2
-          </div>
-        </div>
 
-        {/* Step 1: Contact Information */}
-        {currentStep === 1 && (
-          <form onSubmit={contactForm.handleSubmit(onContactSubmit)} className="space-y-4">
-            <div className="flex items-center gap-2 mb-4">
-              <User className="h-5 w-5 text-blue-600" />
-              <h3 className="text-lg font-semibold">Contact Information</h3>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="fullName">Full Name *</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="fullName"
-                    {...contactForm.register("fullName")}
-                    className="pl-10"
-                    placeholder="Your full name"
-                  />
-                </div>
-                {contactForm.formState.errors.fullName && (
-                  <p className="text-sm text-red-500">{contactForm.formState.errors.fullName.message}</p>
-                )}
+          {/* Step 1: Contact Information */}
+          {currentStep === 1 && (
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-lg font-semibold mb-2">Contact Information</h3>
+                <p className="text-sm text-muted-foreground">
+                  Tell us about yourself and your project requirements.
+                </p>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="email">Email Address *</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="email"
-                    type="email"
-                    {...contactForm.register("email")}
-                    className="pl-10"
-                    placeholder="your@email.com"
-                  />
-                </div>
-                {contactForm.formState.errors.email && (
-                  <p className="text-sm text-red-500">{contactForm.formState.errors.email.message}</p>
-                )}
-              </div>
+              <Form {...contactForm}>
+                <form onSubmit={contactForm.handleSubmit(onContactSubmit)} className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={contactForm.control}
+                      name="fullName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Full Name *</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Enter your full name" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number *</Label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="phone"
-                    {...contactForm.register("phone")}
-                    className="pl-10"
-                    placeholder="+234 123 456 7890"
-                  />
-                </div>
-                {contactForm.formState.errors.phone && (
-                  <p className="text-sm text-red-500">{contactForm.formState.errors.phone.message}</p>
-                )}
-              </div>
+                    <FormField
+                      control={contactForm.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email Address *</FormLabel>
+                          <FormControl>
+                            <Input type="email" placeholder="Enter your email" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-              <div className="space-y-2">
-                <Label htmlFor="company">Company (Optional)</Label>
-                <div className="relative">
-                  <Building2 className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="company"
-                    {...contactForm.register("company")}
-                    className="pl-10"
-                    placeholder="Your company name"
-                  />
-                </div>
-              </div>
-            </div>
+                    <FormField
+                      control={contactForm.control}
+                      name="phone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Phone Number *</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Enter your phone number" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-            <div className="space-y-2">
-              <Label htmlFor="projectDescription">Project Description *</Label>
-              <div className="relative">
-                <FileText className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Textarea
-                  id="projectDescription"
-                  {...contactForm.register("projectDescription")}
-                  className="pl-10 min-h-[100px]"
-                  placeholder="Describe your project requirements, goals, and any specific features you need..."
-                />
-              </div>
-              {contactForm.formState.errors.projectDescription && (
-                <p className="text-sm text-red-500">{contactForm.formState.errors.projectDescription.message}</p>
-              )}
-            </div>
-
-            <Button type="submit" className="w-full">
-              Continue to Payment
-              <ArrowLeft className="ml-2 h-4 w-4 rotate-180" />
-            </Button>
-          </form>
-        )}
-
-        {/* Step 2: Payment Information */}
-        {currentStep === 2 && contactData && (
-          <form onSubmit={paymentForm.handleSubmit(onPaymentSubmit)} className="space-y-6">
-            <div className="flex items-center gap-2 mb-4">
-              <CreditCard className="h-5 w-5 text-blue-600" />
-              <h3 className="text-lg font-semibold">Payment Details</h3>
-            </div>
-
-            {/* Order Summary */}
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h4 className="font-semibold mb-3">Order Summary</h4>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span>{service.name}</span>
-                  <span>₦{totalPrice.toLocaleString()}</span>
-                </div>
-                {selectedAddOns.length > 0 && (
-                  <div className="text-sm text-gray-600">
-                    <p>Add-ons: {selectedAddOns.join(", ")}</p>
+                    <FormField
+                      control={contactForm.control}
+                      name="company"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Company (Optional)</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Enter your company name" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
-                )}
-                <div className="border-t pt-2 font-semibold">
+
+                  <FormField
+                    control={contactForm.control}
+                    name="projectDescription"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Project Description *</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            placeholder="Briefly describe your project requirements, goals, and any specific features you need."
+                            className="min-h-[100px]"
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <Button type="submit" className="w-full">
+                    Continue to Payment
+                  </Button>
+                </form>
+              </Form>
+            </div>
+          )}
+
+          {/* Step 2: Payment Details */}
+          {currentStep === 2 && (
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-lg font-semibold mb-2">Payment Details</h3>
+                <p className="text-sm text-muted-foreground">
+                  Review your order and complete payment.
+                </p>
+              </div>
+
+              {/* Order Summary */}
+              <div className="bg-muted p-4 rounded-lg">
+                <h4 className="font-semibold mb-3">Order Summary</h4>
+                <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span>Total</span>
+                    <span>{service.name}</span>
                     <span>₦{totalPrice.toLocaleString()}</span>
                   </div>
+                  {selectedAddOns.length > 0 && (
+                    <div className="text-sm text-muted-foreground">
+                      Add-ons: {selectedAddOns.join(', ')}
+                    </div>
+                  )}
+                  <div className="border-t pt-2">
+                    <div className="flex justify-between font-semibold">
+                      <span>Total</span>
+                      <span>₦{totalPrice.toLocaleString()}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Timeline Selection */}
-            <div className="space-y-2">
-              <Label>Project Timeline</Label>
-              <Select onValueChange={(value) => paymentForm.setValue("timeline", value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select your preferred timeline" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1-2 weeks">1-2 weeks</SelectItem>
-                  <SelectItem value="2-4 weeks">2-4 weeks</SelectItem>
-                  <SelectItem value="4-6 weeks">4-6 weeks</SelectItem>
-                  <SelectItem value="6+ weeks">6+ weeks</SelectItem>
-                </SelectContent>
-              </Select>
-              {paymentForm.formState.errors.timeline && (
-                <p className="text-sm text-red-500">{paymentForm.formState.errors.timeline.message}</p>
-              )}
-            </div>
+              <Form {...paymentForm}>
+                <form onSubmit={paymentForm.handleSubmit(onPaymentSubmit)} className="space-y-4">
+                  <FormField
+                    control={paymentForm.control}
+                    name="timeline"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Project Timeline</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select your preferred timeline" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="1-2 weeks">1-2 weeks (Rush - +20%)</SelectItem>
+                            <SelectItem value="2-4 weeks">2-4 weeks (Standard)</SelectItem>
+                            <SelectItem value="4-6 weeks">4-6 weeks (Extended)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-            {/* Payment Method */}
-            <div className="space-y-2">
-              <Label>Payment Method</Label>
-              <RadioGroup value="paystack" className="flex items-center space-x-2">
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="paystack" id="paystack" />
-                  <Label htmlFor="paystack" className="flex items-center gap-2">
-                    <CreditCard className="h-4 w-4" />
-                    Secure Payment via Paystack
-                  </Label>
-                </div>
-              </RadioGroup>
-              <p className="text-sm text-gray-600">
-                Pay securely with your debit card, bank transfer, or other payment methods via Paystack.
-              </p>
-            </div>
+                  <div className="space-y-2">
+                    <h4 className="font-semibold">Payment Method</h4>
+                    <div className="flex items-center space-x-2 p-3 border rounded-lg">
+                      <div className="w-4 h-4 rounded-full bg-primary"></div>
+                      <span>Paystack (Cards, Bank Transfer, USSD)</span>
+                    </div>
+                  </div>
 
-            <div className="flex gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setCurrentStep(1)}
-                className="flex-1"
-              >
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back
-              </Button>
-              <Button
-                type="submit"
-                className="flex-1"
-                disabled={orderMutation.isPending}
-              >
-                {orderMutation.isPending ? "Processing..." : `Pay ₦${totalPrice.toLocaleString()}`}
-                <CreditCard className="ml-2 h-4 w-4" />
-              </Button>
+                  <div className="flex gap-3">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={() => setCurrentStep(1)}
+                      className="flex-1"
+                    >
+                      Back
+                    </Button>
+                    <Button 
+                      type="submit" 
+                      className="flex-1"
+                      disabled={orderMutation.isPending}
+                    >
+                      {orderMutation.isPending ? 'Processing...' : 'Complete Payment'}
+                    </Button>
+                  </div>
+                </form>
+              </Form>
             </div>
-          </form>
-        )}
-      </CardContent>
-    </Card>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }
