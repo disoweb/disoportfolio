@@ -12,9 +12,6 @@ import { useAuth } from "@/hooks/useAuth";
 
 export default function Checkout() {
   const [, setLocation] = useLocation();
-  const [serviceData, setServiceData] = useState<any>(null);
-  const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
-  const [totalPrice, setTotalPrice] = useState<number>(0);
   const { user } = useAuth();
 
   // Parse URL parameters
@@ -22,6 +19,35 @@ export default function Checkout() {
   const serviceId = urlParams.get('service');
   const price = urlParams.get('price');
   const addons = urlParams.get('addons');
+
+  // Initialize state with pending checkout data if available
+  const initializeFromPendingCheckout = () => {
+    const pendingCheckout = sessionStorage.getItem('pendingCheckout');
+    if (pendingCheckout) {
+      try {
+        const checkoutData = JSON.parse(pendingCheckout);
+        if (checkoutData.service) {
+          return {
+            serviceData: checkoutData.service,
+            selectedAddOns: checkoutData.selectedAddOns || [],
+            totalPrice: checkoutData.totalPrice || 0
+          };
+        }
+      } catch (error) {
+        console.error('Error parsing pending checkout:', error);
+      }
+    }
+    return {
+      serviceData: null,
+      selectedAddOns: [],
+      totalPrice: 0
+    };
+  };
+
+  const initialState = initializeFromPendingCheckout();
+  const [serviceData, setServiceData] = useState<any>(initialState.serviceData);
+  const [selectedAddOns, setSelectedAddOns] = useState<string[]>(initialState.selectedAddOns);
+  const [totalPrice, setTotalPrice] = useState<number>(initialState.totalPrice);
 
   // Fetch service data
   const { data: services = [], isLoading: servicesLoading } = useQuery({
@@ -41,37 +67,13 @@ export default function Checkout() {
     console.log('🔍 [CHECKOUT PAGE] Current totalPrice state:', totalPrice);
     console.log('🔍 [CHECKOUT PAGE] Current selectedAddOns state:', selectedAddOns);
     
-    // Always check for pending checkout data first (handles post-auth flow)
-    const pendingCheckout = sessionStorage.getItem('pendingCheckout');
-    console.log('🔍 [CHECKOUT PAGE] Pending checkout raw:', pendingCheckout);
-    
-    if (pendingCheckout) {
-      try {
-        const checkoutData = JSON.parse(pendingCheckout);
-        console.log('🔍 [CHECKOUT PAGE] ✅ Found pending checkout data:', checkoutData);
-        console.log('🔍 [CHECKOUT PAGE] Pending checkout service:', checkoutData.service);
-        console.log('🔍 [CHECKOUT PAGE] Pending checkout totalPrice:', checkoutData.totalPrice);
-        console.log('🔍 [CHECKOUT PAGE] Pending checkout selectedAddOns:', checkoutData.selectedAddOns);
-        
-        if (checkoutData.service) {
-          console.log('🔍 [CHECKOUT PAGE] ✅ Setting service data from pending checkout');
-          setServiceData(checkoutData.service);
-          setTotalPrice(checkoutData.totalPrice);
-          setSelectedAddOns(checkoutData.selectedAddOns || []);
-          console.log('🔍 [CHECKOUT PAGE] ✅ Service data set, exiting useEffect early');
-          return; // Exit early since we got data from pending checkout
-        } else {
-          console.log('🔍 [CHECKOUT PAGE] ❌ No service in pending checkout data');
-        }
-      } catch (error) {
-        console.error('🔍 [CHECKOUT PAGE] ❌ Error parsing pending checkout:', error);
-        sessionStorage.removeItem('pendingCheckout');
-      }
-    } else {
-      console.log('🔍 [CHECKOUT PAGE] ❌ No pending checkout found in sessionStorage');
+    // If service data already loaded from initial state, skip URL processing
+    if (serviceData) {
+      console.log('🔍 [CHECKOUT PAGE] ✅ Service data already loaded from pending checkout');
+      return;
     }
     
-    // Fallback to URL params if no pending checkout
+    // Fallback to URL params if no initial service data
     if (!serviceId) {
       console.log('🔍 [CHECKOUT PAGE] ❌ No serviceId in URL, no service data available');
       return; // No service data available
@@ -98,7 +100,12 @@ export default function Checkout() {
   console.log('🔍 [CHECKOUT PAGE] === RENDER CONDITIONS CHECK ===');
   console.log('🔍 [CHECKOUT PAGE] serviceId from URL:', serviceId);
   console.log('🔍 [CHECKOUT PAGE] serviceData state:', serviceData);
+  console.log('🔍 [CHECKOUT PAGE] Service data exists:', !!serviceData);
   console.log('🔍 [CHECKOUT PAGE] Will show Service Not Found?', !serviceId && !serviceData);
+  
+  // Also check pending checkout during render
+  const pendingCheckoutAtRender = sessionStorage.getItem('pendingCheckout');
+  console.log('🔍 [CHECKOUT PAGE] Pending checkout at render:', !!pendingCheckoutAtRender);
 
   if (!serviceId && !serviceData) {
     console.log('🔍 [CHECKOUT PAGE] ❌ Showing Service Not Found page');
