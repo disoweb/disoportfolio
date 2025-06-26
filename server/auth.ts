@@ -467,19 +467,10 @@ export async function setupAuth(app: Express) {
 
 export const isAuthenticated = async (req: any, res: any, next: any) => {
   try {
-    // Debug logging for troubleshooting
-    if (req.url === '/api/orders') {
-      console.log('=== Authentication Check for ORDER ===');
-      console.log('Request URL:', req.url);
-      console.log('Session ID:', req.sessionID);
-      console.log('Session exists:', !!req.session);
-      console.log('Cookie header:', req.headers.cookie);
-      if (req.session) {
-        console.log('Session userId:', (req.session as any).userId);
-        console.log('Session passport:', (req.session as any).passport);
-        console.log('Full session:', JSON.stringify(req.session, null, 2));
-      }
-    }
+    // Debug logging disabled for production
+    // if (req.url === '/api/orders') {
+    //   console.log('Session check for order creation');
+    // }
     
     // Check custom session userId first (from our login system)
     if (req.session && (req.session as any).userId) {

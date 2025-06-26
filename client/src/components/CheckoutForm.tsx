@@ -136,8 +136,7 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
         totalAmount: data.overrideTotalAmount || totalPrice,
       };
 
-      // Verify authentication before submitting order - with debug info
-      console.log('Checking authentication before order submission...');
+      // Verify authentication before submitting order
       const authCheck = await fetch("/api/auth/user", { 
         credentials: "include",
         headers: {
@@ -146,23 +145,14 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
         }
       });
       
-      console.log('Auth check response status:', authCheck.status);
-      console.log('Auth check response ok:', authCheck.ok);
-      
       if (!authCheck.ok || authCheck.status === 401) {
-        console.error('Authentication check failed');
         throw new Error("Authentication required - please log in again");
       }
       
       const userData = await authCheck.json();
-      console.log('User data from auth check:', userData);
-      
       if (!userData || !userData.id) {
-        console.error('No user data or user ID found');
         throw new Error("Authentication required - please log in again");
       }
-      
-      console.log('Authentication verified, proceeding with order submission...');
       
       try {
         const response = await apiRequest("POST", "/api/orders", orderData);
@@ -177,7 +167,7 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
     },
     onSuccess: (data) => {
       if (data && data.paymentUrl) {
-        // Clear stored form data
+        // Clear stored form data and pending checkout on successful order
         localStorage.removeItem('checkout_contact_data');
         sessionStorage.removeItem('pendingCheckout');
         
@@ -232,7 +222,7 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
           const checkoutData = JSON.parse(pendingCheckout);
 
           
-          // Remove pending checkout immediately to prevent race conditions
+          // Remove pending checkout to prevent duplicate processing
           sessionStorage.removeItem('pendingCheckout');
           
           // Restore the checkout state and addon information
@@ -289,20 +279,73 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
               
               // PaymentLoader is already showing, just log for debugging
               
-              // Prepare and submit the payment data immediately
-              const combinedData = { 
-                ...contactDataToUse, 
-                paymentMethod: "paystack" as const,
-                timeline: checkoutData.paymentData?.timeline || "2-4 weeks",
-                overrideSelectedAddOns: checkoutData.selectedAddOns || [],
-                overrideTotalAmount: checkoutData.totalPrice || totalPrice
+              // Robust session verification and submission for pending checkout
+              const verifySessionAndSubmit = async () => {
+                try {
+                  // Multiple authentication checks with progressive delays
+                  let authenticationValid = false;
+                  const maxAttempts = 5;
+                  
+                  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+                    const authCheck = await fetch("/api/auth/user", { 
+                      credentials: "include",
+                      headers: {
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache'
+                      }
+                    });
+                    
+                    if (authCheck.ok) {
+                      const userData = await authCheck.json();
+                      if (userData && userData.id) {
+                        authenticationValid = true;
+                        break;
+                      }
+                    }
+                    
+                    // Progressive backoff: 300ms, 600ms, 1200ms, 2400ms
+                    if (attempt < maxAttempts - 1) {
+                      const delay = 300 * Math.pow(2, attempt);
+                      await new Promise(resolve => setTimeout(resolve, delay));
+                    }
+                  }
+                  
+                  if (!authenticationValid) {
+                    throw new Error("Session verification failed after multiple attempts");
+                  }
+                  
+                  // Prepare and submit the payment data
+                  const combinedData = { 
+                    ...contactDataToUse, 
+                    paymentMethod: "paystack" as const,
+                    timeline: checkoutData.paymentData?.timeline || "2-4 weeks",
+                    overrideSelectedAddOns: checkoutData.selectedAddOns || [],
+                    overrideTotalAmount: checkoutData.totalPrice || totalPrice
+                  };
+                  
+                  orderMutation.mutate(combinedData);
+                } catch (error) {
+                  console.error('Pending checkout session verification failed:', error);
+                  setShowPaymentLoader(false);
+                  sessionStorage.removeItem('payment_in_progress');
+                  toast({
+                    title: "Authentication Error",
+                    description: "Please log in again to complete your order.",
+                    variant: "destructive",
+                  });
+                  setLocation('/auth');
+                }
               };
               
-              orderMutation.mutate(combinedData);
+              // Delay to allow session to stabilize, then verify and submit
+              setTimeout(verifySessionAndSubmit, 2000);
             }, 100); // Minimal delay to ensure PaymentLoader renders
           }
         } catch (error) {
+          console.error('Error processing pending checkout:', error);
           sessionStorage.removeItem('pendingCheckout');
+          setShowPaymentLoader(false);
+          sessionStorage.removeItem('payment_in_progress');
         }
       }
     }
