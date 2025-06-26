@@ -148,129 +148,173 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Orders routes
-  app.post('/api/orders', isAuthenticated, async (req: any, res) => {
+  app.post('/api/orders', authRateLimit('payment'), validateContentType, validateRequestSize(1048576), isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      console.log('🔍 [ORDER CREATE] Raw request body:', JSON.stringify(req.body, null, 2));
-      console.log('🔍 [ORDER CREATE] User ID:', userId);
+      const clientIP = req.ip || req.connection.remoteAddress;
+      const orderData = req.body;
       
-      // Transform the frontend data structure to match the database schema
-      const {
-        serviceId,
+      // Input validation and sanitization
+      if (!orderData.serviceId || !orderData.contactInfo || !orderData.totalAmount) {
+        auditLog('order_validation_failed', userId, { reason: 'missing_required_fields', clientIP });
+        return res.status(400).json({ message: "Missing required order data" });
+      }
+
+      // Validate amount is reasonable (between ₦100 and ₦10,000,000)
+      const amount = parseInt(orderData.totalAmount?.toString() || orderData.totalPrice);
+      if (isNaN(amount) || amount < 100 || amount > 10000000) {
+        auditLog('order_validation_failed', userId, { reason: 'invalid_amount', amount, clientIP });
+        return res.status(400).json({ message: "Invalid order amount" });
+      }
+
+      // Sanitize and validate contact info
+      const contactInfo = {
+        fullName: sanitizeInput(orderData.contactInfo.fullName || ''),
+        email: sanitizeInput(orderData.contactInfo.email || ''),
+        phone: sanitizeInput(orderData.contactInfo.phone || ''),
+        company: sanitizeInput(orderData.contactInfo.company || '')
+      };
+
+      // Validate email format using simple regex
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(contactInfo.email)) {
+        auditLog('order_validation_failed', userId, { reason: 'invalid_email', clientIP });
+        return res.status(400).json({ message: "Invalid email format" });
+      }
+
+      // Sanitize project details
+      const projectDetails = {
+        description: sanitizeInput(orderData.projectDetails?.description || '')
+      };
+
+      // Sanitize and validate add-ons
+      let selectedAddOns: string[] = [];
+      if (Array.isArray(orderData.selectedAddOns)) {
+        selectedAddOns = orderData.selectedAddOns
+          .filter((addon: any) => typeof addon === 'string' && addon.trim().length > 0)
+          .map((addon: string) => sanitizeInput(addon));
+      }
+
+      // Build comprehensive custom request data with add-ons
+      const customRequestData = {
         contactInfo,
         projectDetails,
         selectedAddOns,
-        totalAmount,
-        paymentMethod,
-        timeline
-      } = req.body;
-      
-      // Create custom request text from all the collected information
-      const customRequestData = {
-        contactInfo: contactInfo || {
-          fullName: req.body.fullName,
-          email: req.body.email,
-          phone: req.body.phone,
-          company: req.body.company
-        },
-        projectDetails: projectDetails || {
-          description: req.body.projectDescription
-        },
-        selectedAddOns: selectedAddOns || [],
-        timeline: timeline || req.body.timeline,
-        paymentMethod: paymentMethod || req.body.paymentMethod
+        timeline: sanitizeInput(orderData.timeline || ''),
+        paymentMethod: sanitizeInput(orderData.paymentMethod || 'paystack')
       };
       
-      console.log('🔍 [ORDER CREATE] Transformed custom request data:', JSON.stringify(customRequestData, null, 2));
-      
-      // Prepare order data according to the database schema
-      const orderData = {
+      // Prepare validated order data
+      const validatedOrderData = {
         userId,
-        serviceId: serviceId || req.body.serviceId,
+        serviceId: sanitizeInput(orderData.serviceId),
         customRequest: JSON.stringify(customRequestData),
-        totalPrice: (totalAmount || req.body.totalAmount || 0).toString(),
-        status: "pending" as const,
+        totalPrice: amount.toString(),
+        status: 'pending' as const,
       };
-      
-
-      
-      // Validate using the schema
-      const validatedOrderData = insertOrderSchema.parse(orderData);
-
       
       // Create the order
       const order = await storage.createOrder(validatedOrderData);
+      auditLog('order_created', userId, { 
+        orderId: order.id, 
+        amount, 
+        serviceId: orderData.serviceId,
+        addOnsCount: selectedAddOns.length,
+        clientIP 
+      });
       
-      // Initialize payment if needed
-      if (order && order.id) {
+      // Initialize payment
+      if (order?.id) {
         try {
-          const email = customRequestData.contactInfo.email;
-          console.log('💳 [PAYMENT INIT] Attempting to initialize payment for order:', order.id);
-          console.log('💳 [PAYMENT INIT] Payment details:', { orderId: order.id, amount: parseInt(orderData.totalPrice), email, userId });
-          
           const paymentUrl = await storage.initializePayment({
             orderId: order.id,
-            amount: parseInt(orderData.totalPrice),
-            email,
+            amount,
+            email: contactInfo.email,
             userId,
           });
           
-          console.log('💳 [PAYMENT INIT] Payment URL generated:', paymentUrl);
-          const response = { ...order, paymentUrl };
-          console.log('💳 [PAYMENT INIT] Sending response with payment URL:', response);
-          res.json(response);
+          auditLog('payment_initialized', userId, { orderId: order.id, amount, clientIP });
+          res.json({ ...order, paymentUrl });
         } catch (paymentError) {
-          console.error('💳 [PAYMENT ERROR] Payment initialization failed:', paymentError);
-          // Return order without payment URL if payment fails
-          console.log('💳 [PAYMENT ERROR] Returning order without payment URL');
+          auditLog('payment_initialization_failed', userId, { 
+            orderId: order.id, 
+            error: (paymentError as Error).message, 
+            clientIP 
+          });
           res.json(order);
         }
       } else {
-        console.log('💳 [ORDER ERROR] No order created or missing order ID');
-        res.json(order);
+        auditLog('order_creation_failed', userId, { clientIP });
+        res.status(500).json({ message: "Failed to create order" });
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
+        auditLog('order_validation_failed', req.user?.id, { errors: error.errors, clientIP: req.ip });
         return res.status(400).json({ message: "Invalid order data", errors: error.errors });
       }
-      console.error("Error creating order:", error);
+      auditLog('order_error', req.user?.id, { error: (error as Error).message, clientIP: req.ip });
       res.status(500).json({ message: "Failed to create order" });
     }
   });
 
-  app.get('/api/orders', isAuthenticated, async (req: any, res) => {
+  app.get('/api/orders', authRateLimit('api'), isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
       const user = await storage.getUser(userId);
+      const clientIP = req.ip || req.connection.remoteAddress;
+
+      if (!user) {
+        auditLog('unauthorized_orders_access', userId, { clientIP });
+        return res.status(401).json({ message: "User not found" });
+      }
 
       let orders;
-      if (user?.role === 'admin') {
+      if (user.role === 'admin') {
         orders = await storage.getAllOrders();
+        auditLog('admin_orders_accessed', userId, { clientIP });
       } else {
         orders = await storage.getUserOrders(userId);
+        auditLog('user_orders_accessed', userId, { clientIP });
       }
       res.json(orders);
     } catch (error) {
-      console.error("Error fetching orders:", error);
+      auditLog('orders_fetch_error', req.user?.id, { error: (error as Error).message, clientIP: req.ip });
       res.status(500).json({ message: "Failed to fetch orders" });
     }
   });
 
-  app.patch('/api/orders/:id/status', isAuthenticated, async (req: any, res) => {
+  app.patch('/api/orders/:id/status', authRateLimit('admin'), validateContentType, isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
       const user = await storage.getUser(userId);
+      const clientIP = req.ip || req.connection.remoteAddress;
 
       if (user?.role !== 'admin') {
+        auditLog('unauthorized_order_update', userId, { orderId: req.params.id, clientIP });
         return res.status(403).json({ message: "Unauthorized" });
       }
 
       const { id } = req.params;
       const { status } = req.body;
-      const order = await storage.updateOrderStatus(id, status);
+
+      // Validate order ID format (UUID)
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+        auditLog('invalid_order_id', userId, { orderId: id, clientIP });
+        return res.status(400).json({ message: "Invalid order ID format" });
+      }
+
+      // Validate status
+      const validStatuses = ['pending', 'paid', 'in_progress', 'complete', 'cancelled'];
+      if (!validStatuses.includes(status)) {
+        auditLog('invalid_order_status', userId, { orderId: id, status, clientIP });
+        return res.status(400).json({ message: "Invalid order status" });
+      }
+
+      const order = await storage.updateOrderStatus(id, sanitizeInput(status));
+      auditLog('order_status_updated', userId, { orderId: id, newStatus: status, clientIP });
       res.json(order);
     } catch (error) {
-      console.error("Error updating order status:", error);
+      auditLog('order_update_error', req.user?.id, { orderId: req.params.id, error: (error as Error).message, clientIP: req.ip });
       res.status(500).json({ message: "Failed to update order status" });
     }
   });

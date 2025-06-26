@@ -306,8 +306,7 @@ export class DatabaseStorage implements IStorage {
         order: { service: { name: null } }
       }));
     } catch (error) {
-      console.error("Error fetching user projects:", error);
-      throw error;
+      throw new Error(`Failed to fetch user projects: ${(error as Error).message}`);
     }
   }
 
@@ -403,48 +402,52 @@ export class DatabaseStorage implements IStorage {
     email: string;
     userId: string;
   }): Promise<string> {
-    console.log('💳 [STORAGE] initializePayment called with params:', params);
     const paystackSecretKey = process.env.PAYSTACK_SECRET_KEY;
     if (!paystackSecretKey) {
-      console.error('💳 [STORAGE] Paystack secret key not configured');
-      throw new Error("Paystack secret key not configured");
+      throw new Error("Payment service not configured");
     }
-    console.log('💳 [STORAGE] Paystack secret key found, proceeding with payment initialization');
+
+    // Validate parameters
+    if (!params.orderId || !params.email || !params.userId || params.amount <= 0) {
+      throw new Error('Invalid payment parameters');
+    }
 
     const reference = `PSK_${Date.now()}_${Math.random()
       .toString(36)
       .substr(2, 9)}`;
 
-    const response = await fetch(
-      "https://api.paystack.co/transaction/initialize",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${paystackSecretKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: params.email,
-          amount: params.amount * 100, // Convert to kobo
-          reference,
-          callback_url: `https://${process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost:5000'}/api/payments/callback`,
-          currency: "NGN",
-          metadata: {
-            orderId: params.orderId,
-            userId: params.userId,
+    try {
+      const response = await fetch(
+        "https://api.paystack.co/transaction/initialize",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${paystackSecretKey}`,
+            "Content-Type": "application/json",
           },
-        }),
-      },
-    );
+          body: JSON.stringify({
+            email: params.email,
+            amount: params.amount * 100, // Convert to kobo
+            reference,
+            callback_url: `https://${process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost:5000'}/api/payments/callback`,
+            currency: "NGN",
+            metadata: {
+              orderId: params.orderId,
+              userId: params.userId,
+            },
+          }),
+        },
+      );
 
-    const data = await response.json();
-    console.log('💳 [STORAGE] Paystack API response:', data);
+      if (!response.ok) {
+        throw new Error(`Paystack API error: ${response.status}`);
+      }
 
-    if (!data.status) {
-      console.error('💳 [STORAGE] Paystack initialization failed:', data.message);
-      throw new Error(data.message || "Failed to initialize payment");
-    }
-    console.log('💳 [STORAGE] Payment initialization successful, URL:', data.data.authorization_url);
+      const data = await response.json();
+
+      if (!data.status) {
+        throw new Error(data.message || "Failed to initialize payment");
+      }
 
     // Store payment record
     await db.insert(payments).values({
@@ -457,7 +460,10 @@ export class DatabaseStorage implements IStorage {
       status: "pending" as any,
     });
 
-    return data.data.authorization_url;
+      return data.data.authorization_url;
+    } catch (error) {
+      throw new Error(`Payment initialization failed: ${(error as Error).message}`);
+    }
   }
 
   async verifyPaystackWebhook(
@@ -469,6 +475,7 @@ export class DatabaseStorage implements IStorage {
       return false;
     }
 
+    const crypto = require('crypto');
     const hash = crypto
       .createHmac("sha512", paystackSecretKey)
       .update(body, "utf8")

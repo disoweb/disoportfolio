@@ -137,45 +137,35 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
       };
 
       try {
-        console.log('🔄 [ORDER MUTATION] Sending order data to server:', orderData);
         const response = await apiRequest("POST", "/api/orders", orderData);
-        const responseData = await response.json();
-        console.log('🔄 [ORDER MUTATION] Server response received:', responseData);
-        console.log('🔄 [ORDER MUTATION] Payment URL in response:', responseData.paymentUrl);
-        return responseData;
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to create order');
+        }
+        return await response.json();
       } catch (error) {
-        console.error('🔄 [ORDER MUTATION] Error creating order:', error);
         throw new Error(error instanceof Error ? error.message : 'Failed to create order');
       }
     },
     onSuccess: (data) => {
-      console.log('✅ [ORDER SUCCESS] Order mutation successful, response data:', data);
       if (data && data.paymentUrl) {
-        console.log('✅ [ORDER SUCCESS] Payment URL found, showing loader and redirecting to Paystack');
-        // Clear any pending checkout data since we're proceeding to payment
+        // Clear stored form data
         localStorage.removeItem('checkout_contact_data');
         sessionStorage.removeItem('pendingCheckout');
         
-        // Show payment loader and redirect to Paystack immediately
+        // Show payment loader and redirect to Paystack
         setShowPaymentLoader(true);
-        
-        // Set a flag to prevent any other redirects and show global loader
         sessionStorage.setItem('payment_in_progress', 'true');
         
-        console.log('✅ [ORDER SUCCESS] Redirecting to Paystack URL:', data.paymentUrl);
-        
-        // Force immediate redirect to Paystack
+        // Immediate redirect to Paystack
         setTimeout(() => {
           window.location.href = data.paymentUrl;
         }, 100);
       } else {
-        console.log('✅ [ORDER SUCCESS] No payment URL, showing success message');
         toast({
           title: "Order placed successfully!",
           description: "We'll contact you soon to discuss your project.",
         });
-        // For non-payment orders, don't call onSuccess which might redirect
-        // Just show a success message and stay on page
       }
     },
     onError: (error) => {
