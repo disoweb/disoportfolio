@@ -72,7 +72,7 @@ export async function setupAuth(app: Express) {
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || 'dev-secret-key-for-replit-development',
     resave: false,
-    saveUninitialized: true,
+    saveUninitialized: false, // Changed to false for better session handling
     store: sessionStore,
     cookie: {
       secure: false,
@@ -442,22 +442,32 @@ export async function setupAuth(app: Express) {
 }
 
 export const isAuthenticated = async (req: any, res: any, next: any) => {
+  console.log('🔐 [AUTH CHECK] Starting authentication check for:', req.method, req.path);
+  console.log('🔐 [AUTH CHECK] Session exists:', !!req.session);
+  console.log('🔐 [AUTH CHECK] Session passport:', !!req.session?.passport);
+  console.log('🔐 [AUTH CHECK] Session user ID:', req.session?.passport?.user);
+  console.log('🔐 [AUTH CHECK] Request authenticated (passport):', req.isAuthenticated?.());
+  
   // Check session directly due to passport serialization issues
   if (req.session && req.session.passport && req.session.passport.user) {
     try {
+      console.log('🔐 [AUTH CHECK] Fetching user data for ID:', req.session.passport.user);
       // Always fetch fresh user data to ensure consistency
       const user = await storage.getUser(req.session.passport.user);
       if (user) {
+        console.log('🔐 [AUTH CHECK] ✅ User authenticated successfully:', user.email);
         req.user = user;
         return next();
       } else {
+        console.log('🔐 [AUTH CHECK] ❌ User not found in database');
         return res.status(401).json({ message: "User not found" });
       }
     } catch (error) {
-      console.error('Authentication error:', error);
+      console.error('🔐 [AUTH CHECK] ❌ Authentication error:', error);
       return res.status(401).json({ message: "Authentication required" });
     }
   } else {
+    console.log('🔐 [AUTH CHECK] ❌ No valid session or passport data');
     return res.status(401).json({ message: "Authentication required" });
   }
 };
