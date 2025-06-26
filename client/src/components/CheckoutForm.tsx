@@ -183,10 +183,7 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
       try {
         const response = await apiRequest("/api/orders", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(orderData),
+          body: orderData,
         });
 
         return response;

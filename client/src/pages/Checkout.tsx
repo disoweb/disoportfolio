@@ -88,26 +88,31 @@ export default function Checkout() {
     }
   }, [serviceId, services, price, addons]);
 
-  if (!serviceId) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Navigation />
-        <div className="container mx-auto px-4 py-16">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">Service Not Found</h1>
-            <p className="text-gray-600 mb-6">The service you're trying to purchase could not be found.</p>
-            <Button onClick={() => setLocation('/')}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Home
-            </Button>
+  // Only show error if no serviceId AND no serviceData AND no pending checkout
+  if (!serviceId && !serviceData) {
+    // Check for pending checkout one more time before showing error
+    const pendingCheckout = sessionStorage.getItem('pendingCheckout');
+    if (!pendingCheckout) {
+      return (
+        <div className="min-h-screen bg-gray-50">
+          <Navigation />
+          <div className="container mx-auto px-4 py-16">
+            <div className="text-center">
+              <h1 className="text-2xl font-bold text-gray-900 mb-4">Service Not Found</h1>
+              <p className="text-gray-600 mb-6">The service you're trying to purchase could not be found.</p>
+              <Button onClick={() => setLocation('/')}>
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Home
+              </Button>
+            </div>
           </div>
+          <Footer />
         </div>
-        <Footer />
-      </div>
-    );
+      );
+    }
   }
 
-  if (servicesLoading || !serviceData) {
+  if (servicesLoading || (!serviceData && serviceId)) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navigation />

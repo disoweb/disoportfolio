@@ -62,8 +62,17 @@ export default function AuthPage() {
           
           setRedirectHandled(true);
           
-          // Immediate redirect to checkout with restored form data
-          setLocation(returnUrl);
+          // Redirect to checkout with service parameters to avoid "Service Not Found"
+          if (checkoutData.service && checkoutData.service.id) {
+            const serviceParams = new URLSearchParams({
+              service: checkoutData.service.id,
+              price: checkoutData.totalPrice?.toString() || '0',
+              addons: (checkoutData.selectedAddOns || []).join(',')
+            });
+            setLocation(`/checkout?${serviceParams.toString()}`);
+          } else {
+            setLocation(returnUrl);
+          }
         } catch (error) {
           sessionStorage.removeItem('pendingCheckout');
           setRedirectHandled(true);
