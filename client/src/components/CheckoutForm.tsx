@@ -164,8 +164,10 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, onSu
         
         console.log('✅ [ORDER SUCCESS] Redirecting to Paystack URL:', data.paymentUrl);
         
-        // Immediate redirect to Paystack to minimize any potential flash
-        window.location.href = data.paymentUrl;
+        // Force immediate redirect to Paystack
+        setTimeout(() => {
+          window.location.href = data.paymentUrl;
+        }, 100);
       } else {
         console.log('✅ [ORDER SUCCESS] No payment URL, showing success message');
         toast({

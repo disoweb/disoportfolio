@@ -84,7 +84,7 @@ function Router() {
         sessionStorage.removeItem('payment_in_progress');
         sessionStorage.removeItem('pendingCheckout');
         setPaymentInProgress(false);
-      }, 15000); // 15 seconds max for payment processing
+      }, 5000); // 5 seconds max for payment processing
 
       return () => clearTimeout(timeout);
     }
