@@ -311,6 +311,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Cancel pending order
+  app.delete('/api/orders/:orderId', authRateLimit('api'), isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { orderId } = req.params;
+      const clientIP = req.ip || req.connection.remoteAddress;
+      
+      // Security check: additional rate limiting for order cancellation
+      const rateCheck = checkRateLimit('order_cancel', clientIP);
+      if (!rateCheck.allowed) {
+        auditLog('rate_limit_exceeded', userId, { action: 'order_cancel', ip: clientIP });
+        return res.status(429).json({ message: rateCheck.message });
+      }
+
+      const order = await storage.cancelOrder(orderId, userId);
+      auditLog('order_cancelled', userId, { orderId, totalPrice: order.totalPrice, clientIP });
+      
+      res.json({ message: "Order cancelled successfully", order });
+    } catch (error) {
+      console.error("Error cancelling order:", error);
+      auditLog('order_cancel_failed', req.user?.id, { orderId: req.params.orderId, error: (error as Error).message, clientIP: req.ip });
+      
+      if ((error as Error).message.includes('not found') || (error as Error).message.includes('not authorized')) {
+        return res.status(404).json({ message: "Order not found or not authorized" });
+      }
+      if ((error as Error).message.includes('cannot be cancelled')) {
+        return res.status(400).json({ message: "Order cannot be cancelled" });
+      }
+      res.status(500).json({ message: "Failed to cancel order" });
+    }
+  });
+
+  // Reactivate payment for pending order
+  app.post('/api/orders/:orderId/reactivate-payment', authRateLimit('api'), isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { orderId } = req.params;
+      const clientIP = req.ip || req.connection.remoteAddress;
+      
+      // Security check: additional rate limiting for payment reactivation
+      const rateCheck = checkRateLimit('payment_reactivate', clientIP);
+      if (!rateCheck.allowed) {
+        auditLog('rate_limit_exceeded', userId, { action: 'payment_reactivate', ip: clientIP });
+        return res.status(429).json({ message: rateCheck.message });
+      }
+
+      const paymentUrl = await storage.reactivatePayment(orderId, userId);
+      auditLog('payment_reactivated', userId, { orderId, clientIP });
+      
+      res.json({ paymentUrl });
+    } catch (error) {
+      console.error("Error reactivating payment:", error);
+      auditLog('payment_reactivation_failed', req.user?.id, { orderId: req.params.orderId, error: (error as Error).message, clientIP: req.ip });
+      
+      if ((error as Error).message.includes('not found') || (error as Error).message.includes('not authorized')) {
+        return res.status(404).json({ message: "Order not found or not authorized" });
+      }
+      if ((error as Error).message.includes('cannot reactivate')) {
+        return res.status(400).json({ message: "Payment cannot be reactivated for this order" });
+      }
+      res.status(500).json({ message: "Failed to reactivate payment" });
+    }
+  });
+
   app.patch('/api/orders/:id/status', authRateLimit('admin'), validateContentType, isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;

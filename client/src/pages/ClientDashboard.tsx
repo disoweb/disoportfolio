@@ -12,6 +12,8 @@ import OrderDetailsModal from "@/components/OrderDetailsModal";
 import ProjectTimer from "@/components/ProjectTimer";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { 
   ChartGantt, 
   CheckCircle, 
@@ -20,7 +22,9 @@ import {
   Upload,
   LifeBuoy,
   CreditCard,
-  Calendar
+  Calendar,
+  X,
+  RefreshCw
 } from "lucide-react";
 
 export default function ClientDashboard() {
@@ -29,6 +33,58 @@ export default function ClientDashboard() {
   const { toast } = useToast();
   const [selectedOrder, setSelectedOrder] = React.useState<any>(null);
   const [isOrderModalOpen, setIsOrderModalOpen] = React.useState(false);
+
+  // Cancel order mutation
+  const cancelOrderMutation = useMutation({
+    mutationFn: async (orderId: string) => {
+      return await apiRequest('DELETE', `/api/orders/${orderId}`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Order Cancelled",
+        description: "Your order has been successfully cancelled.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/client/stats'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Cancellation Failed",
+        description: error.message || "Failed to cancel order. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Reactivate payment mutation
+  const reactivatePaymentMutation = useMutation({
+    mutationFn: async (orderId: string) => {
+      return await apiRequest('POST', `/api/orders/${orderId}/reactivate-payment`);
+    },
+    onSuccess: (response: any) => {
+      if (response.paymentUrl) {
+        // Redirect to Paystack payment page
+        window.location.href = response.paymentUrl;
+      }
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Payment Reactivation Failed",
+        description: error.message || "Failed to reactivate payment. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleCancelOrder = (orderId: string, orderAmount: number) => {
+    if (window.confirm(`Are you sure you want to cancel this order for ₦${orderAmount.toLocaleString()}?`)) {
+      cancelOrderMutation.mutate(orderId);
+    }
+  };
+
+  const handleReactivatePayment = (orderId: string) => {
+    reactivatePaymentMutation.mutate(orderId);
+  };
 
   // Check for payment status in URL parameters and hash
   React.useEffect(() => {
@@ -259,6 +315,46 @@ export default function ClientDashboard() {
                                   style={{ left: '25%', transform: 'translateX(-50%)' }}
                                 />
                               </div>
+                            </div>
+                          )}
+                          
+                          {/* Action Buttons for Pending Orders */}
+                          {order.status === 'pending' && (
+                            <div className="mt-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button
+                                size="sm"
+                                variant="default"
+                                className="flex-1 h-8 text-xs"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleReactivatePayment(order.id);
+                                }}
+                                disabled={reactivatePaymentMutation.isPending}
+                              >
+                                {reactivatePaymentMutation.isPending ? (
+                                  <RefreshCw className="h-3 w-3 animate-spin mr-1" />
+                                ) : (
+                                  <CreditCard className="h-3 w-3 mr-1" />
+                                )}
+                                Pay Now
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 text-xs"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const amount = typeof order.totalPrice === 'string' ? parseInt(order.totalPrice) : (order.totalPrice || 0);
+                                  handleCancelOrder(order.id, amount);
+                                }}
+                                disabled={cancelOrderMutation.isPending}
+                              >
+                                {cancelOrderMutation.isPending ? (
+                                  <RefreshCw className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <X className="h-3 w-3" />
+                                )}
+                              </Button>
                             </div>
                           )}
                         </div>

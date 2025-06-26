@@ -12,7 +12,9 @@ const RATE_LIMITS = {
   api: { max: 60, window: 60000 },          // 60 requests per minute (reduced)
   upload: { max: 5, window: 300000 },       // 5 uploads per 5 minutes (reduced)
   checkout: { max: 10, window: 600000 },    // 10 checkout attempts per 10 minutes
-  contact: { max: 3, window: 3600000 }      // 3 contact form submissions per hour
+  contact: { max: 3, window: 3600000 },     // 3 contact form submissions per hour
+  order_cancel: { max: 5, window: 300000 }, // 5 cancellations per 5 minutes
+  payment_reactivate: { max: 3, window: 300000 } // 3 payment reactivations per 5 minutes
 };
 
 // Progressive delay based on attempt count

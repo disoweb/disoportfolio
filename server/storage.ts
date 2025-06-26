@@ -51,6 +51,8 @@ export interface IStorage {
   getUserOrders(userId: string): Promise<Order[]>;
   getAllOrders(): Promise<Order[]>;
   updateOrderStatus(orderId: string, status: string): Promise<Order>;
+  cancelOrder(orderId: string, userId: string): Promise<Order>;
+  reactivatePayment(orderId: string, userId: string): Promise<string>;
 
   getUserProjects(userId: string): Promise<Project[]>;
   getAllProjects(): Promise<Project[]>;
@@ -300,6 +302,75 @@ export class DatabaseStorage implements IStorage {
       .where(eq(orders.id, orderId))
       .returning();
     return updatedOrder;
+  }
+
+  async cancelOrder(orderId: string, userId: string): Promise<Order> {
+    // First, verify the order exists and belongs to the user
+    const [existingOrder] = await db
+      .select()
+      .from(orders)
+      .where(eq(orders.id, orderId))
+      .limit(1);
+
+    if (!existingOrder) {
+      throw new Error('Order not found');
+    }
+
+    if (existingOrder.userId !== userId) {
+      throw new Error('Order not authorized for this user');
+    }
+
+    if (existingOrder.status !== 'pending') {
+      throw new Error('Order cannot be cancelled - only pending orders can be cancelled');
+    }
+
+    // Update order status to cancelled
+    const [cancelledOrder] = await db
+      .update(orders)
+      .set({ 
+        status: 'cancelled' as any
+      })
+      .where(and(eq(orders.id, orderId), eq(orders.userId, userId)))
+      .returning();
+
+    return cancelledOrder;
+  }
+
+  async reactivatePayment(orderId: string, userId: string): Promise<string> {
+    // First, verify the order exists and belongs to the user
+    const [existingOrder] = await db
+      .select()
+      .from(orders)
+      .where(eq(orders.id, orderId))
+      .limit(1);
+
+    if (!existingOrder) {
+      throw new Error('Order not found');
+    }
+
+    if (existingOrder.userId !== userId) {
+      throw new Error('Order not authorized for this user');
+    }
+
+    if (existingOrder.status !== 'pending') {
+      throw new Error('Payment cannot reactivate - order is not in pending status');
+    }
+
+    // Get user details for payment
+    const user = await this.getUser(userId);
+    if (!user || !user.email) {
+      throw new Error('User email not found');
+    }
+
+    // Initialize payment using existing order data
+    const paymentUrl = await this.initializePayment({
+      orderId: existingOrder.id,
+      amount: parseInt(existingOrder.totalPrice),
+      email: user.email,
+      userId: existingOrder.userId,
+    });
+
+    return paymentUrl;
   }
 
   // Project operations
