@@ -1,20 +1,13 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
-import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Menu, X, Shield, BarChart3, Users, Settings, FileText, MessageSquare, CreditCard, LogOut } from "lucide-react";
 
 export default function AdminNavigation() {
   const [isOpen, setIsOpen] = useState(false);
   const [location] = useLocation();
-  const { user } = useAuth();
-  const queryClient = useQueryClient();
-
-  const handleLogout = () => {
-    queryClient.clear();
-    window.location.href = '/api/logout';
-  };
+  const { user, logout, isLoggingOut } = useAuth();
 
   const adminNavItems = [
     { 
@@ -109,11 +102,12 @@ export default function AdminNavigation() {
             <Button 
               variant="outline" 
               size="sm" 
-              onClick={handleLogout}
+              onClick={logout}
+              disabled={isLoggingOut}
               className="bg-gray-800 text-gray-300 border-gray-600 hover:bg-gray-700 hover:text-white"
             >
               <LogOut className="h-4 w-4 mr-2" />
-              Logout
+              {isLoggingOut ? "Logging out..." : "Logout"}
             </Button>
           </div>
 
@@ -182,13 +176,14 @@ export default function AdminNavigation() {
                 variant="outline" 
                 size="sm" 
                 onClick={() => {
-                  handleLogout();
+                  logout();
                   setIsOpen(false);
                 }}
+                disabled={isLoggingOut}
                 className="mx-3 bg-gray-700 text-gray-300 border-gray-600 hover:bg-gray-600"
               >
                 <LogOut className="h-4 w-4 mr-2" />
-                Logout
+                {isLoggingOut ? "Logging out..." : "Logout"}
               </Button>
             </div>
           </div>
