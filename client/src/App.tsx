@@ -32,6 +32,7 @@ import Checkout from "@/pages/Checkout";
 import ReferralDashboard from "@/pages/ReferralDashboardNew";
 import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
+import PaymentSuccess from "@/pages/PaymentSuccess";
 import WhatsAppFloat from "@/components/WhatsAppFloat";
 import DynamicSEOHead from "@/components/DynamicSEOHead";
 
@@ -134,6 +135,7 @@ function Router() {
       <>
         <Route path="/" component={!isAuthenticated ? Landing : Home} />
         <Route path="/auth" component={AuthPage} />
+        <Route path="/payment-success" component={PaymentSuccess} />
         <Route path="/forgot-password" component={ForgotPassword} />
         <Route path="/reset-password" component={ResetPassword} />
         <Route path="/admin" component={AdminLogin} />
