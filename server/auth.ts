@@ -17,6 +17,7 @@ import {
   authRateLimit 
 } from "./security";
 import { emailService } from "./email";
+import { SessionManager } from "./sessionManager";
 import crypto from "crypto";
 import { createSessionMiddleware, SessionManager, authenticateRequest } from "./sessionManager";
 import session from "express-session";
@@ -421,73 +422,18 @@ export async function setupAuth(app: Express) {
         return res.status(401).json({ message: info?.message || "Login failed" });
       }
 
-      // Robust session management for PostgreSQL session store
-      try {
-        if (req.session) {
-          // Regenerate session ID for security and ensure fresh session
-          req.session.regenerate((regenErr) => {
-            if (regenErr) {
-              console.error('Session regeneration error:', regenErr);
-              // Fallback to direct session setting if regeneration fails
-              (req.session as any).userId = user.id;
-              
-              const sanitizedUser = { ...user };
-              delete (sanitizedUser as any).password;
-              
-              auditLog('login_success', user.id, { email: sanitizedEmail.substring(0, 5) + '***', clientIP });
-              return res.json({ user: sanitizedUser });
-            }
-            
-            // Set user ID in the regenerated session
-            (req.session as any).userId = user.id;
-            
-            // Also use passport's session serialization for compatibility
-            req.logIn(user, (loginErr) => {
-              if (loginErr) {
-                console.error('Passport login error:', loginErr);
-                // Continue without passport login, use custom session only
-              }
-              
-              console.log('🔍 [LOGIN DEBUG] Setting userId in session:', user.id);
-              console.log('🔍 [LOGIN DEBUG] Session before save:', {
-                sessionId: req.sessionID,
-                userId: (req.session as any).userId,
-                sessionKeys: Object.keys(req.session)
-              });
-              
-              // Force session save to PostgreSQL immediately
-              req.session.save((saveErr) => {
-                if (saveErr) {
-                  console.error('❌ [LOGIN DEBUG] Session save error:', saveErr);
-                  auditLog('login_session_error', user.id, { error: saveErr.message, clientIP });
-                  return res.status(500).json({ message: "Login failed" });
-                }
-                
-                console.log('✅ [LOGIN DEBUG] Session saved successfully');
-                console.log('🔍 [LOGIN DEBUG] Session after save:', {
-                  sessionId: req.sessionID,
-                  userId: (req.session as any).userId,
-                  sessionKeys: Object.keys(req.session)
-                });
-                
-                const sanitizedUser = { ...user };
-                delete (sanitizedUser as any).password;
-                
-                auditLog('login_success', user.id, { email: sanitizedEmail.substring(0, 5) + '***', clientIP });
-                res.json({ user: sanitizedUser });
-              });
-            });
-          });
-        } else {
-          console.error('No session object available');
-          auditLog('login_session_error', user.id, { error: 'No session available', clientIP });
-          return res.status(500).json({ message: "Login failed" });
-        }
-      } catch (sessionError) {
-        console.error('Session error:', sessionError);
-        auditLog('login_session_error', user.id, { error: (sessionError as Error).message, clientIP });
-        return res.status(500).json({ message: "Login failed" });
-      }
+      // Use our robust SessionManager for consistent session handling
+      SessionManager.createUserSession(req, user, 'local').then(() => {
+        const sanitizedUser = { ...user };
+        delete (sanitizedUser as any).password;
+        
+        auditLog('login_success', user.id, { email: sanitizedEmail.substring(0, 5) + '***', clientIP });
+        res.json({ user: sanitizedUser });
+      }).catch((sessionError) => {
+        console.error('🔧 [LOGIN DEBUG] SessionManager error:', sessionError);
+        auditLog('login_session_error', user.id, { error: sessionError.message, clientIP });
+        res.status(500).json({ message: "Login session creation failed" });
+      });
     })(req, res, next);
   });
 
