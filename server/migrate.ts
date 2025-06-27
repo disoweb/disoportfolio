@@ -5,7 +5,7 @@ import { migrate } from "drizzle-orm/neon-serverless/migrator";
 async function runMigration() {
   console.log("Running database migration...");
   try {
-    await migrate(db, { migrationsFolder: "./drizzle" });
+    await migrate(db, { migrationsFolder: "./migrations" });
     console.log("Migration completed successfully!");
   } catch (error) {
     console.error("Migration failed:", error);

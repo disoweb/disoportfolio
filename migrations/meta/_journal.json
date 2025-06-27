@@ -15,6 +15,13 @@
       "when": 1748593888500,
       "tag": "0001_fix_password_reset_tokens",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1751005509171,
+      "tag": "0002_fair_spot",
+      "breakpoints": true
     }
   ]
 }
