@@ -76,26 +76,41 @@ export const SessionManager = {
   async createUserSession(req: Request, user: User, authMethod: string = 'local'): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
+        console.log('🔧 [SESSION DEBUG] Creating session for user:', user.id, 'method:', authMethod);
+        console.log('🔧 [SESSION DEBUG] Current session ID:', req.sessionID);
+        console.log('🔧 [SESSION DEBUG] Session before modification:', {
+          userId: req.session.userId,
+          sessionID: req.sessionID,
+          cookie: req.session.cookie
+        });
+        
         // Store user ID in session
         req.session.userId = user.id;
         req.session.authMethod = authMethod as any;
         req.session.loginTime = Date.now();
         req.session.lastActivity = Date.now();
         
+        console.log('🔧 [SESSION DEBUG] Session data set:', {
+          userId: req.session.userId,
+          authMethod: req.session.authMethod,
+          loginTime: req.session.loginTime,
+          sessionID: req.sessionID
+        });
+        
         // Save session
         req.session.save((err) => {
           if (err) {
-            console.error('[SESSION] Error saving session:', err);
+            console.error('🔧 [SESSION DEBUG] Error saving session:', err);
             auditLog('session_save_error', user.id, { error: err.message });
             reject(err);
           } else {
-            console.log('[SESSION] Session created for user:', user.id);
+            console.log('🔧 [SESSION DEBUG] Session saved successfully for user:', user.id, 'sessionID:', req.sessionID);
             auditLog('session_created', user.id, { authMethod });
             resolve();
           }
         });
       } catch (error) {
-        console.error('[SESSION] Error creating session:', error);
+        console.error('🔧 [SESSION DEBUG] Error creating session:', error);
         reject(error);
       }
     });
@@ -104,24 +119,41 @@ export const SessionManager = {
   // Get current user from session
   async getCurrentUser(req: Request): Promise<User | null> {
     try {
+      console.log('🔍 [SESSION DEBUG] Getting current user, sessionID:', req.sessionID);
+      console.log('🔍 [SESSION DEBUG] Session data:', {
+        userId: req.session?.userId,
+        passport: req.session?.passport,
+        loginTime: req.session?.loginTime,
+        lastActivity: req.session?.lastActivity
+      });
+      
       // Check for userId in session
       if (req.session?.userId) {
+        console.log('🔍 [SESSION DEBUG] Found userId in session:', req.session.userId);
         const user = await storage.getUserById(req.session.userId);
         if (user) {
+          console.log('🔍 [SESSION DEBUG] User found in database:', user.id);
           // Update last activity
           req.session.lastActivity = Date.now();
           return user;
+        } else {
+          console.log('🔍 [SESSION DEBUG] User not found in database for ID:', req.session.userId);
         }
+      } else {
+        console.log('🔍 [SESSION DEBUG] No userId in session');
       }
       
       // Check for passport user
       if (req.session?.passport?.user) {
+        console.log('🔍 [SESSION DEBUG] Found passport user:', req.session.passport.user);
         const passportUser = req.session.passport.user;
         const userId = typeof passportUser === 'string' ? passportUser : passportUser.id;
         
         if (userId) {
+          console.log('🔍 [SESSION DEBUG] Extracting userId from passport:', userId);
           const user = await storage.getUserById(userId);
           if (user) {
+            console.log('🔍 [SESSION DEBUG] User found via passport, migrating session');
             // Migrate to our session format
             req.session.userId = user.id;
             req.session.lastActivity = Date.now();
@@ -165,22 +197,41 @@ export const SessionManager = {
 
   // Validate session
   isSessionValid(req: Request): boolean {
+    console.log('🔍 [SESSION VALIDATION] Validating session...');
+    console.log('🔍 [SESSION VALIDATION] Session userId:', req.session?.userId);
+    
     if (!req.session?.userId) {
+      console.log('🔍 [SESSION VALIDATION] FAILED: No userId in session');
       return false;
     }
     
     // Check session age (optional - enforce maximum session lifetime)
     const maxSessionAge = 30 * 24 * 60 * 60 * 1000; // 30 days
-    if (req.session.loginTime && Date.now() - req.session.loginTime > maxSessionAge) {
-      return false;
+    if (req.session.loginTime) {
+      const sessionAge = Date.now() - req.session.loginTime;
+      console.log('🔍 [SESSION VALIDATION] Session age:', sessionAge, 'ms, max allowed:', maxSessionAge, 'ms');
+      if (sessionAge > maxSessionAge) {
+        console.log('🔍 [SESSION VALIDATION] FAILED: Session too old');
+        return false;
+      }
+    } else {
+      console.log('🔍 [SESSION VALIDATION] WARNING: No loginTime set');
     }
     
     // Check inactivity timeout (optional)
     const inactivityTimeout = 24 * 60 * 60 * 1000; // 24 hours
-    if (req.session.lastActivity && Date.now() - req.session.lastActivity > inactivityTimeout) {
-      return false;
+    if (req.session.lastActivity) {
+      const inactivity = Date.now() - req.session.lastActivity;
+      console.log('🔍 [SESSION VALIDATION] Inactivity:', inactivity, 'ms, max allowed:', inactivityTimeout, 'ms');
+      if (inactivity > inactivityTimeout) {
+        console.log('🔍 [SESSION VALIDATION] FAILED: Session inactive too long');
+        return false;
+      }
+    } else {
+      console.log('🔍 [SESSION VALIDATION] WARNING: No lastActivity set');
     }
     
+    console.log('🔍 [SESSION VALIDATION] SUCCESS: Session is valid');
     return true;
   },
 
@@ -208,22 +259,41 @@ export const SessionManager = {
 // Enhanced authentication middleware
 export const authenticateRequest = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    console.log('🔐 [AUTH DEBUG] Checking authentication for:', req.path, 'sessionID:', req.sessionID);
+    
     // Check if session exists
     if (!req.session) {
+      console.log('🔐 [AUTH DEBUG] No session found');
       return res.status(401).json({ message: "No session found" });
     }
     
+    console.log('🔐 [AUTH DEBUG] Session exists, checking validity...');
+    console.log('🔐 [AUTH DEBUG] Session validation data:', {
+      userId: req.session.userId,
+      loginTime: req.session.loginTime,
+      lastActivity: req.session.lastActivity,
+      sessionID: req.sessionID
+    });
+    
     // Validate session
-    if (!SessionManager.isSessionValid(req)) {
+    const isValid = SessionManager.isSessionValid(req);
+    console.log('🔐 [AUTH DEBUG] Session validation result:', isValid);
+    
+    if (!isValid) {
+      console.log('🔐 [AUTH DEBUG] Session invalid, destroying...');
       await SessionManager.destroySession(req, res);
       return res.status(401).json({ message: "Session expired" });
     }
     
     // Get current user
+    console.log('🔐 [AUTH DEBUG] Getting current user...');
     const user = await SessionManager.getCurrentUser(req);
     if (!user) {
+      console.log('🔐 [AUTH DEBUG] No user found for session');
       return res.status(401).json({ message: "Authentication required" });
     }
+    
+    console.log('🔐 [AUTH DEBUG] Authentication successful for user:', user.id);
     
     // Attach user to request
     (req as any).user = user;
@@ -233,7 +303,7 @@ export const authenticateRequest = async (req: Request, res: Response, next: Nex
     
     next();
   } catch (error) {
-    console.error('[AUTH] Authentication error:', error);
+    console.error('🔐 [AUTH DEBUG] Authentication error:', error);
     return res.status(401).json({ message: "Authentication failed" });
   }
 };
