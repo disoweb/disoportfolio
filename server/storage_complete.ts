@@ -209,16 +209,6 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getUserById(id: string): Promise<User | null> {
-    try {
-      const [user] = await db.select().from(users).where(eq(users.id, id)).limit(1);
-      return user || null;
-    } catch (error) {
-      console.error('🔍 DEBUG: getUserById error:', error);
-      throw error;
-    }
-  }
-
   async createUser(userData: UpsertUser): Promise<User> {
     const [user] = await db.insert(users).values(userData).returning();
     return user;
