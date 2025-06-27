@@ -119,16 +119,84 @@ export default function ReferralDashboardFixed() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <h1 className="text-3xl font-bold">Referral Dashboard</h1>
-        {!referralData?.referralCode && (
-          <Button
-            onClick={() => generateCodeMutation.mutate()}
-            disabled={generateCodeMutation.isPending}
-          >
-            {generateCodeMutation.isPending ? "Generating..." : "Generate Referral Code"}
-          </Button>
-        )}
+        <div className="flex flex-col sm:flex-row gap-2">
+          {referralData?.referralCode && (
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button 
+                  variant={parseFloat(referralData?.earnings?.availableBalance || "0") > 0 ? "default" : "secondary"}
+                  className="w-full sm:w-auto"
+                >
+                  <Wallet className="h-4 w-4 mr-2" />
+                  Request Withdrawal
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Request Withdrawal</DialogTitle>
+                  <DialogDescription>
+                    Request a withdrawal of your available earnings. Minimum withdrawal: ${referralData?.settings?.minimumWithdrawal || "50"}.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="p-4 bg-blue-50 rounded-lg">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-blue-900">Available Balance:</span>
+                      <span className="text-lg font-bold text-blue-900">
+                        {formatCurrency(referralData?.earnings?.availableBalance || "0")}
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="amount-header">Withdrawal Amount</Label>
+                    <Input
+                      id="amount-header"
+                      type="number"
+                      placeholder={`Min: $${referralData?.settings?.minimumWithdrawal || "50"}`}
+                      value={withdrawalAmount}
+                      onChange={(e) => setWithdrawalAmount(e.target.value)}
+                      max={referralData?.earnings?.availableBalance || "0"}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="payment-details-header">Payment Details</Label>
+                    <Textarea
+                      id="payment-details-header"
+                      placeholder="Enter your bank account details, PayPal email, or other payment information..."
+                      value={paymentDetails}
+                      onChange={(e) => setPaymentDetails(e.target.value)}
+                      rows={4}
+                    />
+                  </div>
+                  <Button
+                    onClick={() => withdrawalMutation.mutate()}
+                    disabled={
+                      withdrawalMutation.isPending ||
+                      !withdrawalAmount ||
+                      !paymentDetails ||
+                      parseFloat(withdrawalAmount) <= 0 ||
+                      parseFloat(withdrawalAmount) > parseFloat(referralData?.earnings?.availableBalance || "0")
+                    }
+                    className="w-full"
+                  >
+                    {withdrawalMutation.isPending ? "Processing..." : "Submit Withdrawal Request"}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
+          {!referralData?.referralCode && (
+            <Button
+              onClick={() => generateCodeMutation.mutate()}
+              disabled={generateCodeMutation.isPending}
+              className="w-full sm:w-auto"
+            >
+              {generateCodeMutation.isPending ? "Generating..." : "Generate Referral Code"}
+            </Button>
+          )}
+        </div>
       </div>
 
       {referralData?.referralCode ? (
@@ -144,58 +212,71 @@ export default function ReferralDashboardFixed() {
                 <div className="text-2xl font-bold">
                   {formatCurrency(referralData?.earnings?.availableBalance || "0")}
                 </div>
-                {parseFloat(referralData?.earnings?.availableBalance || "0") > 0 && (
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" size="sm" className="mt-2">
-                        <Wallet className="h-4 w-4 mr-2" />
-                        Withdraw
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Request Withdrawal</DialogTitle>
-                        <DialogDescription>
-                          Request a withdrawal of your available earnings. Minimum withdrawal amount applies.
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        <div>
-                          <Label htmlFor="amount">Withdrawal Amount</Label>
-                          <Input
-                            id="amount"
-                            type="number"
-                            placeholder="Enter amount"
-                            value={withdrawalAmount}
-                            onChange={(e) => setWithdrawalAmount(e.target.value)}
-                            max={referralData?.earnings?.availableBalance || "0"}
-                          />
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button 
+                      variant={parseFloat(referralData?.earnings?.availableBalance || "0") > 0 ? "default" : "outline"} 
+                      size="sm" 
+                      className="mt-2 w-full"
+                      disabled={parseFloat(referralData?.earnings?.availableBalance || "0") === 0}
+                    >
+                      <Wallet className="h-4 w-4 mr-2" />
+                      {parseFloat(referralData?.earnings?.availableBalance || "0") > 0 ? "Withdraw Funds" : "No Funds Available"}
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Request Withdrawal</DialogTitle>
+                      <DialogDescription>
+                        Request a withdrawal of your available earnings. Minimum withdrawal: ${referralData?.settings?.minimumWithdrawal || "50"}.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="p-4 bg-blue-50 rounded-lg">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-medium text-blue-900">Available Balance:</span>
+                          <span className="text-lg font-bold text-blue-900">
+                            {formatCurrency(referralData?.earnings?.availableBalance || "0")}
+                          </span>
                         </div>
-                        <div>
-                          <Label htmlFor="payment-details">Payment Details</Label>
-                          <Textarea
-                            id="payment-details"
-                            placeholder="Enter your bank account details, PayPal email, or other payment information"
-                            value={paymentDetails}
-                            onChange={(e) => setPaymentDetails(e.target.value)}
-                          />
-                        </div>
-                        <Button
-                          onClick={() => withdrawalMutation.mutate()}
-                          disabled={
-                            withdrawalMutation.isPending ||
-                            !withdrawalAmount ||
-                            !paymentDetails ||
-                            parseFloat(withdrawalAmount) <= 0
-                          }
-                          className="w-full"
-                        >
-                          {withdrawalMutation.isPending ? "Processing..." : "Submit Withdrawal Request"}
-                        </Button>
                       </div>
-                    </DialogContent>
-                  </Dialog>
-                )}
+                      <div>
+                        <Label htmlFor="amount">Withdrawal Amount</Label>
+                        <Input
+                          id="amount"
+                          type="number"
+                          placeholder={`Min: $${referralData?.settings?.minimumWithdrawal || "50"}`}
+                          value={withdrawalAmount}
+                          onChange={(e) => setWithdrawalAmount(e.target.value)}
+                          max={referralData?.earnings?.availableBalance || "0"}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="payment-details">Payment Details</Label>
+                        <Textarea
+                          id="payment-details"
+                          placeholder="Enter your bank account details, PayPal email, or other payment information..."
+                          value={paymentDetails}
+                          onChange={(e) => setPaymentDetails(e.target.value)}
+                          rows={4}
+                        />
+                      </div>
+                      <Button
+                        onClick={() => withdrawalMutation.mutate()}
+                        disabled={
+                          withdrawalMutation.isPending ||
+                          !withdrawalAmount ||
+                          !paymentDetails ||
+                          parseFloat(withdrawalAmount) <= 0 ||
+                          parseFloat(withdrawalAmount) > parseFloat(referralData?.earnings?.availableBalance || "0")
+                        }
+                        className="w-full"
+                      >
+                        {withdrawalMutation.isPending ? "Processing..." : "Submit Withdrawal Request"}
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </CardContent>
             </Card>
 
