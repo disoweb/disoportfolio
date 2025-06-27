@@ -160,8 +160,11 @@ export default function Navigation() {
             ) : (
               <div className="px-3 py-2">
                 <div className="flex gap-3">
-                  <Link href="/auth" className="flex-1" onClick={() => setIsOpen(false)}>
-                    <Button size="sm" className="w-full bg-blue-600 hover:bg-blue-700">
+                  <Link href="/services" className="flex-1" onClick={() => setIsOpen(false)}>
+                    <Button 
+                      size="sm" 
+                      className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium shadow-md hover:shadow-lg transition-all duration-200"
+                    >
                       Get Started
                     </Button>
                   </Link>
