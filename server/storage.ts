@@ -10,8 +10,8 @@ const {
   orders,
   projects,
   checkoutSessions,
-  referralCodes,
-  earnings,
+  referrals,
+  referralEarnings,
   withdrawalRequests,
   seoAudits
 } = schema;
@@ -37,6 +37,17 @@ export class Storage {
 
   async getUserByEmail(email: string) {
     const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+    return user;
+  }
+
+  async createAdminUser(email: string, hashedPassword: string) {
+    const [user] = await db.insert(users).values({
+      email,
+      password: hashedPassword,
+      firstName: 'Admin',
+      lastName: 'User',
+      role: 'admin'
+    }).returning();
     return user;
   }
 

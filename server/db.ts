@@ -16,12 +16,5 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-console.log('🔍 DEBUG: Database connection setup');
-console.log('🔍 DEBUG: DATABASE_URL exists:', !!process.env.DATABASE_URL);
-console.log('🔍 DEBUG: DATABASE_URL length:', process.env.DATABASE_URL.length);
-
 export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 export const db = drizzle({ client: pool, schema });
-
-console.log('🔍 DEBUG: Database connection established');
-console.log('🔍 DEBUG: Schema imported successfully');
