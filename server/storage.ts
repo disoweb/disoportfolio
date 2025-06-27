@@ -142,7 +142,7 @@ export interface IStorage {
   // Admin project management
   getProjectById(id: string): Promise<Project | undefined>;
   deleteProject(id: string): Promise<void>;
-  
+
   // Referral system methods
   generateReferralCode(userId: string): Promise<string>;
   getUserByReferralCode(referralCode: string): Promise<User | undefined>;
@@ -158,6 +158,31 @@ export interface IStorage {
   getAllWithdrawalRequests(): Promise<WithdrawalRequest[]>;
   updateWithdrawalRequest(id: string, updates: Partial<InsertWithdrawalRequest>): Promise<WithdrawalRequest>;
   processWithdrawal(id: string, adminId: string, status: string, notes?: string): Promise<WithdrawalRequest>;
+
+   // SEO Management Methods
+   getSeoSettings(): Promise<SeoSettings>;
+   updateSeoSettings(updates: Partial<InsertSeoSettings>): Promise<SeoSettings>;
+   getAllSeoPages(): Promise<SeoPage[]>;
+   getSeoPageByPath(path: string): Promise<SeoPage | null>;
+   createSeoPage(pageData: InsertSeoPage): Promise<SeoPage>;
+   updateSeoPage(id: string, updates: Partial<InsertSeoPage>): Promise<SeoPage>;
+   deleteSeoPage(id: string): Promise<void>;
+   getAllSeoRules(): Promise<SeoRule[]>;
+   createSeoRule(ruleData: InsertSeoRule): Promise<SeoRule>;
+   updateSeoRule(id: string, updates: Partial<InsertSeoRule>): Promise<SeoRule>;
+   deleteSeoRule(id: string): Promise<void>;
+   getAllSeoKeywords(): Promise<SeoKeyword[]>;
+   createSeoKeyword(keywordData: InsertSeoKeyword): Promise<SeoKeyword>;
+   updateSeoKeyword(id: string, updates: Partial<InsertSeoKeyword>): Promise<SeoKeyword>;
+   deleteSeoKeyword(id: string): Promise<void>;
+   createSeoAnalytics(analyticsData: InsertSeoAnalytics): Promise<SeoAnalytics>;
+   getSeoAnalyticsByPage(page: string, startDate?: string, endDate?: string): Promise<SeoAnalytics[]>;
+   getSeoAnalyticsByPageAndDate(page: string, date: string): Promise<SeoAnalytics | null>;
+   updateSeoAnalytics(id: string, updates: Partial<InsertSeoAnalytics>): Promise<SeoAnalytics>;
+   getAllSeoAudits(): Promise<SeoAudit[]>;
+   createSeoAudit(auditData: InsertSeoAudit): Promise<SeoAudit>;
+   updateSeoAudit(id: string, updates: Partial<InsertSeoAudit>): Promise<SeoAudit>;
+   getSeoAuditById(id: string): Promise<SeoAudit | null>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -241,10 +266,10 @@ export class DatabaseStorage implements IStorage {
     console.log('  userId:', userId, '(type:', typeof userId, ')');
     console.log('  token length:', token.length);
     console.log('  expiresAt:', expiresAt.toISOString());
-    
+
     const resetTokenId = crypto.randomUUID();
     console.log('🔍 DEBUG: Generated reset token ID:', resetTokenId);
-    
+
     const insertData = {
       id: resetTokenId,
       userId,
@@ -257,7 +282,7 @@ export class DatabaseStorage implements IStorage {
       token: 'HIDDEN',
       userId: userId.substring(0, 8) + '***'
     });
-    
+
     try {
       console.log('🔍 DEBUG: Executing database insert...');
       const [passwordResetToken] = await db
@@ -1258,7 +1283,7 @@ export class DatabaseStorage implements IStorage {
   async generateReferralCode(userId: string): Promise<string> {
     let referralCode: string;
     let isUnique = false;
-    
+
     while (!isUnique) {
       referralCode = `REF${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
       const existing = await this.getUserByReferralCode(referralCode);
@@ -1269,7 +1294,7 @@ export class DatabaseStorage implements IStorage {
 
     // Update user with referral code
     await db.update(users).set({ referralCode }).where(eq(users.id, userId));
-    
+
     // Initialize referral earnings for the user
     await db.insert(referralEarnings).values({
       userId,
@@ -1280,7 +1305,7 @@ export class DatabaseStorage implements IStorage {
       totalReferrals: 0,
       successfulReferrals: 0,
     }).onConflictDoNothing();
-    
+
     return referralCode!;
   }
 
@@ -1291,7 +1316,7 @@ export class DatabaseStorage implements IStorage {
 
   async createReferral(referral: InsertReferral): Promise<Referral> {
     const [newReferral] = await db.insert(referrals).values(referral).returning();
-    
+
     // Update referrer's stats
     await db
       .update(referralEarnings)
@@ -1300,7 +1325,7 @@ export class DatabaseStorage implements IStorage {
         updatedAt: new Date(),
       })
       .where(eq(referralEarnings.userId, referral.referrerId));
-    
+
     return newReferral;
   }
 
@@ -1354,7 +1379,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(referralEarnings)
       .where(eq(referralEarnings.userId, userId));
-    
+
     if (!earnings) {
       // Create initial earnings record
       const [newEarnings] = await db
@@ -1371,7 +1396,7 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return newEarnings;
     }
-    
+
     return earnings;
   }
 
@@ -1389,7 +1414,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(referralSettings)
       .where(eq(referralSettings.id, "default"));
-    
+
     if (!settings) {
       // Create default settings
       const [newSettings] = await db
@@ -1404,7 +1429,7 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return newSettings;
     }
-    
+
     return settings;
   }
 
@@ -1452,7 +1477,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(seoSettings)
       .where(eq(seoSettings.id, "global"));
-    
+
     if (!settings) {
       // Create default settings
       const [newSettings] = await db
@@ -1469,7 +1494,7 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return newSettings;
     }
-    
+
     return settings;
   }
 
@@ -1572,7 +1597,7 @@ export class DatabaseStorage implements IStorage {
 
   async getSeoAnalyticsByPage(page: string, startDate?: string, endDate?: string): Promise<SeoAnalytics[]> {
     const conditions = [eq(seoAnalytics.page, page)];
-    
+
     if (startDate) {
       conditions.push(gte(seoAnalytics.date, startDate));
     }
