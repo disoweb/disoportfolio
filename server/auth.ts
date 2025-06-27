@@ -289,7 +289,7 @@ export async function setupAuth(app: Express) {
       if (!id) {
         return done(new Error('User ID is missing during deserialization'));
       }
-      const user = await storage.getUser(id);
+      const user = await storage.getUserById(id);
       if (!user) {
         return done(new Error('User not found during deserialization'));
       }
