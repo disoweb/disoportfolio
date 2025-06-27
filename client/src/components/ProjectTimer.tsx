@@ -39,40 +39,62 @@ const getStatusVariant = (status: string) => {
 };
 
 const parseProjectData = (project: any) => {
-  // If project is already a proper project object, return as is
-  if (project.projectName && project.status && !project.contactInfo) {
+  console.log('ProjectTimer - Raw project data:', project);
+  
+  // If project is already a proper project object with required fields
+  if (project?.projectName && project?.status && !project?.contactInfo) {
+    console.log('ProjectTimer - Using existing project object');
     return project;
   }
 
-  // Handle raw JSON data from orders
+  // Handle the case where project might be embedded in customRequest
   let parsedData = project;
   
-  // If the data is a string, try to parse it
-  if (typeof project === 'string') {
+  // If the project has a customRequest field (from orders table)
+  if (project?.customRequest) {
     try {
-      parsedData = JSON.parse(project);
+      if (typeof project.customRequest === 'string') {
+        parsedData = JSON.parse(project.customRequest);
+      } else {
+        parsedData = project.customRequest;
+      }
+      console.log('ProjectTimer - Parsed customRequest:', parsedData);
     } catch (error) {
-      console.error('Failed to parse project data:', error);
+      console.error('ProjectTimer - Failed to parse customRequest:', error);
+      return null;
+    }
+  }
+  
+  // If the data itself is a string, try to parse it
+  if (typeof parsedData === 'string') {
+    try {
+      parsedData = JSON.parse(parsedData);
+      console.log('ProjectTimer - Parsed string data:', parsedData);
+    } catch (error) {
+      console.error('ProjectTimer - Failed to parse project string:', error);
       return null;
     }
   }
 
-  // Check if this is raw order data that needs conversion
-  if (parsedData.contactInfo || parsedData.projectDetails) {
+  // Check if this is order data that needs conversion
+  if (parsedData?.contactInfo || parsedData?.projectDetails) {
     const contactInfo = parsedData.contactInfo || {};
     const projectDetails = parsedData.projectDetails || {};
     const selectedAddOns = parsedData.selectedAddOns || [];
     
+    console.log('ProjectTimer - Converting order data to project format');
+    
     // Create a proper project object from order data
-    return {
-      id: parsedData.id || 'temp-' + Date.now(),
+    const convertedProject = {
+      id: project?.id || parsedData?.id || 'temp-' + Date.now(),
       projectName: `${contactInfo.fullName || 'Client'} - ${projectDetails.description?.substring(0, 50) || 'Custom Service'}...`,
-      status: "active",
-      progressPercentage: 25, // Default to 25% for new projects
-      currentStage: "discovery",
+      status: project?.status || "active",
+      progressPercentage: project?.progressPercentage || 25,
+      currentStage: project?.currentStage || "discovery",
       timelineWeeks: parsedData.timeline || "4 weeks",
-      createdAt: parsedData.createdAt || new Date().toISOString(),
-      dueDate: new Date(Date.now() + 28 * 24 * 60 * 60 * 1000).toISOString(), // 4 weeks from now
+      createdAt: project?.createdAt || parsedData?.createdAt || new Date().toISOString(),
+      dueDate: project?.dueDate || new Date(Date.now() + 28 * 24 * 60 * 60 * 1000).toISOString(),
+      startDate: project?.startDate || project?.createdAt || new Date().toISOString(),
       contactInfo: contactInfo,
       projectDetails: projectDetails,
       selectedAddOns: selectedAddOns,
@@ -82,11 +104,16 @@ const parseProjectData = (project: any) => {
       clientEmail: contactInfo.email || '',
       clientPhone: contactInfo.phone || '',
       companyName: contactInfo.company || '',
-      description: projectDetails.description || 'Project in progress'
+      description: projectDetails.description || 'Project in progress',
+      totalPrice: project?.totalPrice || parsedData?.totalPrice || '0'
     };
+    
+    console.log('ProjectTimer - Converted project:', convertedProject);
+    return convertedProject;
   }
 
   // If it's already a proper project object, return as is
+  console.log('ProjectTimer - Using project data as-is');
   return parsedData;
 };
 
@@ -130,35 +157,41 @@ export default function ProjectTimer({ project: rawProject }: ProjectTimerProps)
       <CardHeader>
         <div className="flex justify-between items-start">
           <CardTitle className="text-lg font-semibold line-clamp-2">
-            {project.projectName}
+            {project.projectName || 'Project'}
           </CardTitle>
-          <Badge variant={getStatusVariant(project.status)}>
-            <div className={`w-2 h-2 rounded-full ${getStatusColor(project.status)} mr-2`} />
-            {project.status}
+          <Badge variant={getStatusVariant(project.status || 'active')}>
+            <div className={`w-2 h-2 rounded-full ${getStatusColor(project.status || 'active')} mr-2`} />
+            {project.status || 'active'}
           </Badge>
         </div>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
           {/* Client Information */}
-          <div className="bg-blue-50 p-3 rounded-lg">
-            <div className="flex items-center space-x-2 mb-2">
-              <User className="h-4 w-4 text-blue-600" />
-              <span className="text-sm font-medium text-blue-900">Client Details</span>
+          {(project.clientName || project.clientEmail) && (
+            <div className="bg-blue-50 p-3 rounded-lg">
+              <div className="flex items-center space-x-2 mb-2">
+                <User className="h-4 w-4 text-blue-600" />
+                <span className="text-sm font-medium text-blue-900">Client Details</span>
+              </div>
+              <div className="space-y-1">
+                {project.clientName && (
+                  <p className="text-sm text-blue-800 font-medium">
+                    {project.clientName}
+                  </p>
+                )}
+                {project.clientEmail && (
+                  <p className="text-xs text-blue-600">{project.clientEmail}</p>
+                )}
+                {project.clientPhone && (
+                  <p className="text-xs text-blue-600">{project.clientPhone}</p>
+                )}
+                {project.companyName && (
+                  <p className="text-xs text-blue-600">{project.companyName}</p>
+                )}
+              </div>
             </div>
-            <div className="space-y-1">
-              <p className="text-sm text-blue-800 font-medium">
-                {project.clientName}
-              </p>
-              <p className="text-xs text-blue-600">{project.clientEmail}</p>
-              {project.clientPhone && (
-                <p className="text-xs text-blue-600">{project.clientPhone}</p>
-              )}
-              {project.companyName && (
-                <p className="text-xs text-blue-600">{project.companyName}</p>
-              )}
-            </div>
-          </div>
+          )}
 
           {/* Project Description */}
           {project.description && (
@@ -205,17 +238,17 @@ export default function ProjectTimer({ project: rawProject }: ProjectTimerProps)
             <div>
               <p className="text-xs text-slate-500">Started</p>
               <p className="text-sm font-medium">
-                {new Date(project.createdAt).toLocaleDateString()}
+                {project.createdAt ? new Date(project.createdAt).toLocaleDateString() : 'N/A'}
               </p>
             </div>
             <div>
               <p className="text-xs text-slate-500">Timeline</p>
-              <p className="text-sm font-medium">{project.timeline || project.timelineWeeks}</p>
+              <p className="text-sm font-medium">{project.timeline || project.timelineWeeks || '4 weeks'}</p>
             </div>
             <div>
               <p className="text-xs text-slate-500">Due Date</p>
               <p className="text-sm font-medium">
-                {new Date(project.dueDate).toLocaleDateString()}
+                {project.dueDate ? new Date(project.dueDate).toLocaleDateString() : 'TBD'}
               </p>
             </div>
           </div>
@@ -248,7 +281,7 @@ export default function ProjectTimer({ project: rawProject }: ProjectTimerProps)
 
           {/* Project Stats */}
           <div className="text-xs text-slate-500 pt-2 border-t">
-            Timeline: {project.timeline || project.timelineWeeks} | Created: {new Date(project.createdAt).toLocaleDateString()}
+            Timeline: {project.timeline || project.timelineWeeks || '4 weeks'} | Created: {project.createdAt ? new Date(project.createdAt).toLocaleDateString() : 'N/A'}
           </div>
         </div>
       </CardContent>

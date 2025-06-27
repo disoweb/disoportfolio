@@ -34,7 +34,7 @@ import {
 } from "lucide-react";
 
 export default function ClientDashboard() {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [selectedOrder, setSelectedOrder] = React.useState<any>(null);
@@ -167,8 +167,16 @@ export default function ClientDashboard() {
     }
   }, [toast]);
 
+  // Fetch projects for active projects section
   const { data: projects = [], isLoading: projectsLoading } = useQuery({
     queryKey: ["/api/projects"],
+    enabled: isAuthenticated,
+    onSuccess: (data) => {
+      console.log('ClientDashboard - Projects data received:', data);
+    },
+    onError: (error) => {
+      console.error('ClientDashboard - Projects fetch error:', error);
+    }
   });
 
   const { data: orders = [], isLoading: ordersLoading } = useQuery({
