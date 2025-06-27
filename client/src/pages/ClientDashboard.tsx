@@ -167,30 +167,27 @@ export default function ClientDashboard() {
     }
   }, [toast]);
 
-  // Fetch projects for active projects section
+  // Parallel loading for instant dashboard - load all data simultaneously
   const { data: projects = [], isLoading: projectsLoading } = useQuery({
     queryKey: ["/api/projects"],
     enabled: isAuthenticated,
-    onSuccess: (data) => {
-      console.log('ClientDashboard - Projects data received:', data);
-    },
-    onError: (error) => {
-      console.error('ClientDashboard - Projects fetch error:', error);
-    }
+    staleTime: 60000, // 1 minute cache for better performance
   });
 
   const { data: orders = [], isLoading: ordersLoading } = useQuery({
     queryKey: ["/api/orders"],
+    enabled: isAuthenticated,
+    staleTime: 60000, // 1 minute cache for better performance
   });
 
-  // Calculate total spent from paid orders
-  const totalSpent = React.useMemo(() => {
-    if (!Array.isArray(orders)) return 0;
-    return orders.filter((o: any) => o.status === 'paid').reduce((sum: number, o: any) => {
-      const price = typeof o.totalPrice === 'string' ? parseInt(o.totalPrice) : (o.totalPrice || 0);
-      return sum + price;
-    }, 0);
-  }, [orders]);
+  const { data: stats = {} } = useQuery({
+    queryKey: ["/api/client/stats"],
+    enabled: isAuthenticated,
+    staleTime: 60000, // 1 minute cache for better performance
+  });
+
+  // Calculate total spent from stats for faster loading
+  const totalSpent = (stats as any)?.totalSpent || 0;
 
   // Filter orders based on selected filter
   const filteredOrders = React.useMemo(() => {
@@ -273,9 +270,7 @@ export default function ClientDashboard() {
     }
   }, [orders, filterCounts, hasSetDefaultFilter]);
 
-  const { data: stats = {} } = useQuery({
-    queryKey: ["/api/client/stats"],
-  });
+  // Remove the duplicate stats query since we already have it above
 
   if (projectsLoading || ordersLoading) {
     return (

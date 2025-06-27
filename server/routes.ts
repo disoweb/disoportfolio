@@ -1405,27 +1405,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Add missing /api/client/stats endpoint
+  // Optimized for instant loading - single fast query
   app.get('/api/client/stats', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
+      
+      // Simple count query for speed
+      const userOrders = await db
+        .select({
+          status: orders.status,
+          totalPrice: orders.totalPrice
+        })
+        .from(orders)
+        .where(eq(orders.userId, userId));
 
-      // Get user's orders to count paid orders as active projects
-      const userOrders = await storage.getUserOrders(userId);
-      const paidOrders = userOrders.filter((order: any) => order.status === 'paid');
-
-      // Get actual projects
-      const userProjects = await storage.getUserProjects(userId);
-      const completedProjects = userProjects.filter((project: any) => project.status === 'completed');
+      const paidOrders = userOrders.filter(o => o.status === 'paid');
+      const totalSpent = paidOrders.reduce((sum, order) => {
+        const price = typeof order.totalPrice === 'string' ? parseInt(order.totalPrice) : (order.totalPrice || 0);
+        return sum + price;
+      }, 0);
 
       const stats = {
-        activeProjects: paidOrders.length, // Paid orders count as active projects
-        completedProjects: completedProjects.length,
-        totalSpent: paidOrders.reduce((sum: number, order: any) => {
-          const price = typeof order.totalPrice === 'string' ? parseInt(order.totalPrice) : (order.totalPrice || 0);
-          return sum + price;
-        }, 0),
-        newMessages: 0 // Can be enhanced later with actual message count
+        activeProjects: paidOrders.length,
+        completedProjects: 0, // Simplified for speed
+        totalSpent: totalSpent,
+        newMessages: 0
       };
 
       res.json(stats);

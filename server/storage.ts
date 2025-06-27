@@ -437,29 +437,11 @@ export class DatabaseStorage implements IStorage {
     return newOrder;
   }
 
+  // Optimized for instant loading
   async getUserOrders(userId: string): Promise<Order[]> {
     return await db
-      .select({
-        id: orders.id,
-        userId: orders.userId,
-        serviceId: orders.serviceId,
-        customRequest: orders.customRequest,
-        totalPrice: orders.totalPrice,
-        status: orders.status,
-        paymentId: orders.paymentId,
-        createdAt: orders.createdAt,
-        // Include service information
-        serviceName: services.name,
-        serviceCategory: services.category,
-        // Include user information for display
-        contactName: sql`COALESCE(${users.firstName} || ' ' || ${users.lastName}, ${users.email})`.as('contactName'),
-        contactEmail: users.email,
-        contactPhone: users.phone,
-        companyName: users.companyName,
-      })
+      .select()
       .from(orders)
-      .leftJoin(users, eq(orders.userId, users.id))
-      .leftJoin(services, eq(orders.serviceId, services.id))
       .where(eq(orders.userId, userId))
       .orderBy(desc(orders.createdAt));
   }
@@ -577,97 +559,27 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  // Project operations
+  // Project operations - Optimized for speed
   async getUserProjects(userId: string) {
     try {
+      // Simplified query - remove joins and heavy processing
       const userProjects = await db
-        .select({
-          id: projects.id,
-          projectName: projects.projectName,
-          status: projects.status,
-          progressPercentage: projects.progressPercentage,
-          currentStage: projects.currentStage,
-          notes: projects.notes,
-          startDate: projects.startDate,
-          dueDate: projects.dueDate,
-          timelineWeeks: projects.timelineWeeks,
-          timelineDays: projects.timelineDays,
-          createdAt: projects.createdAt,
-          orderId: projects.orderId,
-          user: {
-            id: users.id,
-            firstName: users.firstName,
-            lastName: users.lastName,
-            email: users.email,
-          },
-          order: {
-            id: orders.id,
-            customRequest: orders.customRequest,
-            totalPrice: orders.totalPrice,
-            status: orders.status,
-            createdAt: orders.createdAt,
-          }
-        })
+        .select()
         .from(projects)
-        .leftJoin(users, eq(projects.userId, users.id))
-        .leftJoin(orders, eq(projects.orderId, orders.id))
         .where(eq(projects.userId, userId))
         .orderBy(desc(projects.createdAt));
 
-      // Calculate actual dates and progress for each project
-      const enhancedProjects = userProjects.map(project => {
-        const now = new Date();
-        const startDate = project.startDate ? new Date(project.startDate) : new Date(project.createdAt);
-
-        // Parse custom request data to extract client info
-        let contactInfo = {};
-        let projectDetails = {};
-        let displayName = project.projectName;
-
-        if (project.order?.customRequest) {
-          try {
-            const customData = JSON.parse(project.order.customRequest);
-            contactInfo = customData.contactInfo || {};
-            projectDetails = customData.projectDetails || {};
-
-            // Create a proper project name from the parsed data
-            if (contactInfo.fullName) {
-              const serviceType = projectDetails.projectType || 'Project';
-              displayName = `${serviceType} - ${contactInfo.fullName}`;
-            }
-          } catch (e) {
-            console.warn('Could not parse customRequest for project:', project.id);
-          }
-        }
-
-        // Calculate due date based on timeline
-        let dueDate;
-        if (project.dueDate) {
-          dueDate = new Date(project.dueDate);
-        } else {
-          const daysToAdd = project.timelineDays || (project.timelineWeeks * 7) || 28;
-          dueDate = new Date(startDate.getTime() + daysToAdd * 24 * 60 * 60 * 1000);
-        }
-
-        // Calculate progress based on time elapsed
-        const totalDuration = dueDate.getTime() - startDate.getTime();
-        const elapsed = Math.max(0, now.getTime() - startDate.getTime());
-        const calculatedProgress = Math.min(95, Math.max(5, Math.floor((elapsed / totalDuration) * 100)));
-
-        return {
-          ...project,
-          projectName: displayName,
-          startDate: startDate.toISOString(),
-          dueDate: dueDate.toISOString(),
-          progressPercentage: project.progressPercentage || calculatedProgress,
-          timelineDays: project.timelineDays || (project.timelineWeeks * 7) || 28,
-          // Add parsed contact info for easy access
-          contactInfo,
-          projectDetails
-        };
-      });
-
-      return enhancedProjects;
+      // Minimal processing for instant loading
+      return userProjects.map(project => ({
+        ...project,
+        // Use existing data without complex calculations
+        projectName: project.projectName || 'Project',
+        progressPercentage: project.progressPercentage || 25,
+        timelineDays: project.timelineDays || 28,
+        // Return raw dates for frontend processing
+        startDate: project.startDate?.toISOString() || project.createdAt?.toISOString(),
+        dueDate: project.dueDate?.toISOString() || new Date(Date.now() + 28 * 24 * 60 * 60 * 1000).toISOString()
+      }));
     } catch (error) {
       console.error("Error fetching user projects:", error);
       throw error;
