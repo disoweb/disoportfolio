@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import AdminNavigation from "@/components/AdminNavigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -35,7 +36,11 @@ import {
   ExternalLink,
   Lightbulb,
   AlertTriangle,
-  Info
+  Info,
+  Activity,
+  Clock,
+  Users,
+  Layers
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -59,7 +64,7 @@ export default function AdminSEO() {
       return await response.json();
     },
     retry: 3,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 
   // Fetch SEO pages
@@ -346,13 +351,16 @@ export default function AdminSEO() {
 
   if (isSettingsLoading) {
     return (
-      <div className="container mx-auto p-4 md:p-6">
-        <div className="space-y-6">
-          <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-32 bg-gray-200 rounded animate-pulse"></div>
-            ))}
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+        <AdminNavigation />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="space-y-6">
+            <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="h-32 bg-gray-200 rounded animate-pulse"></div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -362,865 +370,928 @@ export default function AdminSEO() {
   const seoHealthScore = calculateSEOHealth();
 
   return (
-    <div className="container mx-auto p-4 md:p-6 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
-            <Search className="h-6 w-6 md:h-8 md:w-8" />
-            SEO Management Dashboard
-          </h1>
-          <p className="text-gray-600 mt-2">Manage website SEO settings, page optimization, and performance tracking</p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+      {/* Header Navigation */}
+      <AdminNavigation />
+
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        {/* Page Header */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
+            <div className="flex items-center space-x-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center">
+                <Search className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">SEO Management</h1>
+                <p className="text-gray-600 mt-1">Optimize your website's search engine visibility</p>
+              </div>
+            </div>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              <Button 
+                variant="outline" 
+                onClick={refreshData} 
+                disabled={updateSettingsMutation.isPending}
+                className="flex items-center justify-center"
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${updateSettingsMutation.isPending ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+              <Button variant="outline" className="flex items-center justify-center">
+                <Download className="h-4 w-4 mr-2" />
+                Export Report
+              </Button>
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={refreshData} disabled={updateSettingsMutation.isPending}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${updateSettingsMutation.isPending ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-          <Button variant="outline">
-            <Download className="h-4 w-4 mr-2" />
-            Export Report
-          </Button>
-        </div>
-      </div>
 
-      {/* Error Alerts */}
-      {(settingsError || pagesError || keywordsError || auditsError) && (
-        <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Data Loading Error</AlertTitle>
-          <AlertDescription>
-            Some SEO data could not be loaded. Please check your connection and try refreshing the page.
-          </AlertDescription>
-        </Alert>
-      )}
+        {/* Error Alerts */}
+        {(settingsError || pagesError || keywordsError || auditsError) && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Data Loading Error</AlertTitle>
+            <AlertDescription>
+              Some SEO data could not be loaded. Please check your connection and try refreshing the page.
+            </AlertDescription>
+          </Alert>
+        )}
 
-      {/* SEO Health Score */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5" />
-            SEO Health Score
-          </CardTitle>
-          <CardDescription>Overall website SEO configuration status</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-4">
-            <div className="flex-1">
-              <Progress value={seoHealthScore} className="h-3" />
-            </div>
-            <div className={`text-2xl font-bold ${getScoreColor(seoHealthScore)}`}>
-              {seoHealthScore}%
-            </div>
-          </div>
-          <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-4 w-4 text-green-500" />
-              <span>Basic Settings: {seoSettings ? 'Configured' : 'Incomplete'}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <FileText className="h-4 w-4 text-blue-500" />
-              <span>Pages: {seoPages?.filter((p: any) => p.isActive).length || 0} active</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Target className="h-4 w-4 text-purple-500" />
-              <span>Keywords: {seoKeywords?.filter((k: any) => k.isActive).length || 0} tracked</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-5">
-          <TabsTrigger value="overview" className="flex items-center gap-2">
-            <BarChart3 className="h-4 w-4" />
-            <span className="hidden sm:inline">Overview</span>
-          </TabsTrigger>
-          <TabsTrigger value="settings" className="flex items-center gap-2">
-            <Settings className="h-4 w-4" />
-            <span className="hidden sm:inline">Settings</span>
-          </TabsTrigger>
-          <TabsTrigger value="pages" className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            <span className="hidden sm:inline">Pages</span>
-          </TabsTrigger>
-          <TabsTrigger value="keywords" className="flex items-center gap-2">
-            <Target className="h-4 w-4" />
-            <span className="hidden sm:inline">Keywords</span>
-          </TabsTrigger>
-          <TabsTrigger value="audits" className="flex items-center gap-2">
-            <CheckCircle className="h-4 w-4" />
-            <span className="hidden sm:inline">Audits</span>
-          </TabsTrigger>
-        </TabsList>
-
-        {/* Overview Tab */}
-        <TabsContent value="overview" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-6">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Pages</CardTitle>
-                <FileText className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{seoPages?.length || 0}</div>
-                <p className="text-xs text-muted-foreground">
-                  {seoPages?.filter((p: any) => p.isActive).length || 0} active
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Keywords Tracked</CardTitle>
-                <Target className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{seoKeywords?.length || 0}</div>
-                <p className="text-xs text-muted-foreground">
-                  {seoKeywords?.filter((k: any) => k.isActive).length || 0} active
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Audits Completed</CardTitle>
-                <CheckCircle className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {seoAudits?.filter((a: any) => a.status === "completed").length || 0}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {seoAudits?.filter((a: any) => a.status === "pending").length || 0} pending
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Average Score</CardTitle>
-                <TrendingUp className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {seoAudits?.length ? 
-                    Math.round(seoAudits.filter((a: any) => a.score).reduce((acc: number, a: any) => acc + a.score, 0) / seoAudits.filter((a: any) => a.score).length) 
-                    : 0}
-                </div>
-                <p className="text-xs text-muted-foreground">SEO audit score</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Quick Actions */}
-          <Card>
+        {/* SEO Health Dashboard */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Health Score Card */}
+          <Card className="lg:col-span-2">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Zap className="h-5 w-5" />
-                Quick Actions
+                <TrendingUp className="h-5 w-5 text-green-600" />
+                SEO Health Score
               </CardTitle>
-              <CardDescription>Common SEO management tasks</CardDescription>
+              <CardDescription>Overall website SEO configuration status</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Button onClick={() => setIsPageModalOpen(true)} className="h-auto flex-col gap-2 p-4">
-                  <Plus className="h-5 w-5" />
-                  <span>Add New Page</span>
-                </Button>
-                <Button onClick={() => setIsKeywordModalOpen(true)} variant="outline" className="h-auto flex-col gap-2 p-4">
-                  <Target className="h-5 w-5" />
-                  <span>Track Keyword</span>
-                </Button>
-                <Button onClick={() => setIsAuditModalOpen(true)} variant="outline" className="h-auto flex-col gap-2 p-4">
-                  <CheckCircle className="h-5 w-5" />
-                  <span>Run Audit</span>
-                </Button>
+              <div className="flex items-center gap-4 mb-4">
+                <div className="flex-1">
+                  <Progress value={seoHealthScore} className="h-3" />
+                </div>
+                <div className={`text-3xl font-bold ${getScoreColor(seoHealthScore)}`}>
+                  {seoHealthScore}%
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <span>Settings: {seoSettings ? 'Ready' : 'Pending'}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-blue-500" />
+                  <span>Pages: {seoPages?.filter((p: any) => p.isActive).length || 0}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Target className="h-4 w-4 text-purple-500" />
+                  <span>Keywords: {seoKeywords?.filter((k: any) => k.isActive).length || 0}</span>
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* SEO Recommendations */}
+          {/* Quick Stats */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Lightbulb className="h-5 w-5" />
-                SEO Recommendations
-              </CardTitle>
-              <CardDescription>Suggestions to improve your SEO performance</CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Active Pages</CardTitle>
+              <Layers className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {!seoSettings?.googleAnalyticsId && (
-                  <Alert>
-                    <Info className="h-4 w-4" />
-                    <AlertTitle>Add Google Analytics</AlertTitle>
-                    <AlertDescription>
-                      Set up Google Analytics to track your website performance and user behavior.
-                    </AlertDescription>
-                  </Alert>
-                )}
-                
-                {seoPages?.length === 0 && (
-                  <Alert>
-                    <Info className="h-4 w-4" />
-                    <AlertTitle>Configure Page SEO</AlertTitle>
-                    <AlertDescription>
-                      Add SEO configurations for your main pages to improve search engine visibility.
-                    </AlertDescription>
-                  </Alert>
-                )}
-                
-                {seoKeywords?.length < 5 && (
-                  <Alert>
-                    <Info className="h-4 w-4" />
-                    <AlertTitle>Track More Keywords</AlertTitle>
-                    <AlertDescription>
-                      Add more target keywords to monitor your search engine rankings effectively.
-                    </AlertDescription>
-                  </Alert>
-                )}
-              </div>
+              <div className="text-2xl font-bold">{seoPages?.filter((p: any) => p.isActive).length || 0}</div>
+              <p className="text-xs text-muted-foreground">
+                of {seoPages?.length || 0} total pages
+              </p>
             </CardContent>
           </Card>
 
-          {/* Recent Activity */}
           <Card>
-            <CardHeader>
-              <CardTitle>Recent SEO Activity</CardTitle>
-              <CardDescription>Latest pages, keywords, and audits</CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Tracking Keywords</CardTitle>
+              <Target className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {/* Recent Pages */}
-                {seoPages?.slice(0, 3).map((page: any) => (
-                  <div key={page.id} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <FileText className="h-5 w-5 text-blue-500" />
-                      <div>
-                        <p className="font-medium">{page.title}</p>
-                        <p className="text-sm text-gray-500">{page.path}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={page.isActive ? "default" : "secondary"}>
-                        {page.isActive ? "Active" : "Inactive"}
-                      </Badge>
-                      <Button variant="ghost" size="sm" onClick={() => handleEditPage(page)}>
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-                
-                {/* Recent Keywords */}
-                {seoKeywords?.slice(0, 2).map((keyword: any) => (
-                  <div key={keyword.id} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <Target className="h-5 w-5 text-green-500" />
-                      <div>
-                        <p className="font-medium">{keyword.keyword}</p>
-                        <p className="text-sm text-gray-500">
-                          Target: {keyword.targetPage || "Not set"}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {keyword.searchVolume && (
-                        <Badge variant="outline">{keyword.searchVolume} searches</Badge>
-                      )}
-                      <Button variant="ghost" size="sm" onClick={() => handleEditKeyword(keyword)}>
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <div className="text-2xl font-bold">{seoKeywords?.length || 0}</div>
+              <p className="text-xs text-muted-foreground">
+                {seoKeywords?.filter((k: any) => k.isActive).length || 0} active
+              </p>
             </CardContent>
           </Card>
-        </TabsContent>
+        </div>
 
-        {/* Settings Tab */}
-        <TabsContent value="settings" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Global SEO Settings</CardTitle>
-              <CardDescription>Configure site-wide SEO parameters and tracking codes</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="siteName">Site Name</Label>
-                  <Input
-                    id="siteName"
-                    defaultValue={seoSettings?.siteName}
-                    onBlur={(e) => handleUpdateSettings("siteName", e.target.value)}
-                    placeholder="Your Company Name"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="siteUrl">Site URL</Label>
-                  <Input
-                    id="siteUrl"
-                    defaultValue={seoSettings?.siteUrl}
-                    onBlur={(e) => handleUpdateSettings("siteUrl", e.target.value)}
-                    placeholder="https://yourwebsite.com"
-                  />
-                </div>
-              </div>
+        {/* Main Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-2">
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 gap-2">
+              <TabsTrigger value="overview" className="flex items-center gap-2 text-sm">
+                <BarChart3 className="h-4 w-4" />
+                <span className="hidden sm:inline">Overview</span>
+              </TabsTrigger>
+              <TabsTrigger value="settings" className="flex items-center gap-2 text-sm">
+                <Settings className="h-4 w-4" />
+                <span className="hidden sm:inline">Settings</span>
+              </TabsTrigger>
+              <TabsTrigger value="pages" className="flex items-center gap-2 text-sm">
+                <FileText className="h-4 w-4" />
+                <span className="hidden sm:inline">Pages</span>
+              </TabsTrigger>
+              <TabsTrigger value="keywords" className="flex items-center gap-2 text-sm">
+                <Target className="h-4 w-4" />
+                <span className="hidden sm:inline">Keywords</span>
+              </TabsTrigger>
+              <TabsTrigger value="audits" className="flex items-center gap-2 text-sm">
+                <CheckCircle className="h-4 w-4" />
+                <span className="hidden sm:inline">Audits</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="siteDescription">Site Description</Label>
-                <Textarea
-                  id="siteDescription"
-                  defaultValue={seoSettings?.siteDescription}
-                  onBlur={(e) => handleUpdateSettings("siteDescription", e.target.value)}
-                  placeholder="Brief description of your website and services"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="defaultMetaTitle">Default Meta Title</Label>
-                <Input
-                  id="defaultMetaTitle"
-                  defaultValue={seoSettings?.defaultMetaTitle}
-                  onBlur={(e) => handleUpdateSettings("defaultMetaTitle", e.target.value)}
-                  placeholder="Your Company - Professional Services"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="defaultMetaDescription">Default Meta Description</Label>
-                <Textarea
-                  id="defaultMetaDescription"
-                  defaultValue={seoSettings?.defaultMetaDescription}
-                  onBlur={(e) => handleUpdateSettings("defaultMetaDescription", e.target.value)}
-                  placeholder="Default description for pages without specific meta descriptions"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="defaultKeywords">Default Keywords</Label>
-                <Input
-                  id="defaultKeywords"
-                  placeholder="keyword1, keyword2, keyword3"
-                  defaultValue={seoSettings?.defaultKeywords}
-                  onBlur={(e) => handleUpdateSettings("defaultKeywords", e.target.value)}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="googleAnalyticsId">Google Analytics ID</Label>
-                  <Input
-                    id="googleAnalyticsId"
-                    placeholder="GA-XXXXXXXXX-X"
-                    defaultValue={seoSettings?.googleAnalyticsId}
-                    onBlur={(e) => handleUpdateSettings("googleAnalyticsId", e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="googleTagManagerId">Google Tag Manager ID</Label>
-                  <Input
-                    id="googleTagManagerId"
-                    placeholder="GTM-XXXXXXX"
-                    defaultValue={seoSettings?.googleTagManagerId}
-                    onBlur={(e) => handleUpdateSettings("googleTagManagerId", e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="sitemapEnabled"
-                    checked={seoSettings?.sitemapEnabled}
-                    onCheckedChange={(checked) => handleUpdateSettings("sitemapEnabled", checked)}
-                  />
-                  <Label htmlFor="sitemapEnabled">Enable Sitemap</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="openGraphEnabled"
-                    checked={seoSettings?.openGraphEnabled}
-                    onCheckedChange={(checked) => handleUpdateSettings("openGraphEnabled", checked)}
-                  />
-                  <Label htmlFor="openGraphEnabled">Open Graph Tags</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="structuredDataEnabled"
-                    checked={seoSettings?.structuredDataEnabled}
-                    onCheckedChange={(checked) => handleUpdateSettings("structuredDataEnabled", checked)}
-                  />
-                  <Label htmlFor="structuredDataEnabled">Structured Data</Label>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Pages Tab */}
-        <TabsContent value="pages" className="space-y-6">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <h3 className="text-lg font-medium">SEO Pages</h3>
-              <p className="text-gray-600">Manage page-specific SEO settings</p>
-            </div>
-            <Dialog open={isPageModalOpen} onOpenChange={(open) => {
-              setIsPageModalOpen(open);
-              if (!open) {
-                setSelectedPage(null);
-                setIsEditMode(false);
-              }
-            }}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Page
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>{isEditMode ? 'Edit' : 'Add'} SEO Page Configuration</DialogTitle>
-                  <DialogDescription>
-                    Configure SEO settings for a specific page
-                  </DialogDescription>
-                </DialogHeader>
-                <form onSubmit={(e) => {
-                  e.preventDefault();
-                  handleCreatePage(new FormData(e.target as HTMLFormElement));
-                }} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="path">Page Path</Label>
-                      <Input 
-                        id="path" 
-                        name="path" 
-                        placeholder="/about" 
-                        defaultValue={selectedPage?.path}
-                        required 
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="title">Page Title</Label>
-                      <Input 
-                        id="title" 
-                        name="title" 
-                        placeholder="About Us" 
-                        defaultValue={selectedPage?.title}
-                        required 
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="metaDescription">Meta Description</Label>
-                    <Textarea 
-                      id="metaDescription" 
-                      name="metaDescription" 
-                      placeholder="Page description for search engines" 
-                      defaultValue={selectedPage?.metaDescription}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="keywords">Keywords</Label>
-                    <Input 
-                      id="keywords" 
-                      name="keywords" 
-                      placeholder="keyword1, keyword2, keyword3" 
-                      defaultValue={selectedPage?.keywords}
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="priority">Priority</Label>
-                      <Input 
-                        id="priority" 
-                        name="priority" 
-                        type="number" 
-                        min="0" 
-                        max="1" 
-                        step="0.1" 
-                        defaultValue={selectedPage?.priority || 0.5} 
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="changeFrequency">Change Frequency</Label>
-                      <Select name="changeFrequency" defaultValue={selectedPage?.changeFrequency || "weekly"}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="daily">Daily</SelectItem>
-                          <SelectItem value="weekly">Weekly</SelectItem>
-                          <SelectItem value="monthly">Monthly</SelectItem>
-                          <SelectItem value="yearly">Yearly</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <Button type="submit" disabled={createPageMutation.isPending} className="w-full">
-                    {createPageMutation.isPending ? (isEditMode ? "Updating..." : "Creating...") : (isEditMode ? "Update Page" : "Create Page")}
+          {/* Overview Tab */}
+          <TabsContent value="overview" className="space-y-6">
+            {/* Quick Actions */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Zap className="h-5 w-5 text-yellow-500" />
+                  Quick Actions
+                </CardTitle>
+                <CardDescription>Common SEO management tasks</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <Button 
+                    onClick={() => setIsPageModalOpen(true)} 
+                    className="h-20 flex-col gap-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
+                  >
+                    <Plus className="h-5 w-5" />
+                    <span className="text-sm">Add New Page</span>
                   </Button>
-                </form>
-              </DialogContent>
-            </Dialog>
-          </div>
+                  <Button 
+                    onClick={() => setIsKeywordModalOpen(true)} 
+                    variant="outline" 
+                    className="h-20 flex-col gap-2 border-2 hover:bg-gray-50"
+                  >
+                    <Target className="h-5 w-5" />
+                    <span className="text-sm">Track Keyword</span>
+                  </Button>
+                  <Button 
+                    onClick={() => setIsAuditModalOpen(true)} 
+                    variant="outline" 
+                    className="h-20 flex-col gap-2 border-2 hover:bg-gray-50"
+                  >
+                    <CheckCircle className="h-5 w-5" />
+                    <span className="text-sm">Run Audit</span>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
 
-          <div className="grid gap-4">
-            {isPagesLoading ? (
-              <div className="space-y-3">
-                {[...Array(3)].map((_, i) => (
-                  <div key={i} className="h-16 bg-gray-100 rounded animate-pulse"></div>
-                ))}
-              </div>
-            ) : seoPages?.length > 0 ? (
-              seoPages.map((page: any) => (
-                <Card key={page.id}>
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <h4 className="font-medium">{page.title}</h4>
-                          <Badge variant={page.isActive ? "default" : "secondary"}>
-                            {page.isActive ? "Active" : "Inactive"}
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-gray-600">{page.path}</p>
-                        {page.metaDescription && (
-                          <p className="text-sm text-gray-500 mt-1">{page.metaDescription}</p>
-                        )}
-                        <div className="flex items-center gap-4 mt-2 text-xs text-gray-400">
-                          <span>Priority: {page.priority}</span>
-                          <span>Frequency: {page.changeFrequency}</span>
-                          {page.updatedAt && (
-                            <span>Updated: {new Date(page.updatedAt).toLocaleDateString()}</span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm" onClick={() => handleEditPage(page)}>
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => {
-                            if (confirm('Are you sure you want to delete this page?')) {
-                              deletePageMutation.mutate(page.id);
-                            }
-                          }}
-                          disabled={deletePageMutation.isPending}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            ) : (
+            {/* Recent Activity */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Recent Pages */}
               <Card>
-                <CardContent className="p-6 text-center">
-                  <FileText className="mx-auto h-12 w-12 text-gray-300 mb-4" />
-                  <p className="text-gray-500">No SEO pages configured yet</p>
-                  <p className="text-sm text-gray-400">Add your first page to get started</p>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Recent Pages
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {isPagesLoading ? (
+                      [...Array(3)].map((_, i) => (
+                        <div key={i} className="h-12 bg-gray-100 rounded animate-pulse"></div>
+                      ))
+                    ) : seoPages?.length > 0 ? (
+                      seoPages.slice(0, 3).map((page: any) => (
+                        <div key={page.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors">
+                          <div className="flex items-center space-x-3">
+                            <Globe className="h-4 w-4 text-blue-500" />
+                            <div>
+                              <p className="font-medium text-sm">{page.title}</p>
+                              <p className="text-xs text-gray-500">{page.path}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge variant={page.isActive ? "default" : "secondary"} className="text-xs">
+                              {page.isActive ? "Active" : "Inactive"}
+                            </Badge>
+                            <Button variant="ghost" size="sm" onClick={() => handleEditPage(page)}>
+                              <Edit className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-8 text-gray-500">
+                        <FileText className="mx-auto h-8 w-8 text-gray-300 mb-2" />
+                        <p className="text-sm">No pages configured</p>
+                      </div>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
-            )}
-          </div>
-        </TabsContent>
 
-        {/* Keywords Tab */}
-        <TabsContent value="keywords" className="space-y-6">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <h3 className="text-lg font-medium">SEO Keywords</h3>
-              <p className="text-gray-600">Track keyword rankings and performance</p>
+              {/* Recent Keywords */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Target className="h-5 w-5" />
+                    Recent Keywords
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {isKeywordsLoading ? (
+                      [...Array(3)].map((_, i) => (
+                        <div key={i} className="h-12 bg-gray-100 rounded animate-pulse"></div>
+                      ))
+                    ) : seoKeywords?.length > 0 ? (
+                      seoKeywords.slice(0, 3).map((keyword: any) => (
+                        <div key={keyword.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors">
+                          <div className="flex items-center space-x-3">
+                            <Search className="h-4 w-4 text-green-500" />
+                            <div>
+                              <p className="font-medium text-sm">{keyword.keyword}</p>
+                              <p className="text-xs text-gray-500">
+                                {keyword.targetPage || "No target set"}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {keyword.searchVolume && (
+                              <Badge variant="outline" className="text-xs">
+                                {keyword.searchVolume} searches
+                              </Badge>
+                            )}
+                            <Button variant="ghost" size="sm" onClick={() => handleEditKeyword(keyword)}>
+                              <Edit className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-8 text-gray-500">
+                        <Target className="mx-auto h-8 w-8 text-gray-300 mb-2" />
+                        <p className="text-sm">No keywords tracked</p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
             </div>
-            <Dialog open={isKeywordModalOpen} onOpenChange={(open) => {
-              setIsKeywordModalOpen(open);
-              if (!open) {
-                setSelectedKeyword(null);
-                setIsEditMode(false);
-              }
-            }}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Keyword
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>{isEditMode ? 'Edit' : 'Add'} SEO Keyword</DialogTitle>
-                  <DialogDescription>
-                    {isEditMode ? 'Update the' : 'Add a new'} keyword to track
-                  </DialogDescription>
-                </DialogHeader>
-                <form onSubmit={(e) => {
-                  e.preventDefault();
-                  handleCreateKeyword(new FormData(e.target as HTMLFormElement));
-                }} className="space-y-4">
+
+            {/* SEO Recommendations */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Lightbulb className="h-5 w-5 text-yellow-500" />
+                  SEO Recommendations
+                </CardTitle>
+                <CardDescription>Suggestions to improve your SEO performance</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {!seoSettings?.googleAnalyticsId && (
+                    <Alert>
+                      <Info className="h-4 w-4" />
+                      <AlertTitle>Add Google Analytics</AlertTitle>
+                      <AlertDescription>
+                        Set up Google Analytics to track your website performance and user behavior.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  
+                  {(seoPages?.length || 0) === 0 && (
+                    <Alert>
+                      <Info className="h-4 w-4" />
+                      <AlertTitle>Configure Page SEO</AlertTitle>
+                      <AlertDescription>
+                        Add SEO configurations for your main pages to improve search engine visibility.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  
+                  {(seoKeywords?.length || 0) < 5 && (
+                    <Alert>
+                      <Info className="h-4 w-4" />
+                      <AlertTitle>Track More Keywords</AlertTitle>
+                      <AlertDescription>
+                        Add more target keywords to monitor your search engine rankings effectively.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Settings Tab */}
+          <TabsContent value="settings" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Global SEO Settings</CardTitle>
+                <CardDescription>Configure site-wide SEO parameters and tracking codes</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="keyword">Keyword</Label>
-                    <Input 
-                      id="keyword" 
-                      name="keyword" 
-                      placeholder="web development" 
-                      defaultValue={selectedKeyword?.keyword}
-                      required 
+                    <Label htmlFor="siteName">Site Name</Label>
+                    <Input
+                      id="siteName"
+                      defaultValue={seoSettings?.siteName}
+                      onBlur={(e) => handleUpdateSettings("siteName", e.target.value)}
+                      placeholder="Your Company Name"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="targetPage">Target Page</Label>
-                    <Input 
-                      id="targetPage" 
-                      name="targetPage" 
-                      placeholder="/services" 
-                      defaultValue={selectedKeyword?.targetPage}
+                    <Label htmlFor="siteUrl">Site URL</Label>
+                    <Input
+                      id="siteUrl"
+                      defaultValue={seoSettings?.siteUrl}
+                      onBlur={(e) => handleUpdateSettings("siteUrl", e.target.value)}
+                      placeholder="https://yourwebsite.com"
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="siteDescription">Site Description</Label>
+                  <Textarea
+                    id="siteDescription"
+                    defaultValue={seoSettings?.siteDescription}
+                    onBlur={(e) => handleUpdateSettings("siteDescription", e.target.value)}
+                    placeholder="Brief description of your website and services"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="defaultMetaTitle">Default Meta Title</Label>
+                  <Input
+                    id="defaultMetaTitle"
+                    defaultValue={seoSettings?.defaultMetaTitle}
+                    onBlur={(e) => handleUpdateSettings("defaultMetaTitle", e.target.value)}
+                    placeholder="Your Company - Professional Services"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="defaultMetaDescription">Default Meta Description</Label>
+                  <Textarea
+                    id="defaultMetaDescription"
+                    defaultValue={seoSettings?.defaultMetaDescription}
+                    onBlur={(e) => handleUpdateSettings("defaultMetaDescription", e.target.value)}
+                    placeholder="Default description for pages without specific meta descriptions"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="defaultKeywords">Default Keywords</Label>
+                  <Input
+                    id="defaultKeywords"
+                    placeholder="keyword1, keyword2, keyword3"
+                    defaultValue={seoSettings?.defaultKeywords}
+                    onBlur={(e) => handleUpdateSettings("defaultKeywords", e.target.value)}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="googleAnalyticsId">Google Analytics ID</Label>
+                    <Input
+                      id="googleAnalyticsId"
+                      placeholder="GA-XXXXXXXXX-X"
+                      defaultValue={seoSettings?.googleAnalyticsId}
+                      onBlur={(e) => handleUpdateSettings("googleAnalyticsId", e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="googleTagManagerId">Google Tag Manager ID</Label>
+                    <Input
+                      id="googleTagManagerId"
+                      placeholder="GTM-XXXXXXX"
+                      defaultValue={seoSettings?.googleTagManagerId}
+                      onBlur={(e) => handleUpdateSettings("googleTagManagerId", e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="sitemapEnabled"
+                      checked={seoSettings?.sitemapEnabled}
+                      onCheckedChange={(checked) => handleUpdateSettings("sitemapEnabled", checked)}
+                    />
+                    <Label htmlFor="sitemapEnabled">Enable Sitemap</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="openGraphEnabled"
+                      checked={seoSettings?.openGraphEnabled}
+                      onCheckedChange={(checked) => handleUpdateSettings("openGraphEnabled", checked)}
+                    />
+                    <Label htmlFor="openGraphEnabled">Open Graph Tags</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="structuredDataEnabled"
+                      checked={seoSettings?.structuredDataEnabled}
+                      onCheckedChange={(checked) => handleUpdateSettings("structuredDataEnabled", checked)}
+                    />
+                    <Label htmlFor="structuredDataEnabled">Structured Data</Label>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Pages Tab */}
+          <TabsContent value="pages" className="space-y-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <h3 className="text-lg font-medium">SEO Pages</h3>
+                <p className="text-gray-600">Manage page-specific SEO settings</p>
+              </div>
+              <Dialog open={isPageModalOpen} onOpenChange={(open) => {
+                setIsPageModalOpen(open);
+                if (!open) {
+                  setSelectedPage(null);
+                  setIsEditMode(false);
+                }
+              }}>
+                <DialogTrigger asChild>
+                  <Button className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Page
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>{isEditMode ? 'Edit' : 'Add'} SEO Page Configuration</DialogTitle>
+                    <DialogDescription>
+                      Configure SEO settings for a specific page
+                    </DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={(e) => {
+                    e.preventDefault();
+                    handleCreatePage(new FormData(e.target as HTMLFormElement));
+                  }} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="path">Page Path</Label>
+                        <Input 
+                          id="path" 
+                          name="path" 
+                          placeholder="/about" 
+                          defaultValue={selectedPage?.path}
+                          required 
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="title">Page Title</Label>
+                        <Input 
+                          id="title" 
+                          name="title" 
+                          placeholder="About Us" 
+                          defaultValue={selectedPage?.title}
+                          required 
+                        />
+                      </div>
+                    </div>
                     <div className="space-y-2">
-                      <Label htmlFor="searchVolume">Search Volume</Label>
-                      <Input 
-                        id="searchVolume" 
-                        name="searchVolume" 
-                        type="number" 
-                        placeholder="1000" 
-                        defaultValue={selectedKeyword?.searchVolume}
+                      <Label htmlFor="metaDescription">Meta Description</Label>
+                      <Textarea 
+                        id="metaDescription" 
+                        name="metaDescription" 
+                        placeholder="Page description for search engines" 
+                        defaultValue={selectedPage?.metaDescription}
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="difficulty">Difficulty (1-100)</Label>
+                      <Label htmlFor="keywords">Keywords</Label>
                       <Input 
-                        id="difficulty" 
-                        name="difficulty" 
+                        id="keywords" 
+                        name="keywords" 
+                        placeholder="keyword1, keyword2, keyword3" 
+                        defaultValue={selectedPage?.keywords}
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="priority">Priority</Label>
+                        <Input 
+                          id="priority" 
+                          name="priority" 
+                          type="number" 
+                          min="0" 
+                          max="1" 
+                          step="0.1" 
+                          defaultValue={selectedPage?.priority || 0.5} 
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="changeFrequency">Change Frequency</Label>
+                        <Select name="changeFrequency" defaultValue={selectedPage?.changeFrequency || "weekly"}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="daily">Daily</SelectItem>
+                            <SelectItem value="weekly">Weekly</SelectItem>
+                            <SelectItem value="monthly">Monthly</SelectItem>
+                            <SelectItem value="yearly">Yearly</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <Button type="submit" disabled={createPageMutation.isPending} className="w-full">
+                      {createPageMutation.isPending ? (isEditMode ? "Updating..." : "Creating...") : (isEditMode ? "Update Page" : "Create Page")}
+                    </Button>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            <div className="grid gap-4">
+              {isPagesLoading ? (
+                <div className="space-y-3">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="h-16 bg-gray-100 rounded animate-pulse"></div>
+                  ))}
+                </div>
+              ) : seoPages?.length > 0 ? (
+                seoPages.map((page: any) => (
+                  <Card key={page.id} className="hover:shadow-md transition-shadow">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <h4 className="font-medium">{page.title}</h4>
+                            <Badge variant={page.isActive ? "default" : "secondary"}>
+                              {page.isActive ? "Active" : "Inactive"}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-gray-600">{page.path}</p>
+                          {page.metaDescription && (
+                            <p className="text-sm text-gray-500 mt-1 line-clamp-2">{page.metaDescription}</p>
+                          )}
+                          <div className="flex items-center gap-4 mt-2 text-xs text-gray-400">
+                            <span>Priority: {page.priority}</span>
+                            <span>Frequency: {page.changeFrequency}</span>
+                            {page.updatedAt && (
+                              <span>Updated: {new Date(page.updatedAt).toLocaleDateString()}</span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button variant="outline" size="sm" onClick={() => handleEditPage(page)}>
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button variant="outline" size="sm">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => {
+                              if (confirm('Are you sure you want to delete this page?')) {
+                                deletePageMutation.mutate(page.id);
+                              }
+                            }}
+                            disabled={deletePageMutation.isPending}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              ) : (
+                <Card>
+                  <CardContent className="p-12 text-center">
+                    <FileText className="mx-auto h-12 w-12 text-gray-300 mb-4" />
+                    <p className="text-gray-500 text-lg font-medium">No SEO pages configured yet</p>
+                    <p className="text-sm text-gray-400 mt-2">Add your first page to get started with SEO optimization</p>
+                    <Button 
+                      onClick={() => setIsPageModalOpen(true)} 
+                      className="mt-4 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add First Page
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </TabsContent>
+
+          {/* Keywords Tab */}
+          <TabsContent value="keywords" className="space-y-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <h3 className="text-lg font-medium">SEO Keywords</h3>
+                <p className="text-gray-600">Track keyword rankings and performance</p>
+              </div>
+              <Dialog open={isKeywordModalOpen} onOpenChange={(open) => {
+                setIsKeywordModalOpen(open);
+                if (!open) {
+                  setSelectedKeyword(null);
+                  setIsEditMode(false);
+                }
+              }}>
+                <DialogTrigger asChild>
+                  <Button className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Keyword
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>{isEditMode ? 'Edit' : 'Add'} SEO Keyword</DialogTitle>
+                    <DialogDescription>
+                      {isEditMode ? 'Update the' : 'Add a new'} keyword to track
+                    </DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={(e) => {
+                    e.preventDefault();
+                    handleCreateKeyword(new FormData(e.target as HTMLFormElement));
+                  }} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="keyword">Keyword</Label>
+                      <Input 
+                        id="keyword" 
+                        name="keyword" 
+                        placeholder="web development" 
+                        defaultValue={selectedKeyword?.keyword}
+                        required 
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="targetPage">Target Page</Label>
+                      <Input 
+                        id="targetPage" 
+                        name="targetPage" 
+                        placeholder="/services" 
+                        defaultValue={selectedKeyword?.targetPage}
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="searchVolume">Search Volume</Label>
+                        <Input 
+                          id="searchVolume" 
+                          name="searchVolume" 
+                          type="number" 
+                          placeholder="1000" 
+                          defaultValue={selectedKeyword?.searchVolume}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="difficulty">Difficulty (1-100)</Label>
+                        <Input 
+                          id="difficulty" 
+                          name="difficulty" 
+                          type="number" 
+                          min="1" 
+                          max="100" 
+                          placeholder="50" 
+                          defaultValue={selectedKeyword?.difficulty}
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="targetRanking">Target Ranking</Label>
+                      <Input 
+                        id="targetRanking" 
+                        name="targetRanking" 
                         type="number" 
                         min="1" 
                         max="100" 
-                        placeholder="50" 
-                        defaultValue={selectedKeyword?.difficulty}
+                        placeholder="10" 
+                        defaultValue={selectedKeyword?.targetRanking}
                       />
                     </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="targetRanking">Target Ranking</Label>
-                    <Input 
-                      id="targetRanking" 
-                      name="targetRanking" 
-                      type="number" 
-                      min="1" 
-                      max="100" 
-                      placeholder="10" 
-                      defaultValue={selectedKeyword?.targetRanking}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="notes">Notes</Label>
-                    <Textarea 
-                      id="notes" 
-                      name="notes" 
-                      placeholder="Additional notes about this keyword" 
-                      defaultValue={selectedKeyword?.notes}
-                    />
-                  </div>
-                  <Button type="submit" disabled={createKeywordMutation.isPending} className="w-full">
-                    {createKeywordMutation.isPending ? (isEditMode ? "Updating..." : "Adding...") : (isEditMode ? "Update Keyword" : "Add Keyword")}
-                  </Button>
-                </form>
-              </DialogContent>
-            </Dialog>
-          </div>
-
-          <div className="grid gap-4">
-            {isKeywordsLoading ? (
-              <div className="space-y-3">
-                {[...Array(3)].map((_, i) => (
-                  <div key={i} className="h-16 bg-gray-100 rounded animate-pulse"></div>
-                ))}
-              </div>
-            ) : seoKeywords?.length > 0 ? (
-              seoKeywords.map((keyword: any) => (
-                <Card key={keyword.id}>
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <h4 className="font-medium">{keyword.keyword}</h4>
-                          <Badge variant={keyword.isActive ? "default" : "secondary"}>
-                            {keyword.isActive ? "Active" : "Inactive"}
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-gray-600">
-                          Target: {keyword.targetPage || "Not set"}
-                        </p>
-                        <div className="flex gap-4 mt-2 text-sm text-gray-500">
-                          {keyword.searchVolume && (
-                            <span>Volume: {keyword.searchVolume.toLocaleString()}</span>
-                          )}
-                          {keyword.difficulty && (
-                            <span>Difficulty: {keyword.difficulty}/100</span>
-                          )}
-                          {keyword.currentRanking && (
-                            <span>Current: #{keyword.currentRanking}</span>
-                          )}
-                          {keyword.targetRanking && (
-                            <span>Target: #{keyword.targetRanking}</span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm" onClick={() => handleEditKeyword(keyword)}>
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          <BarChart3 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="notes">Notes</Label>
+                      <Textarea 
+                        id="notes" 
+                        name="notes" 
+                        placeholder="Additional notes about this keyword" 
+                        defaultValue={selectedKeyword?.notes}
+                      />
                     </div>
-                  </CardContent>
-                </Card>
-              ))
-            ) : (
-              <Card>
-                <CardContent className="p-6 text-center">
-                  <Target className="mx-auto h-12 w-12 text-gray-300 mb-4" />
-                  <p className="text-gray-500">No keywords being tracked yet</p>
-                  <p className="text-sm text-gray-400">Add keywords to monitor their performance</p>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </TabsContent>
-
-        {/* Audits Tab */}
-        <TabsContent value="audits" className="space-y-6">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <h3 className="text-lg font-medium">SEO Audits</h3>
-              <p className="text-gray-600">Track SEO performance and issues</p>
+                    <Button type="submit" disabled={createKeywordMutation.isPending} className="w-full">
+                      {createKeywordMutation.isPending ? (isEditMode ? "Updating..." : "Adding...") : (isEditMode ? "Update Keyword" : "Add Keyword")}
+                    </Button>
+                  </form>
+                </DialogContent>
+              </Dialog>
             </div>
-            <Dialog open={isAuditModalOpen} onOpenChange={setIsAuditModalOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Start Audit
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Start SEO Audit</DialogTitle>
-                  <DialogDescription>
-                    Create a new SEO audit task
-                  </DialogDescription>
-                </DialogHeader>
-                <form onSubmit={(e) => {
-                  e.preventDefault();
-                  handleCreateAudit(new FormData(e.target as HTMLFormElement));
-                }} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="auditType">Audit Type</Label>
-                    <Select name="auditType" required>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select audit type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="manual">Manual Review</SelectItem>
-                        <SelectItem value="automated">Automated Scan</SelectItem>
-                        <SelectItem value="external">External Tool</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="page">Page (Optional)</Label>
-                    <Input id="page" name="page" placeholder="/specific-page" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="notes">Notes</Label>
-                    <Textarea id="notes" name="notes" placeholder="Specific areas to focus on..." />
-                  </div>
-                  <Button type="submit" disabled={createAuditMutation.isPending} className="w-full">
-                    {createAuditMutation.isPending ? "Creating..." : "Start Audit"}
-                  </Button>
-                </form>
-              </DialogContent>
-            </Dialog>
-          </div>
 
-          <div className="grid gap-4">
-            {isAuditsLoading ? (
-              <div className="space-y-3">
-                {[...Array(3)].map((_, i) => (
-                  <div key={i} className="h-16 bg-gray-100 rounded animate-pulse"></div>
-                ))}
-              </div>
-            ) : seoAudits?.length > 0 ? (
-              seoAudits.map((audit: any) => (
-                <Card key={audit.id}>
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <h4 className="font-medium capitalize">{audit.auditType} Audit</h4>
-                          <Badge className={getStatusColor(audit.status)}>
-                            {audit.status.replace("_", " ")}
-                          </Badge>
-                          {audit.score && (
-                            <Badge variant="outline" className={getScoreColor(audit.score)}>
-                              Score: {audit.score}/100
+            <div className="grid gap-4">
+              {isKeywordsLoading ? (
+                <div className="space-y-3">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="h-16 bg-gray-100 rounded animate-pulse"></div>
+                  ))}
+                </div>
+              ) : seoKeywords?.length > 0 ? (
+                seoKeywords.map((keyword: any) => (
+                  <Card key={keyword.id} className="hover:shadow-md transition-shadow">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <h4 className="font-medium">{keyword.keyword}</h4>
+                            <Badge variant={keyword.isActive ? "default" : "secondary"}>
+                              {keyword.isActive ? "Active" : "Inactive"}
                             </Badge>
-                          )}
+                          </div>
+                          <p className="text-sm text-gray-600">
+                            Target: {keyword.targetPage || "Not set"}
+                          </p>
+                          <div className="flex flex-wrap gap-4 mt-2 text-sm text-gray-500">
+                            {keyword.searchVolume && (
+                              <span>Volume: {keyword.searchVolume.toLocaleString()}</span>
+                            )}
+                            {keyword.difficulty && (
+                              <span>Difficulty: {keyword.difficulty}/100</span>
+                            )}
+                            {keyword.currentRanking && (
+                              <span>Current: #{keyword.currentRanking}</span>
+                            )}
+                            {keyword.targetRanking && (
+                              <span>Target: #{keyword.targetRanking}</span>
+                            )}
+                          </div>
                         </div>
-                        <p className="text-sm text-gray-600">
-                          {audit.page ? `Page: ${audit.page}` : "Site-wide audit"}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          Created: {new Date(audit.createdAt).toLocaleDateString()}
-                          {audit.completedAt && (
-                            <span> | Completed: {new Date(audit.completedAt).toLocaleDateString()}</span>
-                          )}
-                        </p>
-                        {audit.notes && (
-                          <p className="text-sm text-gray-500 mt-1">{audit.notes}</p>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        {audit.status === "pending" && (
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => runAuditMutation.mutate(audit.id)}
-                            disabled={runAuditMutation.isPending}
-                          >
-                            <Zap className="h-4 w-4" />
+                        <div className="flex items-center gap-2">
+                          <Button variant="outline" size="sm" onClick={() => handleEditKeyword(keyword)}>
+                            <Edit className="h-4 w-4" />
                           </Button>
-                        )}
+                          <Button variant="outline" size="sm">
+                            <BarChart3 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
-                    </div>
+                    </CardContent>
+                  </Card>
+                ))
+              ) : (
+                <Card>
+                  <CardContent className="p-12 text-center">
+                    <Target className="mx-auto h-12 w-12 text-gray-300 mb-4" />
+                    <p className="text-gray-500 text-lg font-medium">No keywords being tracked yet</p>
+                    <p className="text-sm text-gray-400 mt-2">Add keywords to monitor their performance and rankings</p>
+                    <Button 
+                      onClick={() => setIsKeywordModalOpen(true)} 
+                      className="mt-4 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add First Keyword
+                    </Button>
                   </CardContent>
                 </Card>
-              ))
-            ) : (
-              <Card>
-                <CardContent className="p-6 text-center">
-                  <CheckCircle className="mx-auto h-12 w-12 text-gray-300 mb-4" />
-                  <p className="text-gray-500">No SEO audits yet</p>
-                  <p className="text-sm text-gray-400">Start your first audit to track SEO performance</p>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </TabsContent>
-      </Tabs>
+              )}
+            </div>
+          </TabsContent>
+
+          {/* Audits Tab */}
+          <TabsContent value="audits" className="space-y-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <h3 className="text-lg font-medium">SEO Audits</h3>
+                <p className="text-gray-600">Track SEO performance and issues</p>
+              </div>
+              <Dialog open={isAuditModalOpen} onOpenChange={setIsAuditModalOpen}>
+                <DialogTrigger asChild>
+                  <Button className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Start Audit
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Start SEO Audit</DialogTitle>
+                    <DialogDescription>
+                      Create a new SEO audit task
+                    </DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={(e) => {
+                    e.preventDefault();
+                    handleCreateAudit(new FormData(e.target as HTMLFormElement));
+                  }} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="auditType">Audit Type</Label>
+                      <Select name="auditType" required>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select audit type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="manual">Manual Review</SelectItem>
+                          <SelectItem value="automated">Automated Scan</SelectItem>
+                          <SelectItem value="external">External Tool</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="page">Page (Optional)</Label>
+                      <Input id="page" name="page" placeholder="/specific-page" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="notes">Notes</Label>
+                      <Textarea id="notes" name="notes" placeholder="Specific areas to focus on..." />
+                    </div>
+                    <Button type="submit" disabled={createAuditMutation.isPending} className="w-full">
+                      {createAuditMutation.isPending ? "Creating..." : "Start Audit"}
+                    </Button>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            <div className="grid gap-4">
+              {isAuditsLoading ? (
+                <div className="space-y-3">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="h-16 bg-gray-100 rounded animate-pulse"></div>
+                  ))}
+                </div>
+              ) : seoAudits?.length > 0 ? (
+                seoAudits.map((audit: any) => (
+                  <Card key={audit.id} className="hover:shadow-md transition-shadow">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <h4 className="font-medium capitalize">{audit.auditType} Audit</h4>
+                            <Badge className={getStatusColor(audit.status)}>
+                              {audit.status.replace("_", " ")}
+                            </Badge>
+                            {audit.score && (
+                              <Badge variant="outline" className={getScoreColor(audit.score)}>
+                                Score: {audit.score}/100
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-600">
+                            {audit.page ? `Page: ${audit.page}` : "Site-wide audit"}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            Created: {new Date(audit.createdAt).toLocaleDateString()}
+                            {audit.completedAt && (
+                              <span> | Completed: {new Date(audit.completedAt).toLocaleDateString()}</span>
+                            )}
+                          </p>
+                          {audit.notes && (
+                            <p className="text-sm text-gray-500 mt-1">{audit.notes}</p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button variant="outline" size="sm">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          {audit.status === "pending" && (
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => runAuditMutation.mutate(audit.id)}
+                              disabled={runAuditMutation.isPending}
+                            >
+                              <Zap className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              ) : (
+                <Card>
+                  <CardContent className="p-12 text-center">
+                    <CheckCircle className="mx-auto h-12 w-12 text-gray-300 mb-4" />
+                    <p className="text-gray-500 text-lg font-medium">No SEO audits yet</p>
+                    <p className="text-sm text-gray-400 mt-2">Start your first audit to track SEO performance</p>
+                    <Button 
+                      onClick={() => setIsAuditModalOpen(true)} 
+                      className="mt-4 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Start First Audit
+                    </Button>
+                  </CardContent>
+                </Dialog>
+              )}
+            </div>
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 }
