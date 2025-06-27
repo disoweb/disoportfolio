@@ -155,13 +155,13 @@ export default function Navigation() {
               <div className="px-3 py-2">
                 <div className="flex gap-3">
                   <Link href="/auth" className="flex-1" onClick={() => setIsOpen(false)}>
-                    <Button variant="ghost" size="sm" className="w-full">
-                      Login
+                    <Button size="sm" className="w-full bg-blue-600 hover:bg-blue-700">
+                      Get Started
                     </Button>
                   </Link>
                   <Link href="/auth" className="flex-1" onClick={() => setIsOpen(false)}>
-                    <Button size="sm" className="w-full bg-blue-600 hover:bg-blue-700">
-                      Get Started
+                    <Button variant="ghost" size="sm" className="w-full">
+                      Login
                     </Button>
                   </Link>
                 </div>
