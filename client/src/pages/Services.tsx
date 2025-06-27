@@ -1,6 +1,7 @@
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import ServicePackages from "@/components/ServicePackages";
+import SEOHead from "@/components/SEOHead";
 import CustomQuoteForm from "@/components/CustomQuoteForm";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,21 @@ export default function Services() {
 
   return (
     <div className="min-h-screen bg-slate-50">
+      <SEOHead
+        title="Web Development Services - DiSO Webs Nigeria"
+        description="Explore our comprehensive web development packages: Landing Pages, E-commerce Solutions, and Custom Web Applications. Professional, affordable, and delivered fast."
+        keywords="web development services, website packages, e-commerce development, web applications, landing page design, Nigeria web development"
+        structuredData={{
+          "@context": "https://schema.org",
+          "@type": "Service",
+          "name": "Web Development Services",
+          "provider": {
+            "@type": "Organization",
+            "name": "DiSO Webs"
+          },
+          "description": "Professional web development services including landing pages, e-commerce solutions, and custom web applications"
+        }}
+      />
       <Navigation />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-20">

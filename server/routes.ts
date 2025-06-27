@@ -804,8 +804,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({ 
         message: "WhatsApp number updated successfully",
-        whatsappNumber 
-      });
+        whatsappNumber       });
     } catch (error) {
       console.error("Error updating settings:", error);
       res.status(500).json({ error: "Failed to update settings" });
@@ -1300,13 +1299,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Referral System API Routes
-  
+
   // Generate referral code for user
   app.post('/api/referrals/generate-code', isAuthenticated, securityHeaders, authRateLimit('referral_code'), async (req: any, res) => {
     try {
       const userId = req.user.id;
       const user = await storage.getUser(userId);
-      
+
       if (!user) {
         return sendSafeErrorResponse(res, 404, new Error("User not found"), 'user_not_found');
       }
@@ -1317,9 +1316,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const referralCode = await storage.generateReferralCode(userId);
-      
+
       auditLog('referral_code_generated', userId, { referralCode });
-      
+
       res.json({ referralCode });
     } catch (error) {
       console.error("Error generating referral code:", error);
@@ -1332,7 +1331,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.id;
       const user = await storage.getUser(userId);
-      
+
       if (!user) {
         return sendSafeErrorResponse(res, 404, new Error("User not found"), 'user_not_found');
       }
@@ -1411,7 +1410,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Sanitize inputs
       const sanitizedPaymentMethod = sanitizeInput(paymentMethod);
-      
+
       const withdrawal = await storage.createWithdrawalRequest({
         userId,
         amount: withdrawalAmount.toFixed(2),
@@ -1636,8 +1635,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         twitterCardsEnabled, structuredDataEnabled
       } = req.body;
 
-      const updates: any = {};
-      if (siteName !== undefined) updates.siteName = sanitizeInput(siteName);
+      const updates: any = {};      if (siteName !== undefined) updates.siteName = sanitizeInput(siteName);
       if (siteDescription !== undefined) updates.siteDescription = sanitizeInput(siteDescription);
       if (siteUrl !== undefined) updates.siteUrl = sanitizeInput(siteUrl);
       if (defaultMetaTitle !== undefined) updates.defaultMetaTitle = sanitizeInput(defaultMetaTitle);
@@ -1688,7 +1686,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const path = '/' + (req.params.path || '');
       const page = await storage.getSeoPageByPath(path);
-      
+
       if (!page) {
         return res.status(404).json({ error: "Page not found" });
       }
@@ -1985,7 +1983,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const settings = await storage.getSeoSettings();
       const pages = await storage.getAllSeoPages();
-      
+
       if (!settings.sitemapEnabled) {
         return res.status(404).send('Sitemap disabled');
       }
@@ -2020,7 +2018,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/robots.txt', async (req, res) => {
     try {
       const settings = await storage.getSeoSettings();
-      
+
       let robotsTxt = settings.robotsTxt || `User-agent: *
 Disallow: /admin
 Disallow: /api
@@ -2033,6 +2031,41 @@ Sitemap: ${settings.siteUrl}/sitemap.xml`;
     } catch (error) {
       console.error("Error generating robots.txt:", error);
       res.status(500).send('Error generating robots.txt');
+    }
+  });
+
+  // Track SEO analytics
+  app.post('/api/seo/analytics', async (req, res) => {
+    try {
+      const { page, date, views, referrer, userAgent } = req.body;
+
+      if (!page || !date) {
+        return sendSafeErrorResponse(res, 400, new Error("Page and date are required"), 'missing_analytics_data');
+      }
+
+      // Check if record exists for this page and date
+      const existingRecord = await storage.getSeoAnalyticsByPageAndDate(sanitizeInput(page), sanitizeInput(date));
+
+      if (existingRecord) {
+        // Update existing record
+        await storage.updateSeoAnalytics(existingRecord.id, {
+          views: (existingRecord.views || 0) + (views || 1)
+        });
+      } else {
+        // Create new record
+        await storage.createSeoAnalytics({
+          page: sanitizeInput(page),
+          date: sanitizeInput(date),
+          views: views || 1,
+          clicks: 0,
+          impressions: 0
+        });
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error tracking SEO analytics:", error);
+      res.status(500).json({ error: "Failed to track analytics" });
     }
   });
 

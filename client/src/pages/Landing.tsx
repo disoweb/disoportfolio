@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import ServicePackages from "@/components/ServicePackages";
+import SEOHead from "@/components/SEOHead";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -361,6 +362,27 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+      <SEOHead
+        title="DiSO Webs - Professional Web Development Services in Nigeria"
+        description="Transform your business with stunning, high-performance websites. We deliver exceptional digital experiences for startups to enterprises without breaking the bank. Get started today!"
+        keywords="web development, website design, Nigeria, Lagos, Abuja, e-commerce, web apps, landing pages, digital solutions, responsive design"
+        structuredData={{
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          "name": "DiSO Webs",
+          "url": "https://disoweb.replit.app",
+          "logo": "https://disoweb.replit.app/logo.png",
+          "description": "Professional web development and digital solutions company",
+          "address": {
+            "@type": "PostalAddress",
+            "addressCountry": "Nigeria"
+          },
+          "sameAs": [
+            "https://twitter.com/disowebs",
+            "https://linkedin.com/company/disowebs"
+          ]
+        }}
+      />
       <UrgencyBanner />
       <Navigation />
 

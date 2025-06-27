@@ -311,6 +311,45 @@ export const seoRules = pgTable("seo_rules", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+export const seoAudits = pgTable("seo_audits", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  auditType: varchar("audit_type").notNull(),
+  page: varchar("page"),
+  status: varchar("status").default("pending"),
+  score: integer("score"),
+  findings: jsonb("findings"),
+  recommendations: jsonb("recommendations"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const seoAnalytics = pgTable("seo_analytics", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  page: varchar("page").notNull(),
+  date: varchar("date").notNull(),
+  views: integer("views").default(0),
+  clicks: integer("clicks").default(0),
+  impressions: integer("impressions").default(0),
+  averagePosition: decimal("average_position", { precision: 4, scale: 2 }),
+  clickThroughRate: decimal("click_through_rate", { precision: 5, scale: 4 }),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Type exports
+export type SeoSettings = typeof seoSettings.$inferSelect;
+export type InsertSeoSettings = typeof seoSettings.$inferInsert;
+export type SeoPage = typeof seoPages.$inferSelect;
+export type InsertSeoPage = typeof seoPages.$inferInsert;
+export type SeoKeyword = typeof seoKeywords.$inferSelect;
+export type InsertSeoKeyword = typeof seoKeywords.$inferInsert;
+export type SeoRule = typeof seoRules.$inferSelect;
+export type InsertSeoRule = typeof seoRules.$inferInsert;
+export type SeoAudit = typeof seoAudits.$inferSelect;
+export type InsertSeoAudit = typeof seoAudits.$inferInsert;
+export type SeoAnalytics = typeof seoAnalytics.$inferSelect;
+export type InsertSeoAnalytics = typeof seoAnalytics.$inferInsert;
+
 export const seoKeywords = pgTable("seo_keywords", {
   id: uuid("id").primaryKey().defaultRandom(),
   keyword: varchar("keyword").notNull(),

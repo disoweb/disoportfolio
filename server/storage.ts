@@ -1587,6 +1587,64 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(seoAnalytics.date));
   }
 
+  async createSeoPage(pageData: InsertSeoPage): Promise<SeoPage> {
+    const [newPage] = await db.insert(seoPages).values(pageData).returning();
+    return newPage;
+  }
+
+  async updateSeoPage(id: string, updates: Partial<InsertSeoPage>): Promise<SeoPage> {
+    const [updatedPage] = await db
+      .update(seoPages)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(seoPages.id, id))
+      .returning();
+    return updatedPage;
+  }
+
+  async deleteSeoPage(id: string): Promise<void> {
+    await db.delete(seoPages).where(eq(seoPages.id, id));
+  }
+
+  async getAllSeoAudits(): Promise<SeoAudit[]> {
+    return await db
+      .select()
+      .from(seoAudits)
+      .orderBy(desc(seoAudits.createdAt));
+  }
+
+  async createSeoAudit(auditData: InsertSeoAudit): Promise<SeoAudit> {
+    const [newAudit] = await db.insert(seoAudits).values(auditData).returning();
+    return newAudit;
+  }
+
+  async updateSeoAudit(id: string, updates: Partial<InsertSeoAudit>): Promise<SeoAudit> {
+    const [updatedAudit] = await db
+      .update(seoAudits)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(seoAudits.id, id))
+      .returning();
+    return updatedAudit;
+  }
+
+  async getSeoAnalyticsByPageAndDate(page: string, date: string): Promise<SeoAnalytics | null> {
+    const [analytics] = await db
+      .select()
+      .from(seoAnalytics)
+      .where(and(eq(seoAnalytics.page, page), eq(seoAnalytics.date, date)))
+      .limit(1);
+    return analytics || null;
+  }
+
+  async updateSeoAnalytics(id: string, updates: Partial<InsertSeoAnalytics>): Promise<SeoAnalytics> {
+    const [updatedAnalytics] = await db
+      .update(seoAnalytics)
+      .set(updates)
+      .where(eq(seoAnalytics.id, id))
+      .returning();
+    return updatedAnalytics;
+      .orderBy(desc(seoAnalytics.date));
+  }
+
   async getAllSeoAudits(): Promise<SeoAudit[]> {
     return await db
       .select()
