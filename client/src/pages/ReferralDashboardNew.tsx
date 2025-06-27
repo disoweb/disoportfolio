@@ -1,6 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Copy, DollarSign, Users, TrendingUp, Wallet, Calendar, Eye, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import Navigation from "@/components/Navigation";
 
 export default function ReferralDashboardNew() {
   const { toast } = useToast();
@@ -142,6 +142,8 @@ export default function ReferralDashboardNew() {
 
   if (isReferralLoading) {
     return (
+      <>
+      <Navigation />
       <div className="container mx-auto p-4 md:p-6">
         <div className="grid gap-6">
           <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
@@ -152,10 +154,13 @@ export default function ReferralDashboardNew() {
           </div>
         </div>
       </div>
+      </>
     );
   }
 
   return (
+    <>
+    <Navigation />
     <div className="container mx-auto p-4 md:p-6 space-y-6">
       {/* Header */}
       <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
@@ -411,7 +416,7 @@ export default function ReferralDashboardNew() {
               Submit a withdrawal request for your available earnings.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-6">
             {/* Balance Display */}
             <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
@@ -494,7 +499,7 @@ export default function ReferralDashboardNew() {
               Withdrawal Details
             </DialogTitle>
           </DialogHeader>
-          
+
           {selectedWithdrawal && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -511,7 +516,7 @@ export default function ReferralDashboardNew() {
                   </span>
                 </div>
               </div>
-              
+
               <div>
                 <p className="text-sm font-medium text-gray-500">Requested On</p>
                 <p className="text-sm">{formatDate(selectedWithdrawal.createdAt)}</p>
@@ -548,5 +553,6 @@ export default function ReferralDashboardNew() {
         </DialogContent>
       </Dialog>
     </div>
+    </>
   );
 }
