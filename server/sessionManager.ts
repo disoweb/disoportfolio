@@ -198,11 +198,7 @@ export const SessionManager = {
 
   // Validate session
   isSessionValid(req: Request): boolean {
-    console.log('🔍 [SESSION VALIDATION] Validating session...');
-    console.log('🔍 [SESSION VALIDATION] Session userId:', req.session?.userId);
-    
     if (!req.session?.userId) {
-      console.log('🔍 [SESSION VALIDATION] FAILED: No userId in session');
       return false;
     }
     
@@ -210,29 +206,20 @@ export const SessionManager = {
     const maxSessionAge = 30 * 24 * 60 * 60 * 1000; // 30 days
     if (req.session.loginTime) {
       const sessionAge = Date.now() - req.session.loginTime;
-      console.log('🔍 [SESSION VALIDATION] Session age:', sessionAge, 'ms, max allowed:', maxSessionAge, 'ms');
       if (sessionAge > maxSessionAge) {
-        console.log('🔍 [SESSION VALIDATION] FAILED: Session too old');
         return false;
       }
-    } else {
-      console.log('🔍 [SESSION VALIDATION] WARNING: No loginTime set');
     }
     
     // Check inactivity timeout (optional)
     const inactivityTimeout = 24 * 60 * 60 * 1000; // 24 hours
     if (req.session.lastActivity) {
       const inactivity = Date.now() - req.session.lastActivity;
-      console.log('🔍 [SESSION VALIDATION] Inactivity:', inactivity, 'ms, max allowed:', inactivityTimeout, 'ms');
       if (inactivity > inactivityTimeout) {
-        console.log('🔍 [SESSION VALIDATION] FAILED: Session inactive too long');
         return false;
       }
-    } else {
-      console.log('🔍 [SESSION VALIDATION] WARNING: No lastActivity set');
     }
     
-    console.log('🔍 [SESSION VALIDATION] SUCCESS: Session is valid');
     return true;
   },
 
