@@ -17,7 +17,7 @@ export default function WhatsAppFloat() {
       href={whatsappURL}
       target="_blank"
       rel="noopener noreferrer"
-      className="fixed bottom-6 right-6 z-50 bg-green-500 hover:bg-green-600 text-white p-3 rounded-full shadow-lg transition-all duration-300 hover:scale-110 group animate-pulse hover:animate-none"
+      className="fixed bottom-6 right-6 z-50 bg-green-500 hover:bg-green-600 text-white p-3 rounded-full shadow-lg transition-all duration-300 hover:scale-110 group"
       aria-label="Contact us on WhatsApp"
     >
       {/* WhatsApp Icon SVG for better quality */}
@@ -36,7 +36,6 @@ export default function WhatsAppFloat() {
       </span>
       
       {/* Notification dot */}
-      <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-ping"></div>
       <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>
     </a>
   );
