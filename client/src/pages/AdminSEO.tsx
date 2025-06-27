@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -11,6 +12,8 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Progress } from "@/components/ui/progress";
 import { 
   Search, 
   Settings, 
@@ -25,7 +28,14 @@ import {
   Trash2,
   TrendingUp,
   Target,
-  Zap
+  Zap,
+  Download,
+  Upload,
+  RefreshCw,
+  ExternalLink,
+  Lightbulb,
+  AlertTriangle,
+  Info
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -37,47 +47,59 @@ export default function AdminSEO() {
   const [isKeywordModalOpen, setIsKeywordModalOpen] = useState(false);
   const [isAuditModalOpen, setIsAuditModalOpen] = useState(false);
   const [selectedPage, setSelectedPage] = useState<any>(null);
+  const [selectedKeyword, setSelectedKeyword] = useState<any>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
 
   // Fetch SEO settings
-  const { data: seoSettings, isLoading: isSettingsLoading } = useQuery({
+  const { data: seoSettings, isLoading: isSettingsLoading, error: settingsError } = useQuery({
     queryKey: ["/api/seo/settings"],
     queryFn: async () => {
       const response = await apiRequest("GET", "/api/seo/settings");
+      if (!response.ok) throw new Error("Failed to fetch SEO settings");
       return await response.json();
     },
+    retry: 3,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   // Fetch SEO pages
-  const { data: seoPages, isLoading: isPagesLoading } = useQuery({
+  const { data: seoPages, isLoading: isPagesLoading, error: pagesError } = useQuery({
     queryKey: ["/api/admin/seo/pages"],
     queryFn: async () => {
       const response = await apiRequest("GET", "/api/admin/seo/pages");
+      if (!response.ok) throw new Error("Failed to fetch SEO pages");
       return await response.json();
     },
+    retry: 3,
   });
 
   // Fetch SEO keywords
-  const { data: seoKeywords, isLoading: isKeywordsLoading } = useQuery({
+  const { data: seoKeywords, isLoading: isKeywordsLoading, error: keywordsError } = useQuery({
     queryKey: ["/api/admin/seo/keywords"],
     queryFn: async () => {
       const response = await apiRequest("GET", "/api/admin/seo/keywords");
+      if (!response.ok) throw new Error("Failed to fetch SEO keywords");
       return await response.json();
     },
+    retry: 3,
   });
 
   // Fetch SEO audits
-  const { data: seoAudits, isLoading: isAuditsLoading } = useQuery({
+  const { data: seoAudits, isLoading: isAuditsLoading, error: auditsError } = useQuery({
     queryKey: ["/api/admin/seo/audits"],
     queryFn: async () => {
       const response = await apiRequest("GET", "/api/admin/seo/audits");
+      if (!response.ok) throw new Error("Failed to fetch SEO audits");
       return await response.json();
     },
+    retry: 3,
   });
 
   // Update SEO settings mutation
   const updateSettingsMutation = useMutation({
     mutationFn: async (settings: any) => {
       const response = await apiRequest("PATCH", "/api/admin/seo/settings", settings);
+      if (!response.ok) throw new Error("Failed to update settings");
       return await response.json();
     },
     onSuccess: () => {
@@ -87,57 +109,89 @@ export default function AdminSEO() {
         description: "SEO settings have been updated successfully!",
       });
     },
-    onError: () => {
+    onError: (error: any) => {
       toast({
         title: "Error",
-        description: "Failed to update SEO settings. Please try again.",
+        description: error.message || "Failed to update SEO settings. Please try again.",
         variant: "destructive",
       });
     },
   });
 
-  // Create page mutation
+  // Create/Update page mutation
   const createPageMutation = useMutation({
     mutationFn: async (pageData: any) => {
-      const response = await apiRequest("POST", "/api/admin/seo/pages", pageData);
+      const url = isEditMode && selectedPage ? `/api/admin/seo/pages/${selectedPage.id}` : "/api/admin/seo/pages";
+      const method = isEditMode && selectedPage ? "PATCH" : "POST";
+      const response = await apiRequest(method, url, pageData);
+      if (!response.ok) throw new Error(`Failed to ${isEditMode ? 'update' : 'create'} page`);
       return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/seo/pages"] });
       setIsPageModalOpen(false);
       setSelectedPage(null);
+      setIsEditMode(false);
       toast({
-        title: "Page Created",
-        description: "SEO page configuration has been created successfully!",
+        title: `Page ${isEditMode ? 'Updated' : 'Created'}`,
+        description: `SEO page configuration has been ${isEditMode ? 'updated' : 'created'} successfully!`,
       });
     },
-    onError: () => {
+    onError: (error: any) => {
       toast({
         title: "Error",
-        description: "Failed to create SEO page. Please try again.",
+        description: error.message || `Failed to ${isEditMode ? 'update' : 'create'} SEO page. Please try again.`,
         variant: "destructive",
       });
     },
   });
 
-  // Create keyword mutation
+  // Delete page mutation
+  const deletePageMutation = useMutation({
+    mutationFn: async (pageId: string) => {
+      const response = await apiRequest("DELETE", `/api/admin/seo/pages/${pageId}`);
+      if (!response.ok) throw new Error("Failed to delete page");
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/seo/pages"] });
+      toast({
+        title: "Page Deleted",
+        description: "SEO page has been deleted successfully!",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete page. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Create/Update keyword mutation
   const createKeywordMutation = useMutation({
     mutationFn: async (keywordData: any) => {
-      const response = await apiRequest("POST", "/api/admin/seo/keywords", keywordData);
+      const url = isEditMode && selectedKeyword ? `/api/admin/seo/keywords/${selectedKeyword.id}` : "/api/admin/seo/keywords";
+      const method = isEditMode && selectedKeyword ? "PATCH" : "POST";
+      const response = await apiRequest(method, url, keywordData);
+      if (!response.ok) throw new Error(`Failed to ${isEditMode ? 'update' : 'add'} keyword`);
       return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/seo/keywords"] });
       setIsKeywordModalOpen(false);
+      setSelectedKeyword(null);
+      setIsEditMode(false);
       toast({
-        title: "Keyword Added",
-        description: "SEO keyword has been added successfully!",
+        title: `Keyword ${isEditMode ? 'Updated' : 'Added'}`,
+        description: `SEO keyword has been ${isEditMode ? 'updated' : 'added'} successfully!`,
       });
     },
-    onError: () => {
+    onError: (error: any) => {
       toast({
         title: "Error",
-        description: "Failed to add keyword. Please try again.",
+        description: error.message || `Failed to ${isEditMode ? 'update' : 'add'} keyword. Please try again.`,
         variant: "destructive",
       });
     },
@@ -147,6 +201,7 @@ export default function AdminSEO() {
   const createAuditMutation = useMutation({
     mutationFn: async (auditData: any) => {
       const response = await apiRequest("POST", "/api/admin/seo/audits", auditData);
+      if (!response.ok) throw new Error("Failed to create audit");
       return await response.json();
     },
     onSuccess: () => {
@@ -157,10 +212,33 @@ export default function AdminSEO() {
         description: "SEO audit has been created successfully!",
       });
     },
-    onError: () => {
+    onError: (error: any) => {
       toast({
         title: "Error",
-        description: "Failed to create audit. Please try again.",
+        description: error.message || "Failed to create audit. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Run audit mutation
+  const runAuditMutation = useMutation({
+    mutationFn: async (auditId: string) => {
+      const response = await apiRequest("POST", `/api/admin/seo/audits/${auditId}/run`);
+      if (!response.ok) throw new Error("Failed to run audit");
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/seo/audits"] });
+      toast({
+        title: "Audit Started",
+        description: "SEO audit is now running. Results will be available shortly.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to run audit. Please try again.",
         variant: "destructive",
       });
     },
@@ -185,6 +263,12 @@ export default function AdminSEO() {
     createPageMutation.mutate(pageData);
   };
 
+  const handleEditPage = (page: any) => {
+    setSelectedPage(page);
+    setIsEditMode(true);
+    setIsPageModalOpen(true);
+  };
+
   const handleCreateKeyword = (formData: FormData) => {
     const keywordData = {
       keyword: formData.get("keyword"),
@@ -195,6 +279,12 @@ export default function AdminSEO() {
       notes: formData.get("notes"),
     };
     createKeywordMutation.mutate(keywordData);
+  };
+
+  const handleEditKeyword = (keyword: any) => {
+    setSelectedKeyword(keyword);
+    setIsEditMode(true);
+    setIsKeywordModalOpen(true);
   };
 
   const handleCreateAudit = (formData: FormData) => {
@@ -221,6 +311,39 @@ export default function AdminSEO() {
     }
   };
 
+  const refreshData = () => {
+    queryClient.invalidateQueries({ queryKey: ["/api/seo/settings"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/admin/seo/pages"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/admin/seo/keywords"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/admin/seo/audits"] });
+  };
+
+  // Calculate SEO health score
+  const calculateSEOHealth = () => {
+    let score = 0;
+    let maxScore = 0;
+
+    // Check basic settings
+    if (seoSettings?.siteName) score += 10;
+    if (seoSettings?.siteDescription) score += 10;
+    if (seoSettings?.defaultMetaTitle) score += 10;
+    if (seoSettings?.defaultMetaDescription) score += 10;
+    if (seoSettings?.googleAnalyticsId) score += 10;
+    maxScore += 50;
+
+    // Check pages configuration
+    const activePagesCount = seoPages?.filter((p: any) => p.isActive).length || 0;
+    if (activePagesCount > 0) score += Math.min(activePagesCount * 5, 25);
+    maxScore += 25;
+
+    // Check keywords
+    const activeKeywordsCount = seoKeywords?.filter((k: any) => k.isActive).length || 0;
+    if (activeKeywordsCount > 0) score += Math.min(activeKeywordsCount * 2, 25);
+    maxScore += 25;
+
+    return Math.round((score / maxScore) * 100);
+  };
+
   if (isSettingsLoading) {
     return (
       <div className="container mx-auto p-4 md:p-6">
@@ -236,6 +359,8 @@ export default function AdminSEO() {
     );
   }
 
+  const seoHealthScore = calculateSEOHealth();
+
   return (
     <div className="container mx-auto p-4 md:p-6 space-y-6">
       {/* Header */}
@@ -243,11 +368,67 @@ export default function AdminSEO() {
         <div>
           <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
             <Search className="h-6 w-6 md:h-8 md:w-8" />
-            SEO Management
+            SEO Management Dashboard
           </h1>
           <p className="text-gray-600 mt-2">Manage website SEO settings, page optimization, and performance tracking</p>
         </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={refreshData} disabled={updateSettingsMutation.isPending}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${updateSettingsMutation.isPending ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+          <Button variant="outline">
+            <Download className="h-4 w-4 mr-2" />
+            Export Report
+          </Button>
+        </div>
       </div>
+
+      {/* Error Alerts */}
+      {(settingsError || pagesError || keywordsError || auditsError) && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Data Loading Error</AlertTitle>
+          <AlertDescription>
+            Some SEO data could not be loaded. Please check your connection and try refreshing the page.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* SEO Health Score */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5" />
+            SEO Health Score
+          </CardTitle>
+          <CardDescription>Overall website SEO configuration status</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-4">
+            <div className="flex-1">
+              <Progress value={seoHealthScore} className="h-3" />
+            </div>
+            <div className={`text-2xl font-bold ${getScoreColor(seoHealthScore)}`}>
+              {seoHealthScore}%
+            </div>
+          </div>
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-4 w-4 text-green-500" />
+              <span>Basic Settings: {seoSettings ? 'Configured' : 'Incomplete'}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <FileText className="h-4 w-4 text-blue-500" />
+              <span>Pages: {seoPages?.filter((p: any) => p.isActive).length || 0} active</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Target className="h-4 w-4 text-purple-500" />
+              <span>Keywords: {seoKeywords?.filter((k: any) => k.isActive).length || 0} tracked</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid w-full grid-cols-2 md:grid-cols-5">
@@ -333,6 +514,77 @@ export default function AdminSEO() {
             </Card>
           </div>
 
+          {/* Quick Actions */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Zap className="h-5 w-5" />
+                Quick Actions
+              </CardTitle>
+              <CardDescription>Common SEO management tasks</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Button onClick={() => setIsPageModalOpen(true)} className="h-auto flex-col gap-2 p-4">
+                  <Plus className="h-5 w-5" />
+                  <span>Add New Page</span>
+                </Button>
+                <Button onClick={() => setIsKeywordModalOpen(true)} variant="outline" className="h-auto flex-col gap-2 p-4">
+                  <Target className="h-5 w-5" />
+                  <span>Track Keyword</span>
+                </Button>
+                <Button onClick={() => setIsAuditModalOpen(true)} variant="outline" className="h-auto flex-col gap-2 p-4">
+                  <CheckCircle className="h-5 w-5" />
+                  <span>Run Audit</span>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* SEO Recommendations */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Lightbulb className="h-5 w-5" />
+                SEO Recommendations
+              </CardTitle>
+              <CardDescription>Suggestions to improve your SEO performance</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {!seoSettings?.googleAnalyticsId && (
+                  <Alert>
+                    <Info className="h-4 w-4" />
+                    <AlertTitle>Add Google Analytics</AlertTitle>
+                    <AlertDescription>
+                      Set up Google Analytics to track your website performance and user behavior.
+                    </AlertDescription>
+                  </Alert>
+                )}
+                
+                {seoPages?.length === 0 && (
+                  <Alert>
+                    <Info className="h-4 w-4" />
+                    <AlertTitle>Configure Page SEO</AlertTitle>
+                    <AlertDescription>
+                      Add SEO configurations for your main pages to improve search engine visibility.
+                    </AlertDescription>
+                  </Alert>
+                )}
+                
+                {seoKeywords?.length < 5 && (
+                  <Alert>
+                    <Info className="h-4 w-4" />
+                    <AlertTitle>Track More Keywords</AlertTitle>
+                    <AlertDescription>
+                      Add more target keywords to monitor your search engine rankings effectively.
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Recent Activity */}
           <Card>
             <CardHeader>
@@ -351,9 +603,14 @@ export default function AdminSEO() {
                         <p className="text-sm text-gray-500">{page.path}</p>
                       </div>
                     </div>
-                    <Badge variant={page.isActive ? "default" : "secondary"}>
-                      {page.isActive ? "Active" : "Inactive"}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={page.isActive ? "default" : "secondary"}>
+                        {page.isActive ? "Active" : "Inactive"}
+                      </Badge>
+                      <Button variant="ghost" size="sm" onClick={() => handleEditPage(page)}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 ))}
                 
@@ -369,9 +626,14 @@ export default function AdminSEO() {
                         </p>
                       </div>
                     </div>
-                    {keyword.searchVolume && (
-                      <Badge variant="outline">{keyword.searchVolume} searches</Badge>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {keyword.searchVolume && (
+                        <Badge variant="outline">{keyword.searchVolume} searches</Badge>
+                      )}
+                      <Button variant="ghost" size="sm" onClick={() => handleEditKeyword(keyword)}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -394,6 +656,7 @@ export default function AdminSEO() {
                     id="siteName"
                     defaultValue={seoSettings?.siteName}
                     onBlur={(e) => handleUpdateSettings("siteName", e.target.value)}
+                    placeholder="Your Company Name"
                   />
                 </div>
                 <div className="space-y-2">
@@ -402,6 +665,7 @@ export default function AdminSEO() {
                     id="siteUrl"
                     defaultValue={seoSettings?.siteUrl}
                     onBlur={(e) => handleUpdateSettings("siteUrl", e.target.value)}
+                    placeholder="https://yourwebsite.com"
                   />
                 </div>
               </div>
@@ -412,6 +676,7 @@ export default function AdminSEO() {
                   id="siteDescription"
                   defaultValue={seoSettings?.siteDescription}
                   onBlur={(e) => handleUpdateSettings("siteDescription", e.target.value)}
+                  placeholder="Brief description of your website and services"
                 />
               </div>
 
@@ -421,6 +686,7 @@ export default function AdminSEO() {
                   id="defaultMetaTitle"
                   defaultValue={seoSettings?.defaultMetaTitle}
                   onBlur={(e) => handleUpdateSettings("defaultMetaTitle", e.target.value)}
+                  placeholder="Your Company - Professional Services"
                 />
               </div>
 
@@ -430,6 +696,7 @@ export default function AdminSEO() {
                   id="defaultMetaDescription"
                   defaultValue={seoSettings?.defaultMetaDescription}
                   onBlur={(e) => handleUpdateSettings("defaultMetaDescription", e.target.value)}
+                  placeholder="Default description for pages without specific meta descriptions"
                 />
               </div>
 
@@ -501,7 +768,13 @@ export default function AdminSEO() {
               <h3 className="text-lg font-medium">SEO Pages</h3>
               <p className="text-gray-600">Manage page-specific SEO settings</p>
             </div>
-            <Dialog open={isPageModalOpen} onOpenChange={setIsPageModalOpen}>
+            <Dialog open={isPageModalOpen} onOpenChange={(open) => {
+              setIsPageModalOpen(open);
+              if (!open) {
+                setSelectedPage(null);
+                setIsEditMode(false);
+              }
+            }}>
               <DialogTrigger asChild>
                 <Button>
                   <Plus className="h-4 w-4 mr-2" />
@@ -510,7 +783,7 @@ export default function AdminSEO() {
               </DialogTrigger>
               <DialogContent className="max-w-2xl">
                 <DialogHeader>
-                  <DialogTitle>Add SEO Page Configuration</DialogTitle>
+                  <DialogTitle>{isEditMode ? 'Edit' : 'Add'} SEO Page Configuration</DialogTitle>
                   <DialogDescription>
                     Configure SEO settings for a specific page
                   </DialogDescription>
@@ -522,29 +795,59 @@ export default function AdminSEO() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="path">Page Path</Label>
-                      <Input id="path" name="path" placeholder="/about" required />
+                      <Input 
+                        id="path" 
+                        name="path" 
+                        placeholder="/about" 
+                        defaultValue={selectedPage?.path}
+                        required 
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="title">Page Title</Label>
-                      <Input id="title" name="title" placeholder="About Us" required />
+                      <Input 
+                        id="title" 
+                        name="title" 
+                        placeholder="About Us" 
+                        defaultValue={selectedPage?.title}
+                        required 
+                      />
                     </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="metaDescription">Meta Description</Label>
-                    <Textarea id="metaDescription" name="metaDescription" placeholder="Page description for search engines" />
+                    <Textarea 
+                      id="metaDescription" 
+                      name="metaDescription" 
+                      placeholder="Page description for search engines" 
+                      defaultValue={selectedPage?.metaDescription}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="keywords">Keywords</Label>
-                    <Input id="keywords" name="keywords" placeholder="keyword1, keyword2, keyword3" />
+                    <Input 
+                      id="keywords" 
+                      name="keywords" 
+                      placeholder="keyword1, keyword2, keyword3" 
+                      defaultValue={selectedPage?.keywords}
+                    />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="priority">Priority</Label>
-                      <Input id="priority" name="priority" type="number" min="0" max="1" step="0.1" defaultValue="0.5" />
+                      <Input 
+                        id="priority" 
+                        name="priority" 
+                        type="number" 
+                        min="0" 
+                        max="1" 
+                        step="0.1" 
+                        defaultValue={selectedPage?.priority || 0.5} 
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="changeFrequency">Change Frequency</Label>
-                      <Select name="changeFrequency" defaultValue="weekly">
+                      <Select name="changeFrequency" defaultValue={selectedPage?.changeFrequency || "weekly"}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
@@ -558,7 +861,7 @@ export default function AdminSEO() {
                     </div>
                   </div>
                   <Button type="submit" disabled={createPageMutation.isPending} className="w-full">
-                    {createPageMutation.isPending ? "Creating..." : "Create Page"}
+                    {createPageMutation.isPending ? (isEditMode ? "Updating..." : "Creating...") : (isEditMode ? "Update Page" : "Create Page")}
                   </Button>
                 </form>
               </DialogContent>
@@ -588,13 +891,32 @@ export default function AdminSEO() {
                         {page.metaDescription && (
                           <p className="text-sm text-gray-500 mt-1">{page.metaDescription}</p>
                         )}
+                        <div className="flex items-center gap-4 mt-2 text-xs text-gray-400">
+                          <span>Priority: {page.priority}</span>
+                          <span>Frequency: {page.changeFrequency}</span>
+                          {page.updatedAt && (
+                            <span>Updated: {new Date(page.updatedAt).toLocaleDateString()}</span>
+                          )}
+                        </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm">
+                        <Button variant="outline" size="sm" onClick={() => handleEditPage(page)}>
                           <Edit className="h-4 w-4" />
                         </Button>
                         <Button variant="outline" size="sm">
                           <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => {
+                            if (confirm('Are you sure you want to delete this page?')) {
+                              deletePageMutation.mutate(page.id);
+                            }
+                          }}
+                          disabled={deletePageMutation.isPending}
+                        >
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
@@ -620,7 +942,13 @@ export default function AdminSEO() {
               <h3 className="text-lg font-medium">SEO Keywords</h3>
               <p className="text-gray-600">Track keyword rankings and performance</p>
             </div>
-            <Dialog open={isKeywordModalOpen} onOpenChange={setIsKeywordModalOpen}>
+            <Dialog open={isKeywordModalOpen} onOpenChange={(open) => {
+              setIsKeywordModalOpen(open);
+              if (!open) {
+                setSelectedKeyword(null);
+                setIsEditMode(false);
+              }
+            }}>
               <DialogTrigger asChild>
                 <Button>
                   <Plus className="h-4 w-4 mr-2" />
@@ -629,9 +957,9 @@ export default function AdminSEO() {
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Add SEO Keyword</DialogTitle>
+                  <DialogTitle>{isEditMode ? 'Edit' : 'Add'} SEO Keyword</DialogTitle>
                   <DialogDescription>
-                    Add a new keyword to track
+                    {isEditMode ? 'Update the' : 'Add a new'} keyword to track
                   </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={(e) => {
@@ -640,32 +968,70 @@ export default function AdminSEO() {
                 }} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="keyword">Keyword</Label>
-                    <Input id="keyword" name="keyword" placeholder="web development" required />
+                    <Input 
+                      id="keyword" 
+                      name="keyword" 
+                      placeholder="web development" 
+                      defaultValue={selectedKeyword?.keyword}
+                      required 
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="targetPage">Target Page</Label>
-                    <Input id="targetPage" name="targetPage" placeholder="/services" />
+                    <Input 
+                      id="targetPage" 
+                      name="targetPage" 
+                      placeholder="/services" 
+                      defaultValue={selectedKeyword?.targetPage}
+                    />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="searchVolume">Search Volume</Label>
-                      <Input id="searchVolume" name="searchVolume" type="number" placeholder="1000" />
+                      <Input 
+                        id="searchVolume" 
+                        name="searchVolume" 
+                        type="number" 
+                        placeholder="1000" 
+                        defaultValue={selectedKeyword?.searchVolume}
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="difficulty">Difficulty (1-100)</Label>
-                      <Input id="difficulty" name="difficulty" type="number" min="1" max="100" placeholder="50" />
+                      <Input 
+                        id="difficulty" 
+                        name="difficulty" 
+                        type="number" 
+                        min="1" 
+                        max="100" 
+                        placeholder="50" 
+                        defaultValue={selectedKeyword?.difficulty}
+                      />
                     </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="targetRanking">Target Ranking</Label>
-                    <Input id="targetRanking" name="targetRanking" type="number" min="1" max="100" placeholder="10" />
+                    <Input 
+                      id="targetRanking" 
+                      name="targetRanking" 
+                      type="number" 
+                      min="1" 
+                      max="100" 
+                      placeholder="10" 
+                      defaultValue={selectedKeyword?.targetRanking}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="notes">Notes</Label>
-                    <Textarea id="notes" name="notes" placeholder="Additional notes about this keyword" />
+                    <Textarea 
+                      id="notes" 
+                      name="notes" 
+                      placeholder="Additional notes about this keyword" 
+                      defaultValue={selectedKeyword?.notes}
+                    />
                   </div>
                   <Button type="submit" disabled={createKeywordMutation.isPending} className="w-full">
-                    {createKeywordMutation.isPending ? "Adding..." : "Add Keyword"}
+                    {createKeywordMutation.isPending ? (isEditMode ? "Updating..." : "Adding...") : (isEditMode ? "Update Keyword" : "Add Keyword")}
                   </Button>
                 </form>
               </DialogContent>
@@ -710,7 +1076,7 @@ export default function AdminSEO() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm">
+                        <Button variant="outline" size="sm" onClick={() => handleEditKeyword(keyword)}>
                           <Edit className="h-4 w-4" />
                         </Button>
                         <Button variant="outline" size="sm">
@@ -816,14 +1182,25 @@ export default function AdminSEO() {
                         </p>
                         <p className="text-sm text-gray-500">
                           Created: {new Date(audit.createdAt).toLocaleDateString()}
+                          {audit.completedAt && (
+                            <span> | Completed: {new Date(audit.completedAt).toLocaleDateString()}</span>
+                          )}
                         </p>
+                        {audit.notes && (
+                          <p className="text-sm text-gray-500 mt-1">{audit.notes}</p>
+                        )}
                       </div>
                       <div className="flex items-center gap-2">
                         <Button variant="outline" size="sm">
                           <Eye className="h-4 w-4" />
                         </Button>
                         {audit.status === "pending" && (
-                          <Button variant="outline" size="sm">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => runAuditMutation.mutate(audit.id)}
+                            disabled={runAuditMutation.isPending}
+                          >
                             <Zap className="h-4 w-4" />
                           </Button>
                         )}
