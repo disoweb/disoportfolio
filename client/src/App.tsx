@@ -18,6 +18,7 @@ import Contact from "./pages/Contact";
 import ClientDashboard from "@/pages/ClientDashboard";
 import ActiveProjects from "@/pages/ActiveProjects";
 import TransactionHistory from "@/pages/TransactionHistory";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import AdminDashboard from "@/pages/AdminDashboard";
 import AdminProjects from "@/pages/AdminProjects";
 import AdminProjectsTest from "@/pages/AdminProjectsTest";
@@ -144,11 +145,31 @@ function Router() {
         <Route path="/admin/services" component={AdminServices} />
         <Route path="/admin/seo" component={AdminSEO} />
         <Route path="/admin/referrals" component={AdminReferrals} />
-        <Route path="/dashboard" component={ClientDashboard} />
-        <Route path="/active-projects" component={ActiveProjects} />
-        <Route path="/referrals" component={ReferralDashboard} />
-        <Route path="/transactions" component={TransactionHistory} />
-        <Route path="/transaction-history" component={TransactionHistory} />
+        <Route path="/dashboard">
+          <ProtectedRoute>
+            <ClientDashboard />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/active-projects">
+          <ProtectedRoute>
+            <ActiveProjects />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/referrals">
+          <ProtectedRoute>
+            <ReferralDashboard />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/transactions">
+          <ProtectedRoute>
+            <TransactionHistory />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/transaction-history">
+          <ProtectedRoute>
+            <TransactionHistory />
+          </ProtectedRoute>
+        </Route>
         <Route path="/services" component={Services} />
         <Route path="/service/:id" component={ServiceDetails} />
         <Route path="/checkout" component={Checkout} />

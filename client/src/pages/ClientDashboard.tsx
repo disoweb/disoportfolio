@@ -37,23 +37,6 @@ export default function ClientDashboard() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-
-  // Redirect to auth page if not authenticated
-  React.useEffect(() => {
-    console.log("Dashboard useEffect triggered:", { isLoading, isAuthenticated, user });
-    if (!isLoading && (!isAuthenticated || !user)) {
-      console.log("REDIRECTING TO AUTH - conditions met:", { isLoading, isAuthenticated, user });
-      toast({
-        title: "Authentication Required",
-        description: "Please log in to access your dashboard.",
-        variant: "destructive",
-      });
-      // Use direct redirect instead of wouter setLocation for more reliable redirect
-      window.location.href = '/auth';
-    } else {
-      console.log("NOT redirecting:", { isLoading, isAuthenticated, user });
-    }
-  }, [isAuthenticated, isLoading, user, toast]);
   const [selectedOrder, setSelectedOrder] = React.useState<any>(null);
   const [isOrderModalOpen, setIsOrderModalOpen] = React.useState(false);
   const [processingOrderId, setProcessingOrderId] = React.useState<string | null>(null);
@@ -296,17 +279,7 @@ export default function ClientDashboard() {
     );
   }
 
-  // Return early if not authenticated (redirect will happen in useEffect)
-  if (!isLoading && (!isAuthenticated || !user)) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Redirecting to login...</p>
-        </div>
-      </div>
-    );
-  }
+
 
   if (projectsLoading || ordersLoading) {
     return (
