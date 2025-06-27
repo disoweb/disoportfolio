@@ -297,7 +297,16 @@ export default function AuthPage() {
 
   const registerMutation = useMutation({
     mutationFn: async (data: RegisterForm) => {
-      const response = await apiRequest("POST", "/api/auth/register", data);
+      // Check for referral code in URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const referralCode = urlParams.get('ref');
+      
+      const registrationData = {
+        ...data,
+        referralCode: referralCode || undefined
+      };
+      
+      const response = await apiRequest("POST", "/api/auth/register", registrationData);
       return response.json();
     },
     onSuccess: async (data) => {

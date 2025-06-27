@@ -9,6 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Copy, DollarSign, Users, TrendingUp, Clock, Check, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import Navigation from "@/components/Navigation";
+import Footer from "@/components/Footer";
 import {
   Dialog,
   DialogContent,
@@ -193,21 +195,26 @@ export default function ReferralDashboard() {
 
   if (isReferralLoading) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="grid gap-6">
-          <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-32 bg-gray-200 rounded animate-pulse"></div>
-            ))}
+      <div className="min-h-screen bg-white dark:bg-gray-900">
+        <Navigation />
+        <main className="container mx-auto p-6 mt-20">
+          <div className="grid gap-6">
+            <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="h-32 bg-gray-200 rounded animate-pulse"></div>
+              ))}
+            </div>
           </div>
-        </div>
+        </main>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="min-h-screen bg-white dark:bg-gray-900">
+      <Navigation />
+      <main className="container mx-auto p-6 space-y-6 mt-20">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Referral Dashboard</h1>
         {!referralData?.referralCode && (
@@ -417,7 +424,7 @@ export default function ReferralDashboard() {
                 <p className="text-muted-foreground text-center py-4">No referrals yet</p>
               ) : (
                 <div className="space-y-4">
-                  {referralData?.referrals?.map((referral) => (
+                  {referralData?.referrals?.map((referral: any) => (
                     <div key={referral.id} className="flex items-center justify-between p-4 border rounded-lg">
                       <div className="space-y-1">
                         <div className="flex items-center space-x-2">
@@ -458,6 +465,8 @@ export default function ReferralDashboard() {
           </CardContent>
         </Card>
       )}
+      </main>
+      <Footer />
     </div>
   );
 }

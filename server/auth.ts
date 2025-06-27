@@ -305,7 +305,7 @@ export async function setupAuth(app: Express) {
     const clientIP = req.ip || req.connection.remoteAddress || 'unknown';
     
     try {
-      const { email, password, firstName, lastName, companyName, phone } = req.body;
+      const { email, password, firstName, lastName, companyName, phone, referralCode } = req.body;
 
       // Enhanced input validation
       if (!email || !password || !firstName) {
@@ -339,6 +339,18 @@ export async function setupAuth(app: Express) {
         return res.status(400).json({ message: "Email already exists" });
       }
 
+      // Check for referrer if referral code is provided
+      let referrerId = null;
+      if (referralCode) {
+        const referrer = await storage.getUserByReferralCode(referralCode);
+        if (referrer) {
+          referrerId = referrer.id;
+          console.log('🔍 Found referrer:', referrer.email, 'for code:', referralCode);
+        } else {
+          console.log('🔍 No referrer found for code:', referralCode);
+        }
+      }
+
       const user = await storage.createUser({
         email: sanitizedEmail,
         password: await hashPassword(password),
@@ -346,7 +358,8 @@ export async function setupAuth(app: Express) {
         lastName: sanitizedLastName,
         companyName: sanitizedCompanyName,
         phone: sanitizedPhone,
-        provider: 'local'
+        provider: 'local',
+        referredBy: referrerId
       });
 
       if (!user || !user.id) {
