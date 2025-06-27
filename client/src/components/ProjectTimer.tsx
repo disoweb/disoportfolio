@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Clock, Calendar, User, Building, CheckCircle, AlertCircle } from 'lucide-react';
+import ExpandableText from './ExpandableText';
 
 interface ProjectTimerProps {
   project: any;
@@ -136,10 +137,12 @@ export default function ProjectTimer({ project }: ProjectTimerProps) {
             </div>
           )}
           {info.projectDescription && (
-            <div className="text-xs text-gray-600 ml-6 mt-2">
-              {info.projectDescription.length > 100 
-                ? info.projectDescription.substring(0, 100) + '...'
-                : info.projectDescription}
+            <div className="ml-6 mt-2">
+              <ExpandableText 
+                text={info.projectDescription}
+                maxLength={80}
+                className=""
+              />
             </div>
           )}
         </div>
