@@ -38,7 +38,7 @@ export default function Navigation() {
           </Link>
           
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
+          <div className="hidden md:flex items-center space-x-6">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
@@ -50,9 +50,12 @@ export default function Navigation() {
                 {link.label}
               </Link>
             ))}
-            
+          </div>
+
+          {/* Action Buttons */}
+          <div className="hidden md:flex items-center space-x-3">
             {isAuthenticated ? (
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-3">
                 <Link href="/dashboard">
                   <Button variant="outline" size="sm">
                     Dashboard
@@ -88,14 +91,17 @@ export default function Navigation() {
                 </DropdownMenu>
               </div>
             ) : (
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-3">
                 <Link href="/auth">
-                  <Button variant="ghost" size="sm">
+                  <Button variant="ghost" size="sm" className="text-slate-600 hover:text-slate-900">
                     Login
                   </Button>
                 </Link>
-                <Link href="/auth">
-                  <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                <Link href="/services">
+                  <Button 
+                    size="sm" 
+                    className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium px-6 py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
+                  >
                     Get Started
                   </Button>
                 </Link>
