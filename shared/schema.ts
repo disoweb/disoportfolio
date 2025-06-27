@@ -26,6 +26,8 @@ export const paymentStatusEnum = pgEnum("payment_status", ["pending", "succeeded
 export const supportStatusEnum = pgEnum("support_status", ["open", "in_progress", "resolved"]);
 export const withdrawalStatusEnum = pgEnum("withdrawal_status", ["pending", "approved", "completed", "rejected"]);
 export const referralStatusEnum = pgEnum("referral_status", ["pending", "confirmed", "paid"]);
+export const seoContentTypeEnum = pgEnum("seo_content_type", ["page", "service", "project", "blog"]);
+export const seoRuleTypeEnum = pgEnum("seo_rule_type", ["meta", "schema", "content", "technical"]);
 
 // Session storage table.
 // (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
@@ -249,6 +251,111 @@ export const referralEarnings = pgTable("referral_earnings", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// SEO Management Tables
+export const seoSettings = pgTable("seo_settings", {
+  id: varchar("id").primaryKey().default("global"),
+  siteName: varchar("site_name").notNull().default("DiSO Webs"),
+  siteDescription: text("site_description").default("Professional web development and digital solutions"),
+  siteUrl: varchar("site_url").notNull(),
+  defaultMetaTitle: varchar("default_meta_title"),
+  defaultMetaDescription: text("default_meta_description"),
+  defaultKeywords: text("default_keywords"),
+  googleAnalyticsId: varchar("google_analytics_id"),
+  googleSearchConsoleId: varchar("google_search_console_id"),
+  googleTagManagerId: varchar("google_tag_manager_id"),
+  facebookPixelId: varchar("facebook_pixel_id"),
+  twitterHandle: varchar("twitter_handle"),
+  organizationSchema: jsonb("organization_schema"),
+  robotsTxt: text("robots_txt"),
+  sitemapEnabled: boolean("sitemap_enabled").default(true),
+  breadcrumbsEnabled: boolean("breadcrumbs_enabled").default(true),
+  openGraphEnabled: boolean("open_graph_enabled").default(true),
+  twitterCardsEnabled: boolean("twitter_cards_enabled").default(true),
+  structuredDataEnabled: boolean("structured_data_enabled").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const seoPages = pgTable("seo_pages", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  path: varchar("path").notNull().unique(),
+  title: varchar("title").notNull(),
+  metaDescription: text("meta_description"),
+  keywords: text("keywords"),
+  h1Tag: varchar("h1_tag"),
+  canonicalUrl: varchar("canonical_url"),
+  noIndex: boolean("no_index").default(false),
+  noFollow: boolean("no_follow").default(false),
+  priority: decimal("priority", { precision: 2, scale: 1 }).default("0.5"),
+  changeFrequency: varchar("change_frequency").default("weekly"),
+  customMetaTags: jsonb("custom_meta_tags"),
+  openGraphData: jsonb("open_graph_data"),
+  twitterCardData: jsonb("twitter_card_data"),
+  structuredData: jsonb("structured_data"),
+  contentType: seoContentTypeEnum("content_type").default("page"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const seoRules = pgTable("seo_rules", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: varchar("name").notNull(),
+  description: text("description"),
+  ruleType: seoRuleTypeEnum("rule_type").notNull(),
+  conditions: jsonb("conditions"), // JSON rules for when to apply
+  actions: jsonb("actions"), // JSON actions to take
+  priority: integer("priority").default(1),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const seoKeywords = pgTable("seo_keywords", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  keyword: varchar("keyword").notNull(),
+  targetPage: varchar("target_page"),
+  searchVolume: integer("search_volume"),
+  difficulty: decimal("difficulty", { precision: 3, scale: 1 }),
+  currentRanking: integer("current_ranking"),
+  targetRanking: integer("target_ranking"),
+  notes: text("notes"),
+  isActive: boolean("is_active").default(true),
+  lastChecked: timestamp("last_checked"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const seoAnalytics = pgTable("seo_analytics", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  page: varchar("page").notNull(),
+  date: date("date").notNull(),
+  pageViews: integer("page_views").default(0),
+  uniqueVisitors: integer("unique_visitors").default(0),
+  bounceRate: decimal("bounce_rate", { precision: 5, scale: 2 }),
+  avgTimeOnPage: integer("avg_time_on_page"), // in seconds
+  organicTraffic: integer("organic_traffic").default(0),
+  clickThroughRate: decimal("click_through_rate", { precision: 5, scale: 2 }),
+  impressions: integer("impressions").default(0),
+  clicks: integer("clicks").default(0),
+  avgPosition: decimal("avg_position", { precision: 4, scale: 1 }),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const seoAudits = pgTable("seo_audits", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  auditType: varchar("audit_type").notNull(), // 'manual', 'automated', 'external'
+  page: varchar("page"),
+  score: integer("score"), // 0-100
+  issues: jsonb("issues"), // Array of issues found
+  recommendations: jsonb("recommendations"), // Array of recommendations
+  status: varchar("status").default("pending"), // 'pending', 'in_progress', 'completed'
+  performedBy: varchar("performed_by").references(() => users.id),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  completedAt: timestamp("completed_at"),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ one, many }) => ({
   orders: many(orders),
@@ -336,6 +443,10 @@ export const referralEarningsRelations = relations(referralEarnings, ({ one }) =
   user: one(users, { fields: [referralEarnings.userId], references: [users.id] }),
 }));
 
+export const seoAuditsRelations = relations(seoAudits, ({ one }) => ({
+  performedBy: one(users, { fields: [seoAudits.performedBy], references: [users.id] }),
+}));
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   createdAt: true,
@@ -407,6 +518,41 @@ export const insertReferralEarningsSchema = createInsertSchema(referralEarnings)
   updatedAt: true,
 });
 
+export const insertSeoSettingsSchema = createInsertSchema(seoSettings).omit({
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertSeoPageSchema = createInsertSchema(seoPages).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertSeoRuleSchema = createInsertSchema(seoRules).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertSeoKeywordSchema = createInsertSchema(seoKeywords).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  lastChecked: true,
+});
+
+export const insertSeoAnalyticsSchema = createInsertSchema(seoAnalytics).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertSeoAuditSchema = createInsertSchema(seoAudits).omit({
+  id: true,
+  createdAt: true,
+  completedAt: true,
+});
+
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -440,6 +586,18 @@ export type InsertWithdrawalRequest = z.infer<typeof insertWithdrawalRequestSche
 export type WithdrawalRequest = typeof withdrawalRequests.$inferSelect;
 export type InsertReferralEarnings = z.infer<typeof insertReferralEarningsSchema>;
 export type ReferralEarnings = typeof referralEarnings.$inferSelect;
+export type InsertSeoSettings = z.infer<typeof insertSeoSettingsSchema>;
+export type SeoSettings = typeof seoSettings.$inferSelect;
+export type InsertSeoPage = z.infer<typeof insertSeoPageSchema>;
+export type SeoPage = typeof seoPages.$inferSelect;
+export type InsertSeoRule = z.infer<typeof insertSeoRuleSchema>;
+export type SeoRule = typeof seoRules.$inferSelect;
+export type InsertSeoKeyword = z.infer<typeof insertSeoKeywordSchema>;
+export type SeoKeyword = typeof seoKeywords.$inferSelect;
+export type InsertSeoAnalytics = z.infer<typeof insertSeoAnalyticsSchema>;
+export type SeoAnalytics = typeof seoAnalytics.$inferSelect;
+export type InsertSeoAudit = z.infer<typeof insertSeoAuditSchema>;
+export type SeoAudit = typeof seoAudits.$inferSelect;
 
 export const settings = pgTable("settings", {
   id: text("id").primaryKey().default("default"),

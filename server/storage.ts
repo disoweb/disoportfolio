@@ -16,6 +16,12 @@ import {
   referralEarnings,
   referralSettings,
   withdrawalRequests,
+  seoSettings,
+  seoPages,
+  seoRules,
+  seoKeywords,
+  seoAnalytics,
+  seoAudits,
   type User,
   type UpsertUser,
   type Service,
@@ -42,6 +48,18 @@ import {
   type InsertReferralSettings,
   type WithdrawalRequest,
   type InsertWithdrawalRequest,
+  type SeoSettings,
+  type InsertSeoSettings,
+  type SeoPage,
+  type InsertSeoPage,
+  type SeoRule,
+  type InsertSeoRule,
+  type SeoKeyword,
+  type InsertSeoKeyword,
+  type SeoAnalytics,
+  type InsertSeoAnalytics,
+  type SeoAudit,
+  type InsertSeoAudit,
 } from "@shared/schema";
 
 // Debug schema information
@@ -49,7 +67,7 @@ console.log('🔍 DEBUG: Schema info loaded');
 console.log('🔍 DEBUG: passwordResetTokens table structure available');
 console.log('🔍 DEBUG: users table structure available');
 import { db } from "./db";
-import { eq, desc, and, count, sum, sql, lt } from "drizzle-orm";
+import { eq, desc, and, count, sum, sql, lt, gte, lte } from "drizzle-orm";
 import crypto from "crypto";
 
 // Interface for storage operations
@@ -1426,6 +1444,176 @@ export class DatabaseStorage implements IStorage {
       .where(eq(withdrawalRequests.id, id))
       .returning();
     return updatedRequest;
+  }
+
+  // SEO Management Methods
+  async getSeoSettings(): Promise<SeoSettings> {
+    const [settings] = await db
+      .select()
+      .from(seoSettings)
+      .where(eq(seoSettings.id, "global"));
+    
+    if (!settings) {
+      // Create default settings
+      const [newSettings] = await db
+        .insert(seoSettings)
+        .values({
+          id: "global",
+          siteName: "DiSO Webs",
+          siteDescription: "Professional web development and digital solutions",
+          siteUrl: process.env.SITE_URL || "https://disoweb.replit.app",
+          defaultMetaTitle: "DiSO Webs - Professional Web Development Services",
+          defaultMetaDescription: "Transform your digital presence with DiSO Webs. We create stunning websites, web applications, and digital solutions that drive results.",
+          defaultKeywords: "web development, website design, digital solutions, web applications, responsive design",
+        })
+        .returning();
+      return newSettings;
+    }
+    
+    return settings;
+  }
+
+  async updateSeoSettings(updates: Partial<InsertSeoSettings>): Promise<SeoSettings> {
+    const [updatedSettings] = await db
+      .update(seoSettings)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(seoSettings.id, "global"))
+      .returning();
+    return updatedSettings;
+  }
+
+  async getAllSeoPages(): Promise<SeoPage[]> {
+    return await db
+      .select()
+      .from(seoPages)
+      .orderBy(seoPages.path);
+  }
+
+  async getSeoPageByPath(path: string): Promise<SeoPage | null> {
+    const [page] = await db
+      .select()
+      .from(seoPages)
+      .where(eq(seoPages.path, path));
+    return page || null;
+  }
+
+  async createSeoPage(pageData: InsertSeoPage): Promise<SeoPage> {
+    const [newPage] = await db.insert(seoPages).values(pageData).returning();
+    return newPage;
+  }
+
+  async updateSeoPage(id: string, updates: Partial<InsertSeoPage>): Promise<SeoPage> {
+    const [updatedPage] = await db
+      .update(seoPages)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(seoPages.id, id))
+      .returning();
+    return updatedPage;
+  }
+
+  async deleteSeoPage(id: string): Promise<void> {
+    await db.delete(seoPages).where(eq(seoPages.id, id));
+  }
+
+  async getAllSeoRules(): Promise<SeoRule[]> {
+    return await db
+      .select()
+      .from(seoRules)
+      .orderBy(desc(seoRules.priority), seoRules.name);
+  }
+
+  async createSeoRule(ruleData: InsertSeoRule): Promise<SeoRule> {
+    const [newRule] = await db.insert(seoRules).values(ruleData).returning();
+    return newRule;
+  }
+
+  async updateSeoRule(id: string, updates: Partial<InsertSeoRule>): Promise<SeoRule> {
+    const [updatedRule] = await db
+      .update(seoRules)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(seoRules.id, id))
+      .returning();
+    return updatedRule;
+  }
+
+  async deleteSeoRule(id: string): Promise<void> {
+    await db.delete(seoRules).where(eq(seoRules.id, id));
+  }
+
+  async getAllSeoKeywords(): Promise<SeoKeyword[]> {
+    return await db
+      .select()
+      .from(seoKeywords)
+      .orderBy(desc(seoKeywords.searchVolume), seoKeywords.keyword);
+  }
+
+  async createSeoKeyword(keywordData: InsertSeoKeyword): Promise<SeoKeyword> {
+    const [newKeyword] = await db.insert(seoKeywords).values(keywordData).returning();
+    return newKeyword;
+  }
+
+  async updateSeoKeyword(id: string, updates: Partial<InsertSeoKeyword>): Promise<SeoKeyword> {
+    const [updatedKeyword] = await db
+      .update(seoKeywords)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(seoKeywords.id, id))
+      .returning();
+    return updatedKeyword;
+  }
+
+  async deleteSeoKeyword(id: string): Promise<void> {
+    await db.delete(seoKeywords).where(eq(seoKeywords.id, id));
+  }
+
+  async createSeoAnalytics(analyticsData: InsertSeoAnalytics): Promise<SeoAnalytics> {
+    const [newAnalytics] = await db.insert(seoAnalytics).values(analyticsData).returning();
+    return newAnalytics;
+  }
+
+  async getSeoAnalyticsByPage(page: string, startDate?: string, endDate?: string): Promise<SeoAnalytics[]> {
+    const conditions = [eq(seoAnalytics.page, page)];
+    
+    if (startDate) {
+      conditions.push(gte(seoAnalytics.date, startDate));
+    }
+    if (endDate) {
+      conditions.push(lte(seoAnalytics.date, endDate));
+    }
+
+    return await db
+      .select()
+      .from(seoAnalytics)
+      .where(and(...conditions))
+      .orderBy(desc(seoAnalytics.date));
+  }
+
+  async getAllSeoAudits(): Promise<SeoAudit[]> {
+    return await db
+      .select()
+      .from(seoAudits)
+      .orderBy(desc(seoAudits.createdAt));
+  }
+
+  async createSeoAudit(auditData: InsertSeoAudit): Promise<SeoAudit> {
+    const [newAudit] = await db.insert(seoAudits).values(auditData).returning();
+    return newAudit;
+  }
+
+  async updateSeoAudit(id: string, updates: Partial<InsertSeoAudit>): Promise<SeoAudit> {
+    const [updatedAudit] = await db
+      .update(seoAudits)
+      .set(updates)
+      .where(eq(seoAudits.id, id))
+      .returning();
+    return updatedAudit;
+  }
+
+  async getSeoAuditById(id: string): Promise<SeoAudit | null> {
+    const [audit] = await db
+      .select()
+      .from(seoAudits)
+      .where(eq(seoAudits.id, id));
+    return audit || null;
   }
 
   async processWithdrawal(id: string, adminId: string, status: string, notes?: string): Promise<WithdrawalRequest> {

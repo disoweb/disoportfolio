@@ -1601,6 +1601,441 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ============================================================================
+  // SEO MANAGEMENT ROUTES
+  // ============================================================================
+
+  // Get SEO settings
+  app.get('/api/seo/settings', async (req, res) => {
+    try {
+      const settings = await storage.getSeoSettings();
+      res.json(settings);
+    } catch (error) {
+      console.error("Error fetching SEO settings:", error);
+      sendSafeErrorResponse(res, 500, error, 'seo_settings_fetch_error');
+    }
+  });
+
+  // Admin: Update SEO settings
+  app.patch('/api/admin/seo/settings', isAuthenticated, securityHeaders, validateContentType, validateRequestSize(), authRateLimit('seo_settings'), async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.role !== 'admin') {
+        auditLog('unauthorized_seo_settings_attempt', userId);
+        return sendSafeErrorResponse(res, 403, new Error("Unauthorized"), 'unauthorized_seo_settings');
+      }
+
+      const {
+        siteName, siteDescription, siteUrl, defaultMetaTitle,
+        defaultMetaDescription, defaultKeywords, googleAnalyticsId,
+        googleSearchConsoleId, googleTagManagerId, facebookPixelId,
+        twitterHandle, organizationSchema, robotsTxt,
+        sitemapEnabled, breadcrumbsEnabled, openGraphEnabled,
+        twitterCardsEnabled, structuredDataEnabled
+      } = req.body;
+
+      const updates: any = {};
+      if (siteName !== undefined) updates.siteName = sanitizeInput(siteName);
+      if (siteDescription !== undefined) updates.siteDescription = sanitizeInput(siteDescription);
+      if (siteUrl !== undefined) updates.siteUrl = sanitizeInput(siteUrl);
+      if (defaultMetaTitle !== undefined) updates.defaultMetaTitle = sanitizeInput(defaultMetaTitle);
+      if (defaultMetaDescription !== undefined) updates.defaultMetaDescription = sanitizeInput(defaultMetaDescription);
+      if (defaultKeywords !== undefined) updates.defaultKeywords = sanitizeInput(defaultKeywords);
+      if (googleAnalyticsId !== undefined) updates.googleAnalyticsId = sanitizeInput(googleAnalyticsId);
+      if (googleSearchConsoleId !== undefined) updates.googleSearchConsoleId = sanitizeInput(googleSearchConsoleId);
+      if (googleTagManagerId !== undefined) updates.googleTagManagerId = sanitizeInput(googleTagManagerId);
+      if (facebookPixelId !== undefined) updates.facebookPixelId = sanitizeInput(facebookPixelId);
+      if (twitterHandle !== undefined) updates.twitterHandle = sanitizeInput(twitterHandle);
+      if (organizationSchema !== undefined) updates.organizationSchema = organizationSchema;
+      if (robotsTxt !== undefined) updates.robotsTxt = sanitizeInput(robotsTxt);
+      if (sitemapEnabled !== undefined) updates.sitemapEnabled = Boolean(sitemapEnabled);
+      if (breadcrumbsEnabled !== undefined) updates.breadcrumbsEnabled = Boolean(breadcrumbsEnabled);
+      if (openGraphEnabled !== undefined) updates.openGraphEnabled = Boolean(openGraphEnabled);
+      if (twitterCardsEnabled !== undefined) updates.twitterCardsEnabled = Boolean(twitterCardsEnabled);
+      if (structuredDataEnabled !== undefined) updates.structuredDataEnabled = Boolean(structuredDataEnabled);
+
+      const settings = await storage.updateSeoSettings(updates);
+      auditLog('seo_settings_updated', userId, updates);
+      res.json(settings);
+    } catch (error) {
+      console.error("Error updating SEO settings:", error);
+      sendSafeErrorResponse(res, 500, error, 'seo_settings_update_error');
+    }
+  });
+
+  // Get all SEO pages
+  app.get('/api/admin/seo/pages', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.role !== 'admin') {
+        return sendSafeErrorResponse(res, 403, new Error("Unauthorized"), 'unauthorized_seo_pages');
+      }
+
+      const pages = await storage.getAllSeoPages();
+      res.json(pages);
+    } catch (error) {
+      console.error("Error fetching SEO pages:", error);
+      sendSafeErrorResponse(res, 500, error, 'seo_pages_fetch_error');
+    }
+  });
+
+  // Get SEO page by path
+  app.get('/api/seo/pages/:path(*)', async (req, res) => {
+    try {
+      const path = '/' + (req.params.path || '');
+      const page = await storage.getSeoPageByPath(path);
+      
+      if (!page) {
+        return res.status(404).json({ error: "Page not found" });
+      }
+
+      res.json(page);
+    } catch (error) {
+      console.error("Error fetching SEO page:", error);
+      sendSafeErrorResponse(res, 500, error, 'seo_page_fetch_error');
+    }
+  });
+
+  // Admin: Create SEO page
+  app.post('/api/admin/seo/pages', isAuthenticated, securityHeaders, validateContentType, validateRequestSize(), authRateLimit('seo_page_create'), async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.role !== 'admin') {
+        auditLog('unauthorized_seo_page_create_attempt', userId);
+        return sendSafeErrorResponse(res, 403, new Error("Unauthorized"), 'unauthorized_seo_page_create');
+      }
+
+      const {
+        path, title, metaDescription, keywords, h1Tag, canonicalUrl,
+        noIndex, noFollow, priority, changeFrequency, customMetaTags,
+        openGraphData, twitterCardData, structuredData, contentType
+      } = req.body;
+
+      if (!path || !title) {
+        return sendSafeErrorResponse(res, 400, new Error("Path and title are required"), 'missing_page_fields');
+      }
+
+      const pageData = {
+        path: sanitizeInput(path),
+        title: sanitizeInput(title),
+        metaDescription: metaDescription ? sanitizeInput(metaDescription) : null,
+        keywords: keywords ? sanitizeInput(keywords) : null,
+        h1Tag: h1Tag ? sanitizeInput(h1Tag) : null,
+        canonicalUrl: canonicalUrl ? sanitizeInput(canonicalUrl) : null,
+        noIndex: Boolean(noIndex),
+        noFollow: Boolean(noFollow),
+        priority: priority ? parseFloat(priority) : 0.5,
+        changeFrequency: changeFrequency || 'weekly',
+        customMetaTags,
+        openGraphData,
+        twitterCardData,
+        structuredData,
+        contentType: contentType || 'page'
+      };
+
+      const newPage = await storage.createSeoPage(pageData);
+      auditLog('seo_page_created', userId, { pageId: newPage.id, path: newPage.path });
+      res.json(newPage);
+    } catch (error) {
+      console.error("Error creating SEO page:", error);
+      sendSafeErrorResponse(res, 500, error, 'seo_page_create_error');
+    }
+  });
+
+  // Admin: Update SEO page
+  app.patch('/api/admin/seo/pages/:id', isAuthenticated, securityHeaders, validateContentType, validateRequestSize(), authRateLimit('seo_page_update'), async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.role !== 'admin') {
+        auditLog('unauthorized_seo_page_update_attempt', userId, { pageId: req.params.id });
+        return sendSafeErrorResponse(res, 403, new Error("Unauthorized"), 'unauthorized_seo_page_update');
+      }
+
+      const pageId = sanitizeInput(req.params.id);
+      const {
+        path, title, metaDescription, keywords, h1Tag, canonicalUrl,
+        noIndex, noFollow, priority, changeFrequency, customMetaTags,
+        openGraphData, twitterCardData, structuredData, contentType, isActive
+      } = req.body;
+
+      const updates: any = {};
+      if (path !== undefined) updates.path = sanitizeInput(path);
+      if (title !== undefined) updates.title = sanitizeInput(title);
+      if (metaDescription !== undefined) updates.metaDescription = sanitizeInput(metaDescription);
+      if (keywords !== undefined) updates.keywords = sanitizeInput(keywords);
+      if (h1Tag !== undefined) updates.h1Tag = sanitizeInput(h1Tag);
+      if (canonicalUrl !== undefined) updates.canonicalUrl = sanitizeInput(canonicalUrl);
+      if (noIndex !== undefined) updates.noIndex = Boolean(noIndex);
+      if (noFollow !== undefined) updates.noFollow = Boolean(noFollow);
+      if (priority !== undefined) updates.priority = parseFloat(priority);
+      if (changeFrequency !== undefined) updates.changeFrequency = sanitizeInput(changeFrequency);
+      if (customMetaTags !== undefined) updates.customMetaTags = customMetaTags;
+      if (openGraphData !== undefined) updates.openGraphData = openGraphData;
+      if (twitterCardData !== undefined) updates.twitterCardData = twitterCardData;
+      if (structuredData !== undefined) updates.structuredData = structuredData;
+      if (contentType !== undefined) updates.contentType = sanitizeInput(contentType);
+      if (isActive !== undefined) updates.isActive = Boolean(isActive);
+
+      const updatedPage = await storage.updateSeoPage(pageId, updates);
+      auditLog('seo_page_updated', userId, { pageId, updates });
+      res.json(updatedPage);
+    } catch (error) {
+      console.error("Error updating SEO page:", error);
+      sendSafeErrorResponse(res, 500, error, 'seo_page_update_error');
+    }
+  });
+
+  // Admin: Delete SEO page
+  app.delete('/api/admin/seo/pages/:id', isAuthenticated, securityHeaders, authRateLimit('seo_page_delete'), async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.role !== 'admin') {
+        auditLog('unauthorized_seo_page_delete_attempt', userId, { pageId: req.params.id });
+        return sendSafeErrorResponse(res, 403, new Error("Unauthorized"), 'unauthorized_seo_page_delete');
+      }
+
+      const pageId = sanitizeInput(req.params.id);
+      await storage.deleteSeoPage(pageId);
+      auditLog('seo_page_deleted', userId, { pageId });
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting SEO page:", error);
+      sendSafeErrorResponse(res, 500, error, 'seo_page_delete_error');
+    }
+  });
+
+  // Get all SEO rules
+  app.get('/api/admin/seo/rules', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.role !== 'admin') {
+        return sendSafeErrorResponse(res, 403, new Error("Unauthorized"), 'unauthorized_seo_rules');
+      }
+
+      const rules = await storage.getAllSeoRules();
+      res.json(rules);
+    } catch (error) {
+      console.error("Error fetching SEO rules:", error);
+      sendSafeErrorResponse(res, 500, error, 'seo_rules_fetch_error');
+    }
+  });
+
+  // Admin: Create SEO rule
+  app.post('/api/admin/seo/rules', isAuthenticated, securityHeaders, validateContentType, validateRequestSize(), authRateLimit('seo_rule_create'), async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.role !== 'admin') {
+        auditLog('unauthorized_seo_rule_create_attempt', userId);
+        return sendSafeErrorResponse(res, 403, new Error("Unauthorized"), 'unauthorized_seo_rule_create');
+      }
+
+      const { name, description, ruleType, conditions, actions, priority } = req.body;
+
+      if (!name || !ruleType) {
+        return sendSafeErrorResponse(res, 400, new Error("Name and rule type are required"), 'missing_rule_fields');
+      }
+
+      const ruleData = {
+        name: sanitizeInput(name),
+        description: description ? sanitizeInput(description) : null,
+        ruleType: sanitizeInput(ruleType),
+        conditions,
+        actions,
+        priority: priority ? parseInt(priority) : 1
+      };
+
+      const newRule = await storage.createSeoRule(ruleData);
+      auditLog('seo_rule_created', userId, { ruleId: newRule.id, name: newRule.name });
+      res.json(newRule);
+    } catch (error) {
+      console.error("Error creating SEO rule:", error);
+      sendSafeErrorResponse(res, 500, error, 'seo_rule_create_error');
+    }
+  });
+
+  // Get all SEO keywords
+  app.get('/api/admin/seo/keywords', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.role !== 'admin') {
+        return sendSafeErrorResponse(res, 403, new Error("Unauthorized"), 'unauthorized_seo_keywords');
+      }
+
+      const keywords = await storage.getAllSeoKeywords();
+      res.json(keywords);
+    } catch (error) {
+      console.error("Error fetching SEO keywords:", error);
+      sendSafeErrorResponse(res, 500, error, 'seo_keywords_fetch_error');
+    }
+  });
+
+  // Admin: Create SEO keyword
+  app.post('/api/admin/seo/keywords', isAuthenticated, securityHeaders, validateContentType, validateRequestSize(), authRateLimit('seo_keyword_create'), async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.role !== 'admin') {
+        auditLog('unauthorized_seo_keyword_create_attempt', userId);
+        return sendSafeErrorResponse(res, 403, new Error("Unauthorized"), 'unauthorized_seo_keyword_create');
+      }
+
+      const {
+        keyword, targetPage, searchVolume, difficulty,
+        currentRanking, targetRanking, notes
+      } = req.body;
+
+      if (!keyword) {
+        return sendSafeErrorResponse(res, 400, new Error("Keyword is required"), 'missing_keyword');
+      }
+
+      const keywordData = {
+        keyword: sanitizeInput(keyword),
+        targetPage: targetPage ? sanitizeInput(targetPage) : null,
+        searchVolume: searchVolume ? parseInt(searchVolume) : null,
+        difficulty: difficulty ? parseFloat(difficulty) : null,
+        currentRanking: currentRanking ? parseInt(currentRanking) : null,
+        targetRanking: targetRanking ? parseInt(targetRanking) : null,
+        notes: notes ? sanitizeInput(notes) : null
+      };
+
+      const newKeyword = await storage.createSeoKeyword(keywordData);
+      auditLog('seo_keyword_created', userId, { keywordId: newKeyword.id, keyword: newKeyword.keyword });
+      res.json(newKeyword);
+    } catch (error) {
+      console.error("Error creating SEO keyword:", error);
+      sendSafeErrorResponse(res, 500, error, 'seo_keyword_create_error');
+    }
+  });
+
+  // Get all SEO audits
+  app.get('/api/admin/seo/audits', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.role !== 'admin') {
+        return sendSafeErrorResponse(res, 403, new Error("Unauthorized"), 'unauthorized_seo_audits');
+      }
+
+      const audits = await storage.getAllSeoAudits();
+      res.json(audits);
+    } catch (error) {
+      console.error("Error fetching SEO audits:", error);
+      sendSafeErrorResponse(res, 500, error, 'seo_audits_fetch_error');
+    }
+  });
+
+  // Admin: Create SEO audit
+  app.post('/api/admin/seo/audits', isAuthenticated, securityHeaders, validateContentType, validateRequestSize(), authRateLimit('seo_audit_create'), async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.role !== 'admin') {
+        auditLog('unauthorized_seo_audit_create_attempt', userId);
+        return sendSafeErrorResponse(res, 403, new Error("Unauthorized"), 'unauthorized_seo_audit_create');
+      }
+
+      const {
+        auditType, page, score, issues, recommendations, notes
+      } = req.body;
+
+      if (!auditType) {
+        return sendSafeErrorResponse(res, 400, new Error("Audit type is required"), 'missing_audit_type');
+      }
+
+      const auditData = {
+        auditType: sanitizeInput(auditType),
+        page: page ? sanitizeInput(page) : null,
+        score: score ? parseInt(score) : null,
+        issues,
+        recommendations,
+        performedBy: userId,
+        notes: notes ? sanitizeInput(notes) : null
+      };
+
+      const newAudit = await storage.createSeoAudit(auditData);
+      auditLog('seo_audit_created', userId, { auditId: newAudit.id, auditType: newAudit.auditType });
+      res.json(newAudit);
+    } catch (error) {
+      console.error("Error creating SEO audit:", error);
+      sendSafeErrorResponse(res, 500, error, 'seo_audit_create_error');
+    }
+  });
+
+  // Generate sitemap.xml
+  app.get('/sitemap.xml', async (req, res) => {
+    try {
+      const settings = await storage.getSeoSettings();
+      const pages = await storage.getAllSeoPages();
+      
+      if (!settings.sitemapEnabled) {
+        return res.status(404).send('Sitemap disabled');
+      }
+
+      let sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`;
+
+      // Add pages from database
+      for (const page of pages.filter(p => p.isActive && !p.noIndex)) {
+        const lastmod = page.updatedAt ? new Date(page.updatedAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+        sitemap += `
+  <url>
+    <loc>${settings.siteUrl}${page.path}</loc>
+    <lastmod>${lastmod}</lastmod>
+    <changefreq>${page.changeFrequency}</changefreq>
+    <priority>${page.priority}</priority>
+  </url>`;
+      }
+
+      sitemap += `
+</urlset>`;
+
+      res.set('Content-Type', 'application/xml');
+      res.send(sitemap);
+    } catch (error) {
+      console.error("Error generating sitemap:", error);
+      res.status(500).send('Error generating sitemap');
+    }
+  });
+
+  // Generate robots.txt
+  app.get('/robots.txt', async (req, res) => {
+    try {
+      const settings = await storage.getSeoSettings();
+      
+      let robotsTxt = settings.robotsTxt || `User-agent: *
+Disallow: /admin
+Disallow: /api
+Allow: /
+
+Sitemap: ${settings.siteUrl}/sitemap.xml`;
+
+      res.set('Content-Type', 'text/plain');
+      res.send(robotsTxt);
+    } catch (error) {
+      console.error("Error generating robots.txt:", error);
+      res.status(500).send('Error generating robots.txt');
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
