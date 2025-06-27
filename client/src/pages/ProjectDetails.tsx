@@ -288,7 +288,7 @@ export default function ProjectDetails() {
               <CardContent className="p-6 text-center">
                 <h3 className="font-bold text-gray-900 mb-2">Inspired by this project?</h3>
                 <p className="text-gray-600 mb-4 text-sm">Let's discuss how we can create something amazing for your business too.</p>
-                <Button className="w-full" onClick={() => setLocation('/contact')}>
+                <Button className="w-full" onClick={() => setLocation('/services')}>
                   Start Your Project
                 </Button>
               </CardContent>
