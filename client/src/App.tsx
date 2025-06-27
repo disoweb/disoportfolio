@@ -15,7 +15,7 @@ import Projects from "./pages/Projects";
 import ProjectDetails from "./pages/ProjectDetails";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
-import OptimizedClientDashboard from "@/pages/OptimizedClientDashboard";
+import ClientDashboard from "@/pages/ClientDashboard";
 import ActiveProjects from "@/pages/ActiveProjects";
 import TransactionHistory from "@/pages/TransactionHistory";
 import AdminDashboard from "@/pages/AdminDashboard";
@@ -144,7 +144,7 @@ function Router() {
         <Route path="/admin/services" component={AdminServices} />
         <Route path="/admin/seo" component={AdminSEO} />
         <Route path="/admin/referrals" component={AdminReferrals} />
-        <Route path="/dashboard" component={OptimizedClientDashboard} />
+        <Route path="/dashboard" component={ClientDashboard} />
         <Route path="/active-projects" component={ActiveProjects} />
         <Route path="/referrals" component={ReferralDashboard} />
         <Route path="/transactions" component={TransactionHistory} />
