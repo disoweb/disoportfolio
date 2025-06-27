@@ -53,6 +53,12 @@ export default function AdminNavigation() {
       description: "Support & Communication"
     },
     { 
+      name: "SEO", 
+      href: "/admin/seo", 
+      icon: Search,
+      description: "SEO Management"
+    },
+    { 
       name: "Settings", 
       href: "/admin/settings", 
       icon: Settings,
