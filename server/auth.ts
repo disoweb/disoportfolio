@@ -18,6 +18,8 @@ import {
   auditLog,
   authRateLimit 
 } from "./security";
+import { emailService } from "./email";
+import crypto from "crypto";
 
 declare global {
   namespace Express {
@@ -600,6 +602,115 @@ export async function setupAuth(app: Express) {
       }
     } else {
       res.status(501).json({ message: "Replit OAuth only works in Replit environment" });
+    }
+  });
+
+  // Password reset routes
+  app.post("/api/auth/forgot-password", authRateLimit('forgot_password'), validateContentType, async (req, res) => {
+    const clientIP = req.ip || req.connection.remoteAddress || 'unknown';
+    
+    try {
+      const { email } = req.body;
+
+      if (!email) {
+        auditLog('forgot_password_validation_failed', undefined, { clientIP });
+        return res.status(400).json({ message: "Email is required" });
+      }
+
+      const sanitizedEmail = sanitizeInput(email).toLowerCase();
+
+      if (!validateEmail(sanitizedEmail)) {
+        auditLog('forgot_password_invalid_email', undefined, { email: sanitizedEmail.substring(0, 5) + '***', clientIP });
+        return res.status(400).json({ message: "Invalid email format" });
+      }
+
+      const user = await storage.getUserByEmail(sanitizedEmail);
+      
+      // Always return success to prevent email enumeration attacks
+      if (!user || user.provider !== 'local') {
+        auditLog('forgot_password_user_not_found', undefined, { email: sanitizedEmail.substring(0, 5) + '***', clientIP });
+        return res.json({ message: "If an account exists with this email, you will receive password reset instructions." });
+      }
+
+      // Generate secure reset token
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+      await storage.createPasswordResetToken(user.id, resetToken, expiresAt);
+
+      // Generate reset URL
+      const resetUrl = `${req.protocol}://${req.get('host')}/reset-password?token=${resetToken}`;
+
+      // Send password reset email
+      const emailSent = await emailService.sendEmail({
+        to: user.email,
+        subject: "Password Reset - DiSO Webs",
+        html: emailService.generatePasswordResetEmail(resetUrl, user.firstName || 'there')
+      });
+
+      if (emailSent) {
+        auditLog('forgot_password_success', user.id, { email: sanitizedEmail.substring(0, 5) + '***', clientIP });
+      } else {
+        auditLog('forgot_password_email_failed', user.id, { email: sanitizedEmail.substring(0, 5) + '***', clientIP });
+      }
+
+      res.json({ message: "If an account exists with this email, you will receive password reset instructions." });
+    } catch (error) {
+      console.error("Forgot password error:", error);
+      auditLog('forgot_password_error', undefined, { error: (error as Error).message, clientIP });
+      res.status(500).json({ message: "Failed to process password reset request" });
+    }
+  });
+
+  app.post("/api/auth/reset-password", authRateLimit('reset_password'), validateContentType, async (req, res) => {
+    const clientIP = req.ip || req.connection.remoteAddress || 'unknown';
+    
+    try {
+      const { token, password } = req.body;
+
+      if (!token || !password) {
+        auditLog('reset_password_validation_failed', undefined, { clientIP });
+        return res.status(400).json({ message: "Token and password are required" });
+      }
+
+      const passwordCheck = validatePassword(password);
+      if (!passwordCheck.valid) {
+        auditLog('reset_password_weak_password', undefined, { clientIP });
+        return res.status(400).json({ message: passwordCheck.message });
+      }
+
+      const resetTokenRecord = await storage.getPasswordResetToken(token);
+      
+      if (!resetTokenRecord || resetTokenRecord.used || resetTokenRecord.expiresAt < new Date()) {
+        auditLog('reset_password_invalid_token', undefined, { clientIP });
+        return res.status(400).json({ message: "Invalid or expired reset token" });
+      }
+
+      const user = await storage.getUser(resetTokenRecord.userId);
+      if (!user) {
+        auditLog('reset_password_user_not_found', undefined, { clientIP });
+        return res.status(400).json({ message: "Invalid reset token" });
+      }
+
+      // Hash the new password
+      const hashedPassword = await hashPassword(password);
+
+      // Update user password
+      await storage.updateUserPassword(user.id, hashedPassword);
+
+      // Mark token as used
+      await storage.markPasswordResetTokenAsUsed(token);
+
+      // Clean up expired tokens
+      await storage.cleanupExpiredPasswordResetTokens();
+
+      auditLog('reset_password_success', user.id, { email: user.email.substring(0, 5) + '***', clientIP });
+
+      res.json({ message: "Password has been reset successfully" });
+    } catch (error) {
+      console.error("Reset password error:", error);
+      auditLog('reset_password_error', undefined, { error: (error as Error).message, clientIP });
+      res.status(500).json({ message: "Failed to reset password" });
     }
   });
 }

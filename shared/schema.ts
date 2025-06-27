@@ -55,6 +55,19 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Password reset tokens table
+export const passwordResetTokens = pgTable("password_reset_tokens", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  token: varchar("token").notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
+  used: boolean("used").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("password_reset_tokens_token_idx").on(table.token),
+  index("password_reset_tokens_user_id_idx").on(table.userId),
+]);
+
 export const services = pgTable("services", {
   id: varchar("id").primaryKey(),
   name: varchar("name").notNull(),
@@ -298,6 +311,11 @@ export const insertCheckoutSessionSchema = createInsertSchema(checkoutSessions).
   createdAt: true,
 });
 
+export const insertPasswordResetTokenSchema = createInsertSchema(passwordResetTokens).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -320,3 +338,5 @@ export type Notification = typeof notifications.$inferSelect;
 export type AuditLog = typeof auditLogs.$inferSelect;
 export type InsertCheckoutSession = z.infer<typeof insertCheckoutSessionSchema>;
 export type CheckoutSession = typeof checkoutSessions.$inferSelect;
+export type InsertPasswordResetToken = z.infer<typeof insertPasswordResetTokenSchema>;
+export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;

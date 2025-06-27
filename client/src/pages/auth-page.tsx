@@ -566,7 +566,7 @@ export default function AuthPage() {
             )}
 
             {/* Toggle between login/register */}
-            <div className="text-center pt-4">
+            <div className="text-center pt-4 space-y-2">
               <p className="text-sm text-gray-600 dark:text-gray-400">
                 {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
                 <Button
@@ -577,6 +577,19 @@ export default function AuthPage() {
                   {isLogin ? "Sign up" : "Sign in"}
                 </Button>
               </p>
+              
+              {isLogin && (
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Forgot your password?{" "}
+                  <Button
+                    variant="link"
+                    className="p-0 h-auto font-semibold text-blue-600 hover:text-blue-700"
+                    onClick={() => setLocation("/forgot-password")}
+                  >
+                    Reset it here
+                  </Button>
+                </p>
+              )}
             </div>
 
             <div className="relative">

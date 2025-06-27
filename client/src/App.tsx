@@ -27,6 +27,8 @@ import AdminProjectsDebug from "@/pages/AdminProjectsDebug";
 import AdminServices from "@/pages/AdminServices";
 import AdminLogin from "@/pages/AdminLogin";
 import Checkout from "@/pages/Checkout";
+import ForgotPassword from "@/pages/ForgotPassword";
+import ResetPassword from "@/pages/ResetPassword";
 import WhatsAppFloat from "@/components/WhatsAppFloat";
 
 function Router() {
@@ -128,6 +130,8 @@ function Router() {
       <>
         <Route path="/" component={!isAuthenticated ? Landing : Home} />
         <Route path="/auth" component={AuthPage} />
+        <Route path="/forgot-password" component={ForgotPassword} />
+        <Route path="/reset-password" component={ResetPassword} />
         <Route path="/admin" component={AdminLogin} />
         <Route path="/admin-dashboard" component={AdminDashboard} />
         <Route path="/admin/projects" component={AdminProjectsFixed} />
