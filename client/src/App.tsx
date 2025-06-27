@@ -25,8 +25,10 @@ import AdminProjectsSimple from "@/pages/AdminProjectsSimple";
 import AdminProjectsFixed from "@/pages/AdminProjectsFixed";
 import AdminProjectsDebug from "@/pages/AdminProjectsDebug";
 import AdminServices from "@/pages/AdminServices";
+import AdminReferrals from "@/pages/AdminReferrals";
 import AdminLogin from "@/pages/AdminLogin";
 import Checkout from "@/pages/Checkout";
+import ReferralDashboard from "@/pages/ReferralDashboard";
 import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
 import WhatsAppFloat from "@/components/WhatsAppFloat";
@@ -136,8 +138,10 @@ function Router() {
         <Route path="/admin-dashboard" component={AdminDashboard} />
         <Route path="/admin/projects" component={AdminProjectsFixed} />
         <Route path="/admin/services" component={AdminServices} />
+        <Route path="/admin/referrals" component={AdminReferrals} />
         <Route path="/dashboard" component={ClientDashboard} />
         <Route path="/active-projects" component={ActiveProjects} />
+        <Route path="/referrals" component={ReferralDashboard} />
         <Route path="/transactions" component={TransactionHistory} />
         <Route path="/transaction-history" component={TransactionHistory} />
         <Route path="/services" component={Services} />

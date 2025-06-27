@@ -12,6 +12,10 @@ import {
   auditLogs,
   checkoutSessions,
   passwordResetTokens,
+  referrals,
+  referralEarnings,
+  referralSettings,
+  withdrawalRequests,
   type User,
   type UpsertUser,
   type Service,
@@ -30,6 +34,14 @@ import {
   type InsertCheckoutSession,
   type PasswordResetToken,
   type InsertPasswordResetToken,
+  type Referral,
+  type InsertReferral,
+  type ReferralEarnings,
+  type InsertReferralEarnings,
+  type ReferralSettings,
+  type InsertReferralSettings,
+  type WithdrawalRequest,
+  type InsertWithdrawalRequest,
 } from "@shared/schema";
 
 // Debug schema information
@@ -112,6 +124,22 @@ export interface IStorage {
   // Admin project management
   getProjectById(id: string): Promise<Project | undefined>;
   deleteProject(id: string): Promise<void>;
+  
+  // Referral system methods
+  generateReferralCode(userId: string): Promise<string>;
+  getUserByReferralCode(referralCode: string): Promise<User | undefined>;
+  createReferral(referral: InsertReferral): Promise<Referral>;
+  processReferralEarning(orderId: string): Promise<void>;
+  getUserReferrals(userId: string): Promise<Referral[]>;
+  getUserReferralEarnings(userId: string): Promise<ReferralEarnings | undefined>;
+  updateReferralEarnings(userId: string, updates: Partial<InsertReferralEarnings>): Promise<ReferralEarnings>;
+  getReferralSettings(): Promise<ReferralSettings>;
+  updateReferralSettings(updates: Partial<InsertReferralSettings>): Promise<ReferralSettings>;
+  createWithdrawalRequest(request: InsertWithdrawalRequest): Promise<WithdrawalRequest>;
+  getUserWithdrawalRequests(userId: string): Promise<WithdrawalRequest[]>;
+  getAllWithdrawalRequests(): Promise<WithdrawalRequest[]>;
+  updateWithdrawalRequest(id: string, updates: Partial<InsertWithdrawalRequest>): Promise<WithdrawalRequest>;
+  processWithdrawal(id: string, adminId: string, status: string, notes?: string): Promise<WithdrawalRequest>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -992,6 +1020,9 @@ export class DatabaseStorage implements IStorage {
         });
       }
     }
+
+    // Process referral earnings if applicable
+    await this.processReferralEarning(orderId);
   }
 
   // Support operations
@@ -1203,6 +1234,226 @@ export class DatabaseStorage implements IStorage {
 
   async deleteProject(id: string): Promise<void> {
     await db.delete(projects).where(eq(projects.id, id));
+  }
+
+  // Referral system methods
+  async generateReferralCode(userId: string): Promise<string> {
+    let referralCode: string;
+    let isUnique = false;
+    
+    while (!isUnique) {
+      referralCode = `REF${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+      const existing = await this.getUserByReferralCode(referralCode);
+      if (!existing) {
+        isUnique = true;
+      }
+    }
+
+    // Update user with referral code
+    await db.update(users).set({ referralCode }).where(eq(users.id, userId));
+    
+    // Initialize referral earnings for the user
+    await db.insert(referralEarnings).values({
+      userId,
+      totalEarned: "0.00",
+      totalWithdrawn: "0.00",
+      pendingEarnings: "0.00",
+      availableBalance: "0.00",
+      totalReferrals: 0,
+      successfulReferrals: 0,
+    }).onConflictDoNothing();
+    
+    return referralCode!;
+  }
+
+  async getUserByReferralCode(referralCode: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.referralCode, referralCode));
+    return user;
+  }
+
+  async createReferral(referral: InsertReferral): Promise<Referral> {
+    const [newReferral] = await db.insert(referrals).values(referral).returning();
+    
+    // Update referrer's stats
+    await db
+      .update(referralEarnings)
+      .set({
+        totalReferrals: sql`${referralEarnings.totalReferrals} + 1`,
+        updatedAt: new Date(),
+      })
+      .where(eq(referralEarnings.userId, referral.referrerId));
+    
+    return newReferral;
+  }
+
+  async processReferralEarning(orderId: string): Promise<void> {
+    // Get the order and check if it has a referral
+    const [order] = await db.select().from(orders).where(eq(orders.id, orderId));
+    if (!order) return;
+
+    // Get the user who made the order
+    const [orderUser] = await db.select().from(users).where(eq(users.id, order.userId));
+    if (!orderUser?.referredBy) return;
+
+    // Get referral settings
+    const settings = await this.getReferralSettings();
+    const commissionPercentage = parseFloat(settings.commissionPercentage);
+    const orderAmount = parseFloat(order.totalPrice);
+    const commissionAmount = (orderAmount * commissionPercentage) / 100;
+
+    // Create referral record
+    await this.createReferral({
+      referrerId: orderUser.referredBy,
+      referredUserId: orderUser.id,
+      orderId: order.id,
+      commissionAmount: commissionAmount.toFixed(2),
+      commissionPercentage: commissionPercentage.toFixed(2),
+      status: "confirmed",
+    });
+
+    // Update referrer's earnings
+    await db
+      .update(referralEarnings)
+      .set({
+        totalEarned: sql`${referralEarnings.totalEarned} + ${commissionAmount}`,
+        availableBalance: sql`${referralEarnings.availableBalance} + ${commissionAmount}`,
+        successfulReferrals: sql`${referralEarnings.successfulReferrals} + 1`,
+        updatedAt: new Date(),
+      })
+      .where(eq(referralEarnings.userId, orderUser.referredBy));
+  }
+
+  async getUserReferrals(userId: string): Promise<Referral[]> {
+    return await db
+      .select()
+      .from(referrals)
+      .where(eq(referrals.referrerId, userId))
+      .orderBy(desc(referrals.createdAt));
+  }
+
+  async getUserReferralEarnings(userId: string): Promise<ReferralEarnings | undefined> {
+    const [earnings] = await db
+      .select()
+      .from(referralEarnings)
+      .where(eq(referralEarnings.userId, userId));
+    
+    if (!earnings) {
+      // Create initial earnings record
+      const [newEarnings] = await db
+        .insert(referralEarnings)
+        .values({
+          userId,
+          totalEarned: "0.00",
+          totalWithdrawn: "0.00",
+          pendingEarnings: "0.00",
+          availableBalance: "0.00",
+          totalReferrals: 0,
+          successfulReferrals: 0,
+        })
+        .returning();
+      return newEarnings;
+    }
+    
+    return earnings;
+  }
+
+  async updateReferralEarnings(userId: string, updates: Partial<InsertReferralEarnings>): Promise<ReferralEarnings> {
+    const [updatedEarnings] = await db
+      .update(referralEarnings)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(referralEarnings.userId, userId))
+      .returning();
+    return updatedEarnings;
+  }
+
+  async getReferralSettings(): Promise<ReferralSettings> {
+    const [settings] = await db
+      .select()
+      .from(referralSettings)
+      .where(eq(referralSettings.id, "default"));
+    
+    if (!settings) {
+      // Create default settings
+      const [newSettings] = await db
+        .insert(referralSettings)
+        .values({
+          id: "default",
+          commissionPercentage: "10.00",
+          minimumWithdrawal: "50.00",
+          payoutSchedule: "monthly",
+          isActive: true,
+        })
+        .returning();
+      return newSettings;
+    }
+    
+    return settings;
+  }
+
+  async updateReferralSettings(updates: Partial<InsertReferralSettings>): Promise<ReferralSettings> {
+    const [updatedSettings] = await db
+      .update(referralSettings)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(referralSettings.id, "default"))
+      .returning();
+    return updatedSettings;
+  }
+
+  async createWithdrawalRequest(request: InsertWithdrawalRequest): Promise<WithdrawalRequest> {
+    const [newRequest] = await db.insert(withdrawalRequests).values(request).returning();
+    return newRequest;
+  }
+
+  async getUserWithdrawalRequests(userId: string): Promise<WithdrawalRequest[]> {
+    return await db
+      .select()
+      .from(withdrawalRequests)
+      .where(eq(withdrawalRequests.userId, userId))
+      .orderBy(desc(withdrawalRequests.createdAt));
+  }
+
+  async getAllWithdrawalRequests(): Promise<WithdrawalRequest[]> {
+    return await db
+      .select()
+      .from(withdrawalRequests)
+      .orderBy(desc(withdrawalRequests.createdAt));
+  }
+
+  async updateWithdrawalRequest(id: string, updates: Partial<InsertWithdrawalRequest>): Promise<WithdrawalRequest> {
+    const [updatedRequest] = await db
+      .update(withdrawalRequests)
+      .set(updates)
+      .where(eq(withdrawalRequests.id, id))
+      .returning();
+    return updatedRequest;
+  }
+
+  async processWithdrawal(id: string, adminId: string, status: string, notes?: string): Promise<WithdrawalRequest> {
+    const [withdrawal] = await db
+      .update(withdrawalRequests)
+      .set({
+        status: status as any,
+        processedAt: new Date(),
+        processedBy: adminId,
+        adminNotes: notes,
+      })
+      .where(eq(withdrawalRequests.id, id))
+      .returning();
+
+    // If approved/completed, update user's earnings
+    if (status === "completed") {
+      const amount = parseFloat(withdrawal.amount);
+      await db
+        .update(referralEarnings)
+        .set({
+          totalWithdrawn: sql`${referralEarnings.totalWithdrawn} + ${amount}`,
+          availableBalance: sql`${referralEarnings.availableBalance} - ${amount}`,
+          updatedAt: new Date(),
+        })
+        .where(eq(referralEarnings.userId, withdrawal.userId));
+    }
+
+    return withdrawal;
   }
 }
 

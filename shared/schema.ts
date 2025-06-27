@@ -24,6 +24,8 @@ export const orderStatusEnum = pgEnum("order_status", ["pending", "paid", "in_pr
 export const projectStatusEnum = pgEnum("project_status", ["not_started", "active", "paused", "completed"]);
 export const paymentStatusEnum = pgEnum("payment_status", ["pending", "succeeded", "failed", "refunded"]);
 export const supportStatusEnum = pgEnum("support_status", ["open", "in_progress", "resolved"]);
+export const withdrawalStatusEnum = pgEnum("withdrawal_status", ["pending", "approved", "completed", "rejected"]);
+export const referralStatusEnum = pgEnum("referral_status", ["pending", "confirmed", "paid"]);
 
 // Session storage table.
 // (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
@@ -51,6 +53,8 @@ export const users = pgTable("users", {
   companyName: varchar("company_name"),
   provider: varchar("provider").default("local"),
   providerId: varchar("provider_id"),
+  referralCode: varchar("referral_code").unique(), // Unique referral code for each user
+  referredBy: varchar("referred_by").references(() => users.id), // Who referred this user
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -197,8 +201,55 @@ export const checkoutSessions = pgTable("checkout_sessions", {
   expiresAt: timestamp("expires_at").notNull(), // Auto-expire after 2 hours
 });
 
+// Referral system tables
+export const referralSettings = pgTable("referral_settings", {
+  id: varchar("id").primaryKey().default("default"),
+  commissionPercentage: decimal("commission_percentage", { precision: 5, scale: 2 }).default("10.00"), // Default 10%
+  minimumWithdrawal: decimal("minimum_withdrawal", { precision: 10, scale: 2 }).default("50.00"), // Minimum $50
+  payoutSchedule: varchar("payout_schedule").default("monthly"), // weekly, monthly, manual
+  isActive: boolean("is_active").default(true),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const referrals = pgTable("referrals", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  referrerId: varchar("referrer_id").references(() => users.id).notNull(), // Who made the referral
+  referredUserId: varchar("referred_user_id").references(() => users.id).notNull(), // Who was referred
+  orderId: uuid("order_id").references(() => orders.id), // Order that triggered the referral
+  commissionAmount: decimal("commission_amount", { precision: 10, scale: 2 }).notNull(),
+  commissionPercentage: decimal("commission_percentage", { precision: 5, scale: 2 }).notNull(),
+  status: referralStatusEnum("status").default("pending"),
+  paidAt: timestamp("paid_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const withdrawalRequests = pgTable("withdrawal_requests", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  paymentMethod: varchar("payment_method").notNull(), // bank_transfer, paypal, etc.
+  paymentDetails: jsonb("payment_details").notNull(), // Account details
+  status: withdrawalStatusEnum("status").default("pending"),
+  adminNotes: text("admin_notes"),
+  processedAt: timestamp("processed_at"),
+  processedBy: varchar("processed_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const referralEarnings = pgTable("referral_earnings", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  totalEarned: decimal("total_earned", { precision: 10, scale: 2 }).default("0.00"),
+  totalWithdrawn: decimal("total_withdrawn", { precision: 10, scale: 2 }).default("0.00"),
+  pendingEarnings: decimal("pending_earnings", { precision: 10, scale: 2 }).default("0.00"),
+  availableBalance: decimal("available_balance", { precision: 10, scale: 2 }).default("0.00"),
+  totalReferrals: integer("total_referrals").default(0),
+  successfulReferrals: integer("successful_referrals").default(0),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Relations
-export const usersRelations = relations(users, ({ many }) => ({
+export const usersRelations = relations(users, ({ one, many }) => ({
   orders: many(orders),
   projects: many(projects),
   messages: many(messages),
@@ -207,6 +258,11 @@ export const usersRelations = relations(users, ({ many }) => ({
   notifications: many(notifications),
   supportRequests: many(supportRequests),
   auditLogs: many(auditLogs),
+  referralsMade: many(referrals, { relationName: "referrer" }),
+  referralsReceived: many(referrals, { relationName: "referred" }),
+  withdrawalRequests: many(withdrawalRequests),
+  earnings: one(referralEarnings),
+  referredBy: one(users, { fields: [users.referredBy], references: [users.id] }),
 }));
 
 export const servicesRelations = relations(services, ({ many }) => ({
@@ -264,6 +320,21 @@ export const checkoutSessionsRelations = relations(checkoutSessions, ({ one }) =
   service: one(services, { fields: [checkoutSessions.serviceId], references: [services.id] }),
 }));
 
+export const referralsRelations = relations(referrals, ({ one }) => ({
+  referrer: one(users, { fields: [referrals.referrerId], references: [users.id], relationName: "referrer" }),
+  referredUser: one(users, { fields: [referrals.referredUserId], references: [users.id], relationName: "referred" }),
+  order: one(orders, { fields: [referrals.orderId], references: [orders.id] }),
+}));
+
+export const withdrawalRequestsRelations = relations(withdrawalRequests, ({ one }) => ({
+  user: one(users, { fields: [withdrawalRequests.userId], references: [users.id] }),
+  processedBy: one(users, { fields: [withdrawalRequests.processedBy], references: [users.id] }),
+}));
+
+export const referralEarningsRelations = relations(referralEarnings, ({ one }) => ({
+  user: one(users, { fields: [referralEarnings.userId], references: [users.id] }),
+}));
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   createdAt: true,
@@ -316,6 +387,25 @@ export const insertPasswordResetTokenSchema = createInsertSchema(passwordResetTo
   createdAt: true,
 });
 
+export const insertReferralSettingsSchema = createInsertSchema(referralSettings).omit({
+  updatedAt: true,
+});
+
+export const insertReferralSchema = createInsertSchema(referrals).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertWithdrawalRequestSchema = createInsertSchema(withdrawalRequests).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertReferralEarningsSchema = createInsertSchema(referralEarnings).omit({
+  id: true,
+  updatedAt: true,
+});
+
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -341,6 +431,14 @@ export type CheckoutSession = typeof checkoutSessions.$inferSelect;
 export type InsertPasswordResetToken = z.infer<typeof insertPasswordResetTokenSchema>;
 export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
 export type NewPasswordResetToken = typeof passwordResetTokens.$inferInsert;
+export type InsertReferralSettings = z.infer<typeof insertReferralSettingsSchema>;
+export type ReferralSettings = typeof referralSettings.$inferSelect;
+export type InsertReferral = z.infer<typeof insertReferralSchema>;
+export type Referral = typeof referrals.$inferSelect;
+export type InsertWithdrawalRequest = z.infer<typeof insertWithdrawalRequestSchema>;
+export type WithdrawalRequest = typeof withdrawalRequests.$inferSelect;
+export type InsertReferralEarnings = z.infer<typeof insertReferralEarningsSchema>;
+export type ReferralEarnings = typeof referralEarnings.$inferSelect;
 
 export const settings = pgTable("settings", {
   id: text("id").primaryKey().default("default"),

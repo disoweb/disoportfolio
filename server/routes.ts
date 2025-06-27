@@ -1299,6 +1299,306 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Referral System API Routes
+  
+  // Generate referral code for user
+  app.post('/api/referrals/generate-code', isAuthenticated, securityHeaders, authRateLimit('referral_code'), async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return sendSafeErrorResponse(res, 404, new Error("User not found"), 'user_not_found');
+      }
+
+      // Check if user already has a referral code
+      if (user.referralCode) {
+        return res.json({ referralCode: user.referralCode });
+      }
+
+      const referralCode = await storage.generateReferralCode(userId);
+      
+      auditLog('referral_code_generated', userId, { referralCode });
+      
+      res.json({ referralCode });
+    } catch (error) {
+      console.error("Error generating referral code:", error);
+      sendSafeErrorResponse(res, 500, error, 'referral_code_error');
+    }
+  });
+
+  // Get user's referral data (earnings, stats, etc.)
+  app.get('/api/referrals/my-data', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return sendSafeErrorResponse(res, 404, new Error("User not found"), 'user_not_found');
+      }
+
+      const [earnings, referrals, settings] = await Promise.all([
+        storage.getUserReferralEarnings(userId),
+        storage.getUserReferrals(userId),
+        storage.getReferralSettings()
+      ]);
+
+      res.json({
+        referralCode: user.referralCode,
+        earnings,
+        referrals,
+        settings: {
+          commissionPercentage: settings.commissionPercentage,
+          minimumWithdrawal: settings.minimumWithdrawal,
+          isActive: settings.isActive
+        }
+      });
+    } catch (error) {
+      console.error("Error fetching referral data:", error);
+      sendSafeErrorResponse(res, 500, error, 'referral_data_error');
+    }
+  });
+
+  // Get user's withdrawal requests
+  app.get('/api/referrals/withdrawals', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const withdrawals = await storage.getUserWithdrawalRequests(userId);
+      res.json(withdrawals);
+    } catch (error) {
+      console.error("Error fetching withdrawals:", error);
+      sendSafeErrorResponse(res, 500, error, 'withdrawal_fetch_error');
+    }
+  });
+
+  // Create withdrawal request
+  app.post('/api/referrals/withdraw', isAuthenticated, securityHeaders, validateContentType, validateRequestSize(), authRateLimit('withdrawal_request'), async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { amount, paymentMethod, paymentDetails } = req.body;
+
+      // Validate amount
+      if (!amount || amount <= 0) {
+        return sendSafeErrorResponse(res, 400, new Error("Invalid withdrawal amount"), 'invalid_amount');
+      }
+
+      // Get user's earnings to check available balance
+      const earnings = await storage.getUserReferralEarnings(userId);
+      if (!earnings) {
+        return sendSafeErrorResponse(res, 404, new Error("No earnings found"), 'no_earnings');
+      }
+
+      const availableBalance = parseFloat(earnings.availableBalance);
+      const withdrawalAmount = parseFloat(amount);
+
+      // Check minimum withdrawal
+      const settings = await storage.getReferralSettings();
+      const minimumWithdrawal = parseFloat(settings.minimumWithdrawal);
+
+      if (withdrawalAmount < minimumWithdrawal) {
+        return res.status(400).json({ 
+          error: `Minimum withdrawal amount is $${minimumWithdrawal}` 
+        });
+      }
+
+      if (withdrawalAmount > availableBalance) {
+        return res.status(400).json({ 
+          error: "Insufficient balance" 
+        });
+      }
+
+      // Sanitize inputs
+      const sanitizedPaymentMethod = sanitizeInput(paymentMethod);
+      
+      const withdrawal = await storage.createWithdrawalRequest({
+        userId,
+        amount: withdrawalAmount.toFixed(2),
+        paymentMethod: sanitizedPaymentMethod,
+        paymentDetails,
+        status: "pending"
+      });
+
+      auditLog('withdrawal_requested', userId, { 
+        withdrawalId: withdrawal.id, 
+        amount: withdrawalAmount,
+        paymentMethod: sanitizedPaymentMethod 
+      });
+
+      res.json(withdrawal);
+    } catch (error) {
+      console.error("Error creating withdrawal request:", error);
+      sendSafeErrorResponse(res, 500, error, 'withdrawal_create_error');
+    }
+  });
+
+  // Register with referral code
+  app.post('/api/referrals/register', securityHeaders, validateContentType, validateRequestSize(), authRateLimit('referral_registration'), async (req: any, res) => {
+    try {
+      const { referralCode, userId } = req.body;
+
+      if (!referralCode || !userId) {
+        return sendSafeErrorResponse(res, 400, new Error("Missing referral code or user ID"), 'missing_data');
+      }
+
+      // Sanitize inputs
+      const sanitizedReferralCode = sanitizeInput(referralCode);
+      const sanitizedUserId = sanitizeInput(userId);
+
+      // Validate user ID format
+      if (!validateUserId(sanitizedUserId)) {
+        return sendSafeErrorResponse(res, 400, new Error("Invalid user ID"), 'invalid_user_id');
+      }
+
+      // Find referrer by code
+      const referrer = await storage.getUserByReferralCode(sanitizedReferralCode);
+      if (!referrer) {
+        return res.status(404).json({ error: "Invalid referral code" });
+      }
+
+      // Update user with referrer
+      const user = await storage.getUser(sanitizedUserId);
+      if (!user) {
+        return sendSafeErrorResponse(res, 404, new Error("User not found"), 'user_not_found');
+      }
+
+      // Update user's referredBy field
+      await db.update(schema.users)
+        .set({ referredBy: referrer.id })
+        .where(eq(schema.users.id, sanitizedUserId));
+
+      auditLog('user_referred', sanitizedUserId, { 
+        referrerId: referrer.id, 
+        referralCode: sanitizedReferralCode 
+      });
+
+      res.json({ success: true, referrer: { id: referrer.id, email: referrer.email } });
+    } catch (error) {
+      console.error("Error processing referral registration:", error);
+      sendSafeErrorResponse(res, 500, error, 'referral_registration_error');
+    }
+  });
+
+  // Admin: Get all withdrawal requests
+  app.get('/api/admin/withdrawals', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.role !== 'admin') {
+        return sendSafeErrorResponse(res, 403, new Error("Unauthorized"), 'unauthorized_withdrawal_access');
+      }
+
+      const withdrawals = await storage.getAllWithdrawalRequests();
+      res.json(withdrawals);
+    } catch (error) {
+      console.error("Error fetching admin withdrawals:", error);
+      sendSafeErrorResponse(res, 500, error, 'admin_withdrawal_error');
+    }
+  });
+
+  // Admin: Process withdrawal request
+  app.patch('/api/admin/withdrawals/:id', isAuthenticated, securityHeaders, validateContentType, validateRequestSize(), authRateLimit('withdrawal_process'), async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.role !== 'admin') {
+        auditLog('unauthorized_withdrawal_process_attempt', userId, { withdrawalId: req.params.id });
+        return sendSafeErrorResponse(res, 403, new Error("Unauthorized"), 'unauthorized_withdrawal_process');
+      }
+
+      const { id } = req.params;
+      const { status, notes } = req.body;
+
+      // Sanitize inputs
+      const sanitizedStatus = sanitizeInput(status);
+      const sanitizedNotes = sanitizeInput(notes || '');
+
+      // Validate status
+      const validStatuses = ['pending', 'approved', 'completed', 'rejected'];
+      if (!validStatuses.includes(sanitizedStatus)) {
+        return sendSafeErrorResponse(res, 400, new Error("Invalid status"), 'invalid_status');
+      }
+
+      const withdrawal = await storage.processWithdrawal(id, userId, sanitizedStatus, sanitizedNotes);
+
+      auditLog('withdrawal_processed', userId, { 
+        withdrawalId: id, 
+        newStatus: sanitizedStatus,
+        notes: sanitizedNotes 
+      });
+
+      res.json(withdrawal);
+    } catch (error) {
+      console.error("Error processing withdrawal:", error);
+      sendSafeErrorResponse(res, 500, error, 'withdrawal_process_error');
+    }
+  });
+
+  // Admin: Get referral settings
+  app.get('/api/admin/referral-settings', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.role !== 'admin') {
+        return sendSafeErrorResponse(res, 403, new Error("Unauthorized"), 'unauthorized_settings_access');
+      }
+
+      const settings = await storage.getReferralSettings();
+      res.json(settings);
+    } catch (error) {
+      console.error("Error fetching referral settings:", error);
+      sendSafeErrorResponse(res, 500, error, 'settings_fetch_error');
+    }
+  });
+
+  // Admin: Update referral settings
+  app.patch('/api/admin/referral-settings', isAuthenticated, securityHeaders, validateContentType, validateRequestSize(), authRateLimit('settings_update'), async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.role !== 'admin') {
+        auditLog('unauthorized_settings_update_attempt', userId);
+        return sendSafeErrorResponse(res, 403, new Error("Unauthorized"), 'unauthorized_settings_update');
+      }
+
+      const { commissionPercentage, minimumWithdrawal, payoutSchedule, isActive } = req.body;
+
+      const updates: any = {};
+      if (commissionPercentage !== undefined) {
+        const percentage = parseFloat(commissionPercentage);
+        if (percentage < 0 || percentage > 100) {
+          return sendSafeErrorResponse(res, 400, new Error("Commission percentage must be between 0-100"), 'invalid_percentage');
+        }
+        updates.commissionPercentage = percentage.toFixed(2);
+      }
+      if (minimumWithdrawal !== undefined) {
+        const minimum = parseFloat(minimumWithdrawal);
+        if (minimum < 0) {
+          return sendSafeErrorResponse(res, 400, new Error("Minimum withdrawal must be positive"), 'invalid_minimum');
+        }
+        updates.minimumWithdrawal = minimum.toFixed(2);
+      }
+      if (payoutSchedule !== undefined) {
+        updates.payoutSchedule = sanitizeInput(payoutSchedule);
+      }
+      if (isActive !== undefined) {
+        updates.isActive = Boolean(isActive);
+      }
+
+      const settings = await storage.updateReferralSettings(updates);
+
+      auditLog('referral_settings_updated', userId, updates);
+
+      res.json(settings);
+    } catch (error) {
+      console.error("Error updating referral settings:", error);
+      sendSafeErrorResponse(res, 500, error, 'settings_update_error');
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
