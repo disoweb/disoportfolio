@@ -32,7 +32,7 @@ export default function Navigation() {
             <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-sm">D</span>
             </div>
-            <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <span className="text-xl font-black text-blue-600">
               DiSO Webs
             </span>
           </Link>
@@ -100,7 +100,7 @@ export default function Navigation() {
                 <Link href="/services">
                   <Button 
                     size="sm" 
-                    className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium px-6 py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
                   >
                     Get Started
                   </Button>
@@ -115,7 +115,7 @@ export default function Navigation() {
               <Link href="/services">
                 <Button 
                   size="sm" 
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium px-4 py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 text-xs"
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 text-xs"
                 >
                   Get Started
                 </Button>
@@ -174,7 +174,7 @@ export default function Navigation() {
                   <Link href="/services" className="flex-1" onClick={() => setIsOpen(false)}>
                     <Button 
                       size="sm" 
-                      className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium shadow-md hover:shadow-lg transition-all duration-200"
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-md hover:shadow-lg transition-all duration-200"
                     >
                       Get Started
                     </Button>
