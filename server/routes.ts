@@ -64,6 +64,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Security middleware is applied in server/index.ts globally
 
+
+
   // Services routes with rate limiting
   app.get('/api/services', authRateLimit('api'), async (req, res) => {
     try {

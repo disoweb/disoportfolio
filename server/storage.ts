@@ -1063,7 +1063,9 @@ export class DatabaseStorage implements IStorage {
     }
 
     // Process referral earnings if applicable
+    console.log('🎯 PAYMENT: About to process referral earnings for order:', orderId);
     await this.processReferralEarning(orderId);
+    console.log('🎯 PAYMENT: Referral earnings processing completed for order:', orderId);
   }
 
   // Support operations
@@ -1315,14 +1317,25 @@ export class DatabaseStorage implements IStorage {
   async createReferral(referral: InsertReferral): Promise<Referral> {
     const [newReferral] = await db.insert(referrals).values(referral).returning();
 
-    // Update referrer's stats
+    // Ensure referrer has earnings record and update stats
     await db
-      .update(referralEarnings)
-      .set({
-        totalReferrals: sql`${referralEarnings.totalReferrals} + 1`,
-        updatedAt: new Date(),
+      .insert(referralEarnings)
+      .values({
+        userId: referral.referrerId,
+        totalEarned: "0.00",
+        totalWithdrawn: "0.00",
+        pendingEarnings: "0.00",
+        availableBalance: "0.00",
+        totalReferrals: 1,
+        successfulReferrals: 0,
       })
-      .where(eq(referralEarnings.userId, referral.referrerId));
+      .onConflictDoUpdate({
+        target: referralEarnings.userId,
+        set: {
+          totalReferrals: sql`${referralEarnings.totalReferrals} + 1`,
+          updatedAt: new Date(),
+        },
+      });
 
     return newReferral;
   }
@@ -1330,11 +1343,15 @@ export class DatabaseStorage implements IStorage {
   async processReferralEarning(orderId: string): Promise<void> {
     // Get the order and check if it has a referral
     const [order] = await db.select().from(orders).where(eq(orders.id, orderId));
-    if (!order) return;
+    if (!order) {
+      return;
+    }
 
     // Get the user who made the order
     const [orderUser] = await db.select().from(users).where(eq(users.id, order.userId));
-    if (!orderUser?.referredBy) return;
+    if (!orderUser || !orderUser.referredBy) {
+      return;
+    }
 
     // Get referral settings
     const settings = await this.getReferralSettings();
@@ -1342,26 +1359,31 @@ export class DatabaseStorage implements IStorage {
     const orderAmount = parseFloat(order.totalPrice);
     const commissionAmount = (orderAmount * commissionPercentage) / 100;
 
-    // Create referral record
-    await this.createReferral({
-      referrerId: orderUser.referredBy,
-      referredUserId: orderUser.id,
-      orderId: order.id,
-      commissionAmount: commissionAmount.toFixed(2),
-      commissionPercentage: commissionPercentage.toFixed(2),
-      status: "confirmed",
-    });
+    try {
+      // Create referral record
+      await this.createReferral({
+        referrerId: orderUser.referredBy,
+        referredUserId: orderUser.id,
+        orderId: order.id,
+        commissionAmount: commissionAmount.toFixed(2),
+        commissionPercentage: commissionPercentage.toFixed(2),
+        status: "confirmed",
+      });
 
-    // Update referrer's earnings
-    await db
-      .update(referralEarnings)
-      .set({
-        totalEarned: sql`${referralEarnings.totalEarned} + ${commissionAmount}`,
-        availableBalance: sql`${referralEarnings.availableBalance} + ${commissionAmount}`,
-        successfulReferrals: sql`${referralEarnings.successfulReferrals} + 1`,
-        updatedAt: new Date(),
-      })
-      .where(eq(referralEarnings.userId, orderUser.referredBy));
+      // Update referrer's earnings
+      await db
+        .update(referralEarnings)
+        .set({
+          totalEarned: sql`${referralEarnings.totalEarned} + ${commissionAmount}`,
+          availableBalance: sql`${referralEarnings.availableBalance} + ${commissionAmount}`,
+          successfulReferrals: sql`${referralEarnings.successfulReferrals} + 1`,
+          updatedAt: new Date(),
+        })
+        .where(eq(referralEarnings.userId, orderUser.referredBy));
+    } catch (error) {
+      console.error('Referral processing failed:', error);
+      throw error;
+    }
   }
 
   async getUserReferrals(userId: string): Promise<Referral[]> {
@@ -1664,177 +1686,13 @@ export class DatabaseStorage implements IStorage {
     return updatedAnalytics;
   }
 
-  // SEO Settings Methods
-  async getSeoSettings(): Promise<SeoSettings> {
-    const [settings] = await db
-      .select()
-      .from(seoSettings)
-      .where(eq(seoSettings.id, "global"))
-      .limit(1);
-
-    if (!settings) {
-      // Create default settings if none exist
-      const defaultSettings = {
-        id: "global",
-        siteName: "DiSO Webs",
-        siteDescription: "Professional web development and digital solutions",
-        siteUrl: "https://disoweb.replit.app",
-        defaultMetaTitle: "DiSO Webs - Professional Web Development Services",
-        defaultMetaDescription: "Transform your digital presence with DiSO Webs. We create stunning websites, web applications, and digital solutions that drive results.",
-        defaultKeywords: "web development, website design, digital solutions, web applications, responsive design",
-        sitemapEnabled: true,
-        openGraphEnabled: true,
-        structuredDataEnabled: true,
-        breadcrumbsEnabled: true,
-        twitterCardsEnabled: true,
-      };
-
-      const [newSettings] = await db.insert(seoSettings).values(defaultSettings).returning();
-      return newSettings;
-    }
-
-    return settings;
-  }
-
-  async updateSeoSettings(updates: Partial<InsertSeoSettings>): Promise<SeoSettings> {
-    const [updatedSettings] = await db
-      .update(seoSettings)
+  async updateSeoKeyword(id: string, updates: Partial<InsertSeoKeyword>): Promise<SeoKeyword> {
+    const [updatedKeyword] = await db
+      .update(seoKeywords)
       .set({ ...updates, updatedAt: new Date() })
-      .where(eq(seoSettings.id, "global"))
+      .where(eq(seoKeywords.id, id))
       .returning();
-    return updatedSettings;
-  }
-
-  // SEO Pages Methods
-  async getAllSeoPages(): Promise<SeoPage[]> {
-    return await db
-      .select()
-      .from(seoPages)
-      .orderBy(desc(seoPages.priority), seoPages.path);
-  }
-
-  async getSeoPageByPath(path: string): Promise<SeoPage | null> {
-    const [page] = await db
-      .select()
-      .from(seoPages)
-      .where(eq(seoPages.path, path))
-      .limit(1);
-    return page || null;
-  }
-
-  async createSeoPage(pageData: InsertSeoPage): Promise<SeoPage> {
-    const [newPage] = await db.insert(seoPages).values(pageData).returning();
-    return newPage;
-  }
-
-  async updateSeoPage(id: string, updates: Partial<InsertSeoPage>): Promise<SeoPage> {
-    const [updatedPage] = await db
-      .update(seoPages)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(seoPages.id, id))
-      .returning();
-    return updatedPage;
-  }
-
-  async deleteSeoPage(id: string): Promise<void> {
-    await db.delete(seoPages).where(eq(seoPages.id, id));
-  }
-
-  // SEO Rules Methods
-  async getAllSeoRules(): Promise<SeoRule[]> {
-    return await db
-      .select()
-      .from(seoRules)
-      .orderBy(desc(seoRules.priority), seoRules.name);
-  }
-
-  async createSeoRule(ruleData: InsertSeoRule): Promise<SeoRule> {
-    const [newRule] = await db.insert(seoRules).values(ruleData).returning();
-    return newRule;
-  }
-
-  async updateSeoRule(id: string, updates: Partial<InsertSeoRule>): Promise<SeoRule> {
-    const [updatedRule] = await db
-      .update(seoRules)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(seoRules.id, id))
-      .returning();
-    return updatedRule;
-  }
-
-  async deleteSeoRule(id: string): Promise<void> {
-    await db.delete(seoRules).where(eq(seoRules.id, id));
-  }
-
-  // SEO Keywords Methods
-  async getAllSeoKeywords(): Promise<SeoKeyword[]> {
-    return await db
-      .select()
-      .from(seoKeywords)
-      .orderBy(desc(seoKeywords.searchVolume), seoKeywords.keyword);
-  }
-
-  async createSeoKeyword(keywordData: InsertSeoKeyword): Promise<SeoKeyword> {
-    const [newKeyword] = await db.insert(seoKeywords).values(keywordData).returning();
-    return newKeyword;
-  }
-
-  // SEO Audits Methods
-  async getAllSeoAudits(): Promise<SeoAudit[]> {
-    return await db
-      .select()
-      .from(seoAudits)
-      .orderBy(desc(seoAudits.createdAt));
-  }
-
-  async createSeoAudit(auditData: InsertSeoAudit): Promise<SeoAudit> {
-    const [newAudit] = await db.insert(seoAudits).values(auditData).returning();
-    return newAudit;
-  }
-
-  async updateSeoAudit(id: string, updates: Partial<InsertSeoAudit>): Promise<SeoAudit> {
-    const [updatedAudit] = await db
-      .update(seoAudits)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(seoAudits.id, id))
-      .returning();
-    return updatedAudit;
-  }
-
-  async getSeoAuditById(id: string): Promise<SeoAudit | null> {
-    const [audit] = await db
-      .select()
-      .from(seoAudits)
-      .where(eq(seoAudits.id, id));
-    return audit || null;
-  }
-
-  async processWithdrawal(id: string, adminId: string, status: string, notes?: string): Promise<WithdrawalRequest> {
-    const [withdrawal] = await db
-      .update(withdrawalRequests)
-      .set({
-        status: status as any,
-        processedAt: new Date(),
-        processedBy: adminId,
-        adminNotes: notes,
-      })
-      .where(eq(withdrawalRequests.id, id))
-      .returning();
-
-    // If approved/completed, update user's earnings
-    if (status === "completed") {
-      const amount = parseFloat(withdrawal.amount);
-      await db
-        .update(referralEarnings)
-        .set({
-          totalWithdrawn: sql`${referralEarnings.totalWithdrawn} + ${amount}`,
-          availableBalance: sql`${referralEarnings.availableBalance} - ${amount}`,
-          updatedAt: new Date(),
-        })
-        .where(eq(referralEarnings.userId, withdrawal.userId));
-    }
-
-    return withdrawal;
+    return updatedKeyword;
   }
 }
 
