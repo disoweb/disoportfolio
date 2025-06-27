@@ -4,11 +4,9 @@ import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { Strategy as TwitterStrategy } from "passport-twitter";
 import { Strategy as FacebookStrategy } from "passport-facebook";
 import { Express } from "express";
-import session from "express-session";
 import bcrypt from "bcrypt";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
-import connectPg from "connect-pg-simple";
 import { 
   checkRateLimit, 
   validateContentType, 
@@ -20,6 +18,8 @@ import {
 } from "./security";
 import { emailService } from "./email";
 import crypto from "crypto";
+import { createSessionMiddleware, SessionManager, authenticateRequest } from "./sessionManager";
+import session from "express-session";
 
 declare global {
   namespace Express {
@@ -41,62 +41,16 @@ async function comparePasswords(supplied: string, stored: string): Promise<boole
 }
 
 export async function setupAuth(app: Express) {
-  // Session configuration - use PostgreSQL session store if available, fallback to memory
-  let sessionStore;
-  
-  try {
-    if (process.env.DATABASE_URL) {
-      // Initialize PostgreSQL session store with timeout protection
-      const PostgresSessionStore = connectPg(session);
-      
-      // Add connection timeout protection
-      const initTimeout = setTimeout(() => {
-        console.warn('PostgreSQL session store initialization timeout, using memory store');
-        sessionStore = undefined;
-      }, 5000);
-      
-      try {
-        sessionStore = new PostgresSessionStore({
-          conString: process.env.DATABASE_URL,
-          createTableIfMissing: false, // Table already exists
-          tableName: "sessions",
-          ttl: 7 * 24 * 60 * 60, // 7 days in seconds
-          errorLog: (error: any) => {
-            console.error('Session store error:', error);
-          }
-        });
-        clearTimeout(initTimeout);
-        console.log('Using PostgreSQL session store for persistent sessions');
-      } catch (storeError) {
-        clearTimeout(initTimeout);
-        throw storeError;
-      }
-    } else {
-      console.log('Using memory store for sessions (DATABASE_URL not available)');
-      sessionStore = undefined;
-    }
-  } catch (error) {
-    console.error('Failed to create PostgreSQL session store, falling back to memory store:', error);
-    sessionStore = undefined;
-  }
-
-  const sessionSettings: session.SessionOptions = {
+  // Configure session middleware using our session manager
+  const sessionConfig = createSessionMiddleware({
     secret: process.env.SESSION_SECRET || 'dev-secret-key-for-replit-development',
-    resave: true, // Force session save for PostgreSQL compatibility
-    saveUninitialized: false,
-    store: sessionStore,
-    rolling: false, // Disable rolling sessions for stability
-    cookie: {
-      secure: false,
-      httpOnly: true,
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      sameSite: 'lax'
-    },
-    name: 'connect.sid'
-  };
+    databaseUrl: process.env.DATABASE_URL,
+    cookieMaxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    cookieName: 'diso.sid'
+  });
 
   app.set("trust proxy", 1);
-  app.use(session(sessionSettings));
+  app.use(session(sessionConfig));
   
   // Initialize passport after session middleware
   app.use(passport.initialize());
@@ -562,52 +516,18 @@ export async function setupAuth(app: Express) {
 
   app.get("/api/auth/user", async (req, res) => {
     try {
-      console.log('🔍 [USER DEBUG] Session check:', {
-        sessionExists: !!req.session,
-        sessionId: req.sessionID,
-        sessionUserId: req.session?.userId,
-        sessionKeys: req.session ? Object.keys(req.session) : [],
-        passportUser: req.session?.passport?.user,
-        reqUser: !!req.user
-      });
-
-      // Check multiple sources for user authentication
-      let userId = null;
+      // Use our session manager to get the current user
+      const user = await SessionManager.getCurrentUser(req);
       
-      // Check custom session userId first
-      if (req.session && (req.session as any).userId) {
-        userId = (req.session as any).userId;
-        console.log('✅ [USER DEBUG] Found userId in session:', userId);
-      }
-      // Check passport session
-      else if ((req.session as any)?.passport?.user) {
-        const sessionUser = (req.session as any).passport.user;
-        userId = sessionUser.id || sessionUser;
-        console.log('✅ [USER DEBUG] Found userId in passport session:', userId);
-      }
-      // Check req.user
-      else if (req.user) {
-        userId = (req.user as any).id || req.user;
-        console.log('✅ [USER DEBUG] Found userId in req.user:', userId);
+      if (user) {
+        const sanitizedUser = { ...user };
+        delete (sanitizedUser as any).password;
+        return res.json(sanitizedUser);
       }
       
-      if (userId) {
-        console.log('🔍 [USER DEBUG] Looking up user by ID:', userId);
-        const user = await storage.getUserById(userId);
-        console.log('🔍 [USER DEBUG] User lookup result:', !!user);
-        
-        if (user) {
-          const sanitizedUser = { ...user };
-          delete (sanitizedUser as any).password;
-          console.log('✅ [USER DEBUG] Returning user data');
-          return res.json(sanitizedUser);
-        }
-      }
-      
-      console.log('❌ [USER DEBUG] No user found, returning null');
       res.json(null);
     } catch (error) {
-      console.error('❌ [USER DEBUG] Error:', error);
+      console.error('[AUTH] Error getting user:', error);
       res.json(null);
     }
   });
@@ -906,73 +826,5 @@ export async function setupAuth(app: Express) {
   });
 }
 
-export const isAuthenticated = async (req: any, res: any, next: any) => {
-  try {
-    console.log('🔍 [AUTH DEBUG] Starting authentication check');
-    console.log('🔍 [AUTH DEBUG] Session exists:', !!req.session);
-    console.log('🔍 [AUTH DEBUG] Session ID:', req.sessionID);
-    
-    if (req.session) {
-      console.log('🔍 [AUTH DEBUG] Session data:', {
-        userId: req.session.userId,
-        passport: req.session.passport,
-        sessionKeys: Object.keys(req.session)
-      });
-    }
-    
-    console.log('🔍 [AUTH DEBUG] req.user exists:', !!req.user);
-    console.log('🔍 [AUTH DEBUG] req.isAuthenticated():', req.isAuthenticated ? req.isAuthenticated() : 'N/A');
-    
-    // Ensure session is loaded from PostgreSQL database
-    if (!req.session) {
-      console.log('❌ [AUTH DEBUG] No session found');
-      return res.status(401).json({ message: "Authentication required" });
-    }
-    
-    // Check custom session userId first (from our login system)
-    if ((req.session as any).userId) {
-      const userId = (req.session as any).userId;
-      console.log('🔍 [AUTH DEBUG] Found custom userId in session:', userId);
-      const user = await storage.getUserById(userId);
-      if (user) {
-        console.log('✅ [AUTH DEBUG] User found via custom session:', user.email);
-        req.user = user;
-        return next();
-      } else {
-        console.log('❌ [AUTH DEBUG] User not found for userId:', userId);
-      }
-    }
-
-    // Fallback check for passport session
-    if (req.session.passport && req.session.passport.user) {
-      const passportUserId = typeof req.session.passport.user === 'object' 
-        ? req.session.passport.user.id 
-        : req.session.passport.user;
-      
-      console.log('🔍 [AUTH DEBUG] Found passport userId:', passportUserId);
-      
-      if (passportUserId) {
-        const user = await storage.getUserById(passportUserId);
-        if (user) {
-          console.log('✅ [AUTH DEBUG] User found via passport session:', user.email);
-          req.user = user;
-          return next();
-        } else {
-          console.log('❌ [AUTH DEBUG] User not found for passport userId:', passportUserId);
-        }
-      }
-    }
-    
-    // Final fallback for req.user
-    if (req.user) {
-      console.log('✅ [AUTH DEBUG] User found via req.user:', req.user.email);
-      return next();
-    }
-    
-    console.log('❌ [AUTH DEBUG] Authentication failed - no valid user found');
-    return res.status(401).json({ message: "Authentication required" });
-  } catch (error) {
-    console.error('❌ [AUTH DEBUG] Authentication middleware error:', error);
-    res.status(401).json({ message: "Authentication required" });
-  }
-};
+// Export our authentication middleware from sessionManager
+export const isAuthenticated = authenticateRequest;
