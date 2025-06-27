@@ -10,7 +10,6 @@ import { Badge } from "@/components/ui/badge";
 import { Copy, DollarSign, Users, TrendingUp, Clock, Check, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Navigation from "@/components/Navigation";
-import Footer from "@/components/Footer";
 import {
   Dialog,
   DialogContent,
@@ -212,20 +211,28 @@ export default function ReferralDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900">
+    <div className="min-h-screen bg-slate-50">
       <Navigation />
-      <main className="container mx-auto p-6 space-y-6 mt-20">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Referral Dashboard</h1>
+      
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Dashboard Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">
+            Referral Dashboard
+          </h1>
+          <p className="text-slate-600">Earn rewards by referring friends to DiSO Webs</p>
+        </div>
+
         {!referralData?.referralCode && (
-          <Button
-            onClick={() => generateCodeMutation.mutate()}
-            disabled={generateCodeMutation.isPending}
-          >
-            {generateCodeMutation.isPending ? "Generating..." : "Generate Referral Code"}
-          </Button>
+          <div className="flex justify-end mb-6">
+            <Button
+              onClick={() => generateCodeMutation.mutate()}
+              disabled={generateCodeMutation.isPending}
+            >
+              {generateCodeMutation.isPending ? "Generating..." : "Generate Referral Code"}
+            </Button>
+          </div>
         )}
-      </div>
 
       {referralData?.referralCode && (
         <>
@@ -465,8 +472,7 @@ export default function ReferralDashboard() {
           </CardContent>
         </Card>
       )}
-      </main>
-      <Footer />
+      </div>
     </div>
   );
 }

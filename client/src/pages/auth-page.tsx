@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useOAuthProviders } from "@/hooks/useOAuthProviders";
-import { Eye, EyeOff, Mail, Lock, User, Building2, Phone } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, User, Building2, Phone, Users } from "lucide-react";
 import { FaGoogle, FaTwitter, FaFacebook } from "react-icons/fa";
 import { SiReplit } from "react-icons/si";
 
@@ -30,6 +30,7 @@ const registerSchema = z.object({
   lastName: z.string().optional(),
   companyName: z.string().optional(),
   phone: z.string().optional(),
+  referralCode: z.string().optional(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
@@ -190,6 +191,7 @@ export default function AuthPage() {
       lastName: "",
       companyName: "",
       phone: "",
+      referralCode: "",
     },
   });
 
@@ -197,6 +199,10 @@ export default function AuthPage() {
   useEffect(() => {
     const loadCheckoutData = async () => {
       const checkoutData = await getCheckoutContactData();
+      // Get referral code from URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const referralCodeFromUrl = urlParams.get('ref') || "";
+      
       if (Object.keys(checkoutData).length > 0) {
         console.log('🔄 AUTH: Pre-populating registration form with checkout data:', checkoutData);
         registerForm.reset({
@@ -207,7 +213,11 @@ export default function AuthPage() {
           lastName: checkoutData.lastName || "",
           companyName: checkoutData.companyName || "",
           phone: checkoutData.phone || "",
+          referralCode: referralCodeFromUrl,
         });
+      } else {
+        // Just set the referral code if no checkout data
+        registerForm.setValue("referralCode", referralCodeFromUrl);
       }
     };
     
@@ -297,13 +307,13 @@ export default function AuthPage() {
 
   const registerMutation = useMutation({
     mutationFn: async (data: RegisterForm) => {
-      // Check for referral code in URL
+      // Check for referral code in URL or form
       const urlParams = new URLSearchParams(window.location.search);
-      const referralCode = urlParams.get('ref');
+      const referralCodeFromUrl = urlParams.get('ref');
       
       const registrationData = {
         ...data,
-        referralCode: referralCode || undefined
+        referralCode: data.referralCode || referralCodeFromUrl || undefined
       };
       
       const response = await apiRequest("POST", "/api/auth/register", registrationData);
@@ -564,6 +574,20 @@ export default function AuthPage() {
                       {...registerForm.register("phone")}
                     />
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="referralCode">Referral Code (Optional)</Label>
+                  <div className="relative">
+                    <Users className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <Input
+                      id="referralCode"
+                      placeholder="Enter referral code"
+                      className="pl-10 h-11"
+                      {...registerForm.register("referralCode")}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500">If someone referred you, enter their code here</p>
                 </div>
 
                 <Button
