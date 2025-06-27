@@ -298,84 +298,26 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
     },
   });
 
-  // Auto-payment logic with proper cleanup for cancelled payments
+  // Simplified checkout flow - no auto-redirects, just direct payment when authenticated
   useEffect(() => {
-    // Check if user returned from cancelled payment (detect URL change)
     const urlParams = new URLSearchParams(window.location.search);
     const stepParam = urlParams.get('step');
     
-    // If user returned from Paystack without completing payment, clear all flags
-    if (!urlParams.get('reference') && !urlParams.get('trxref')) {
-      // Clear any stuck states when returning from cancelled payment
-      const currentTime = Date.now();
-      const processingStartTime = sessionStorage.getItem('processing_start_time');
-      
-      if (processingStartTime && currentTime - parseInt(processingStartTime) > 30000) {
-        // If processing has been going for more than 30 seconds, clear it
-        sessionStorage.removeItem('payment_processing');
-        sessionStorage.removeItem('auto_submit_payment');
-        sessionStorage.removeItem('processing_start_time');
-        setShowStreamlinedConfirmation(false);
-      }
-    }
-
-    // Only trigger auto-payment if user is authenticated and we have session data
-    if (!user || !sessionData?.contactData || orderMutation.isPending) {
-      return;
-    }
-
-    const autoSubmitPayment = sessionStorage.getItem('auto_submit_payment');
-    const isProcessing = sessionStorage.getItem('payment_processing');
-    
-    // Only auto-submit if explicitly flagged or step=payment, and not already processing
-    if ((autoSubmitPayment === 'true' || stepParam === 'payment') && isProcessing !== 'true') {
-      // Set processing flag with timestamp
-      sessionStorage.setItem('payment_processing', 'true');
-      sessionStorage.setItem('processing_start_time', Date.now().toString());
+    // Clear any stuck states from previous sessions
+    if (stepParam !== 'payment') {
+      sessionStorage.removeItem('payment_processing');
       sessionStorage.removeItem('auto_submit_payment');
-      
-      // Set contact data and show confirmation
-      setContactData(sessionData.contactData);
-      setShowStreamlinedConfirmation(true);
-      setCurrentStep(2);
-      
-      // Execute payment after short delay
-      setTimeout(() => {
-        if (user && sessionData.contactData && !orderMutation.isPending) {
-          orderMutation.mutate({
-            paymentMethod: 'paystack',
-            timeline: 'standard',
-            overrideSelectedAddOns: sessionData.selectedAddOns || selectedAddOns,
-            overrideTotalAmount: sessionData.totalPrice || totalPrice
-          });
-        }
-      }, 1000);
+      sessionStorage.removeItem('processing_start_time');
     }
-  }, [user, sessionData, orderMutation.isPending]);
 
-  // Automatic timeout handler for stuck processing states
-  useEffect(() => {
-    if (!showStreamlinedConfirmation) return;
+    // If user is authenticated and we have pending checkout data, populate the form
+    if (user && sessionData?.contactData && !contactData?.fullName) {
+      setContactData(sessionData.contactData);
+      setCurrentStep(2); // Go directly to payment step
+    }
+  }, [user, sessionData]);
 
-    const timer = setTimeout(() => {
-      const processingStartTime = sessionStorage.getItem('processing_start_time');
-      if (processingStartTime) {
-        const elapsed = Date.now() - parseInt(processingStartTime);
-        if (elapsed > 30000) { // 30 seconds
-          // Auto-clear stuck state
-          sessionStorage.removeItem('payment_processing');
-          sessionStorage.removeItem('processing_start_time');
-          toast({
-            title: "Payment Timeout",
-            description: "Please try proceeding to payment again or use the manual button below.",
-            variant: "destructive",
-          });
-        }
-      }
-    }, 31000); // Check after 31 seconds
 
-    return () => clearTimeout(timer);
-  }, [showStreamlinedConfirmation]);
 
 
 
@@ -383,6 +325,14 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
     // Store contact data persistently
     storeFormData('checkout_contact_data', data);
     setContactData(data);
+    
+    // If user is not authenticated, show login prompt
+    if (!user) {
+      setShowStreamlinedConfirmation(true); // Reuse this state for login modal
+      return;
+    }
+    
+    // If authenticated, proceed to payment step
     setCurrentStep(2);
   };
 
@@ -391,55 +341,12 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
     
     // Check if user is authenticated before proceeding with payment
     if (!user) {
-      // Create checkout session in database
-      const createSessionData = {
-        serviceId: service.id,
-        serviceData: {
-          id: service.id,
-          name: service.name,
-          price: service.price,
-          description: service.description
-        },
-        contactData,
-        selectedAddOns,
-        totalPrice,
-        userId: null
-      };
-
-      // Create database session
-      fetch("/api/checkout-sessions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(createSessionData),
-      })
-      .then(res => res.json())
-      .then(result => {
-        if (result.sessionToken) {
-          // Store session token for auth redirect
-          sessionStorage.setItem('checkoutSessionToken', result.sessionToken);
-          
-          // Clear any existing auth flags
-          sessionStorage.removeItem('auth_completed');
-          sessionStorage.removeItem('auth_timestamp');
-          
-          // Redirect to auth with session token
-          setLocation(`/auth?checkout=${result.sessionToken}`);
-        } else {
-          toast({
-            title: "Error",
-            description: "Failed to create checkout session. Please try again.",
-            variant: "destructive",
-          });
-        }
-      })
-      .catch(error => {
-        toast({
-          title: "Error", 
-          description: "Failed to create checkout session. Please try again.",
-          variant: "destructive",
-        });
+      // Just show message that login is required - no redirect
+      toast({
+        title: "Login Required",
+        description: "Please log in first to complete your payment.",
+        variant: "destructive",
       });
-      
       return;
     }
     
@@ -646,76 +553,40 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
       </CardContent>
     </Card>
 
-      {/* Streamlined Payment Confirmation for Post-Auth Users */}
-      {showStreamlinedConfirmation && contactData && (
+
+      {/* Inline Login Modal for Unauthenticated Users */}
+      {showStreamlinedConfirmation && !user && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <Card className="w-full max-w-md mx-auto bg-white shadow-2xl">
             <CardContent className="p-8 text-center">
               <div className="mb-6">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <CheckCircle className="h-8 w-8 text-green-600" />
+                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <User className="h-8 w-8 text-blue-600" />
                 </div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome back!</h2>
-                <p className="text-gray-600">Your information is saved. Proceeding to payment...</p>
-              </div>
-
-              <div className="bg-gray-50 rounded-lg p-4 mb-6 text-left">
-                <h3 className="font-semibold text-gray-900 mb-3">Order Summary</h3>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Service:</span>
-                    <span className="font-medium">{service.name}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Customer:</span>
-                    <span className="font-medium">{contactData.fullName}</span>
-                  </div>
-                  {selectedAddOns.length > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Add-ons:</span>
-                      <span className="font-medium">{selectedAddOns.length} selected</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between pt-2 border-t border-gray-200">
-                    <span className="font-semibold text-gray-900">Total:</span>
-                    <span className="font-bold text-green-600">₦{totalPrice.toLocaleString()}</span>
-                  </div>
-                </div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">Login Required</h2>
+                <p className="text-gray-600">Please log in to complete your order. Your information has been saved.</p>
               </div>
 
               <div className="space-y-4">
-                <div className="flex items-center justify-center gap-2 text-green-600">
-                  <CheckCircle className="h-4 w-4" />
-                  <span className="text-sm font-medium">Ready to proceed</span>
-                </div>
                 <Button 
                   onClick={() => {
-                    orderMutation.mutate({
-                      paymentMethod: 'paystack',
-                      timeline: 'standard',
-                      overrideSelectedAddOns: sessionData?.selectedAddOns || selectedAddOns,
-                      overrideTotalAmount: sessionData?.totalPrice || totalPrice
-                    });
+                    // Just redirect to auth page - no complex session creation
+                    window.location.href = '/auth';
                   }}
-                  disabled={orderMutation.isPending}
                   className="w-full bg-blue-600 hover:bg-blue-700"
                 >
-                  {orderMutation.isPending ? 'Processing...' : `Proceed to Payment - ₦${totalPrice.toLocaleString()}`}
+                  Go to Login Page
                 </Button>
                 
                 <Button 
                   variant="outline"
                   onClick={() => {
-                    // Clear all payment flags and reset state
-                    sessionStorage.removeItem('payment_processing');
-                    sessionStorage.removeItem('auto_submit_payment'); 
-                    sessionStorage.removeItem('processing_start_time');
                     setShowStreamlinedConfirmation(false);
                     setCurrentStep(1);
                   }}
                   className="w-full text-gray-600 border-gray-300"
                 >
-                  Cancel & Start Over
+                  Back to Form
                 </Button>
               </div>
             </CardContent>
