@@ -223,6 +223,7 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
         sessionStorage.removeItem('auto_submit_payment');
         sessionStorage.removeItem('auto_payment_executed');
         sessionStorage.removeItem('payment_processing');
+        sessionStorage.removeItem('processing_start_time');
         
         // Clear payment loader state
         sessionStorage.removeItem('payment_in_progress');
@@ -297,25 +298,40 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
     },
   });
 
-  // Simple auto-payment logic with single execution protection
+  // Auto-payment logic with proper cleanup for cancelled payments
   useEffect(() => {
-    // Only trigger if user is authenticated and we have session data with auto_submit flag
+    // Check if user returned from cancelled payment (detect URL change)
+    const urlParams = new URLSearchParams(window.location.search);
+    const stepParam = urlParams.get('step');
+    
+    // If user returned from Paystack without completing payment, clear all flags
+    if (!urlParams.get('reference') && !urlParams.get('trxref')) {
+      // Clear any stuck states when returning from cancelled payment
+      const currentTime = Date.now();
+      const processingStartTime = sessionStorage.getItem('processing_start_time');
+      
+      if (processingStartTime && currentTime - parseInt(processingStartTime) > 30000) {
+        // If processing has been going for more than 30 seconds, clear it
+        sessionStorage.removeItem('payment_processing');
+        sessionStorage.removeItem('auto_submit_payment');
+        sessionStorage.removeItem('processing_start_time');
+        setShowStreamlinedConfirmation(false);
+      }
+    }
+
+    // Only trigger auto-payment if user is authenticated and we have session data
     if (!user || !sessionData?.contactData || orderMutation.isPending) {
       return;
     }
 
     const autoSubmitPayment = sessionStorage.getItem('auto_submit_payment');
-    const stepParam = new URLSearchParams(window.location.search).get('step');
+    const isProcessing = sessionStorage.getItem('payment_processing');
     
-    // Only auto-submit if explicitly flagged or step=payment
-    if (autoSubmitPayment === 'true' || stepParam === 'payment') {
-      // Prevent multiple executions
-      if (sessionStorage.getItem('payment_processing') === 'true') {
-        return;
-      }
-      
-      // Set processing flag
+    // Only auto-submit if explicitly flagged or step=payment, and not already processing
+    if ((autoSubmitPayment === 'true' || stepParam === 'payment') && isProcessing !== 'true') {
+      // Set processing flag with timestamp
       sessionStorage.setItem('payment_processing', 'true');
+      sessionStorage.setItem('processing_start_time', Date.now().toString());
       sessionStorage.removeItem('auto_submit_payment');
       
       // Set contact data and show confirmation
@@ -333,9 +349,33 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
             overrideTotalAmount: sessionData.totalPrice || totalPrice
           });
         }
-      }, 500);
+      }, 1000);
     }
   }, [user, sessionData, orderMutation.isPending]);
+
+  // Automatic timeout handler for stuck processing states
+  useEffect(() => {
+    if (!showStreamlinedConfirmation) return;
+
+    const timer = setTimeout(() => {
+      const processingStartTime = sessionStorage.getItem('processing_start_time');
+      if (processingStartTime) {
+        const elapsed = Date.now() - parseInt(processingStartTime);
+        if (elapsed > 30000) { // 30 seconds
+          // Auto-clear stuck state
+          sessionStorage.removeItem('payment_processing');
+          sessionStorage.removeItem('processing_start_time');
+          toast({
+            title: "Payment Timeout",
+            description: "Please try proceeding to payment again or use the manual button below.",
+            variant: "destructive",
+          });
+        }
+      }
+    }, 31000); // Check after 31 seconds
+
+    return () => clearTimeout(timer);
+  }, [showStreamlinedConfirmation]);
 
 
 
@@ -661,6 +701,21 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
                   className="w-full bg-blue-600 hover:bg-blue-700"
                 >
                   {orderMutation.isPending ? 'Processing...' : `Proceed to Payment - ₦${totalPrice.toLocaleString()}`}
+                </Button>
+                
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    // Clear all payment flags and reset state
+                    sessionStorage.removeItem('payment_processing');
+                    sessionStorage.removeItem('auto_submit_payment'); 
+                    sessionStorage.removeItem('processing_start_time');
+                    setShowStreamlinedConfirmation(false);
+                    setCurrentStep(1);
+                  }}
+                  className="w-full text-gray-600 border-gray-300"
+                >
+                  Cancel & Start Over
                 </Button>
               </div>
             </CardContent>
