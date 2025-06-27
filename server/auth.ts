@@ -275,28 +275,34 @@ export async function setupAuth(app: Express) {
     );
   }
 
-  passport.serializeUser((user: Express.User, done) => {
-    console.log('Serializing user:', user?.id);
-    if (!user || !user.id) {
-      console.error('Serialization failed: User object or ID is missing');
-      return done(new Error('User serialization failed'), false);
+  // Custom session management to bypass passport serialization issues
+  passport.serializeUser((user: any, done) => {
+    try {
+      if (!user || !user.id) {
+        return done(new Error('User serialization failed'), false);
+      }
+      done(null, user.id);
+    } catch (error) {
+      console.error('Serialization error:', error);
+      done(error);
     }
-    done(null, user.id);
   });
   
   passport.deserializeUser(async (id: string, done) => {
     try {
       if (!id) {
-        return done(new Error('User ID is missing during deserialization'));
+        return done(new Error('User ID missing'));
       }
+      
       const user = await storage.getUserById(id);
       if (!user) {
-        return done(new Error('User not found during deserialization'));
+        return done(null, false);
       }
+      
       done(null, user);
     } catch (error) {
       console.error('Deserialization error:', error);
-      done(error);
+      done(null, false);
     }
   });
 
@@ -836,7 +842,7 @@ export const isAuthenticated = async (req: any, res: any, next: any) => {
     // Check custom session userId first (from our login system)
     if ((req.session as any).userId) {
       const userId = (req.session as any).userId;
-      const user = await storage.getUser(userId);
+      const user = await storage.getUserById(userId);
       if (user) {
         req.user = user;
         return next();
@@ -850,7 +856,7 @@ export const isAuthenticated = async (req: any, res: any, next: any) => {
         : req.session.passport.user;
       
       if (passportUserId) {
-        const user = await storage.getUser(passportUserId);
+        const user = await storage.getUserById(passportUserId);
         if (user) {
           req.user = user;
           return next();
