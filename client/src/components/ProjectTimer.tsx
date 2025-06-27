@@ -109,7 +109,51 @@ export default function ProjectTimer({ project }: ProjectTimerProps) {
                     ? `${projectData.user.firstName} ${projectData.user.lastName}` 
                     : projectData.user?.email || 'Client'),
       clientEmail: contactInfo.email || projectData.user?.email || '',
-      projectDescription: projectDetails.description || projectData.notes || 'Project in progress',
+      projectDescription: (() => {
+        // Try to extract a clean description, avoiding raw JSON
+        let description = projectDetails.description || projectData.notes || '';
+        
+        // If the description looks like JSON, try to extract meaningful content
+        if (description && typeof description === 'string' && description.trim().startsWith('{')) {
+          try {
+            const parsed = JSON.parse(description);
+            
+            // Extract meaningful fields in order of preference
+            if (parsed.projectDescription) return parsed.projectDescription;
+            if (parsed.description) return parsed.description;
+            if (parsed.details) return parsed.details;
+            if (parsed.requirements) return parsed.requirements;
+            if (parsed.serviceType) return `${parsed.serviceType} project`;
+            if (parsed.timeline) return `Timeline: ${parsed.timeline}`;
+            
+            // If we have contact info, create a simple description
+            if (parsed.contactInfo) {
+              const service = getServiceName();
+              return `${service} development project`;
+            }
+            
+            // Fallback for JSON that we can't parse meaningfully
+            return 'Custom development project in progress';
+          } catch (e) {
+            // If JSON parsing fails, treat as regular text
+          }
+        }
+        
+        // If it's not JSON but contains contact info patterns, clean it up
+        if (description && description.includes('contactInfo')) {
+          const service = getServiceName();
+          return `${service} development project`;
+        }
+        
+        // If it's a reasonable description, use it
+        if (description && description.length > 0 && description.length < 200 && !description.includes('{')) {
+          return description;
+        }
+        
+        // Generate a meaningful description from available data
+        const service = getServiceName();
+        return `${service} development project`;
+      })(),
       timelineWeeks: projectData.timelineWeeks || 4
     };
   };
