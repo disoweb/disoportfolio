@@ -25,6 +25,7 @@ import AdminProjectsSimple from "@/pages/AdminProjectsSimple";
 import AdminProjectsFixed from "@/pages/AdminProjectsFixed";
 import AdminProjectsDebug from "@/pages/AdminProjectsDebug";
 import AdminServices from "@/pages/AdminServices";
+import AdminSEO from "@/pages/AdminSEO";
 import AdminReferrals from "@/pages/AdminReferrals";
 import AdminLogin from "@/pages/AdminLogin";
 import Checkout from "@/pages/Checkout";
@@ -138,6 +139,7 @@ function Router() {
         <Route path="/admin-dashboard" component={AdminDashboard} />
         <Route path="/admin/projects" component={AdminProjectsFixed} />
         <Route path="/admin/services" component={AdminServices} />
+        <Route path="/admin/seo" component={AdminSEO} />
         <Route path="/admin/referrals" component={AdminReferrals} />
         <Route path="/dashboard" component={ClientDashboard} />
         <Route path="/active-projects" component={ActiveProjects} />
