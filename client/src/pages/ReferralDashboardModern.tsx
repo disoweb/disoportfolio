@@ -136,7 +136,7 @@ export default function ReferralDashboardModern() {
 
   if (isReferralLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <Navigation />
         <main className="container mx-auto px-4 py-6 mt-16 max-w-7xl">
           <div className="animate-pulse space-y-6">
@@ -157,7 +157,7 @@ export default function ReferralDashboardModern() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Navigation />
       
       <main className="container mx-auto px-4 py-6 mt-16 max-w-7xl">
@@ -165,7 +165,7 @@ export default function ReferralDashboardModern() {
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white">
                 Referral Dashboard
               </h1>
               <p className="text-gray-600 dark:text-gray-400 mt-2 text-sm sm:text-base">
@@ -177,7 +177,7 @@ export default function ReferralDashboardModern() {
               <Button
                 onClick={() => setIsWithdrawalModalOpen(true)}
                 disabled={parseFloat(referralData?.earnings?.availableBalance || "0") <= 0}
-                className="w-full sm:w-auto bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-lg"
+                className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white"
               >
                 <Wallet className="h-4 w-4 mr-2" />
                 Request Withdrawal
@@ -186,7 +186,7 @@ export default function ReferralDashboardModern() {
               <Button
                 onClick={() => generateCodeMutation.mutate()}
                 disabled={generateCodeMutation.isPending}
-                className="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white shadow-lg"
+                className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white"
               >
                 <Sparkles className="h-4 w-4 mr-2" />
                 {generateCodeMutation.isPending ? "Generating..." : "Get Started"}
@@ -197,28 +197,28 @@ export default function ReferralDashboardModern() {
 
         {!referralData?.referralCode ? (
           /* Getting Started Section */
-          <Card className="border-0 shadow-xl bg-gradient-to-br from-blue-500 to-purple-600 text-white">
+          <Card className="border border-gray-200 dark:border-gray-700 shadow-sm bg-white dark:bg-gray-800">
             <CardContent className="p-6 sm:p-8 text-center">
               <div className="space-y-6">
                 <div className="text-4xl sm:text-6xl">🎯</div>
                 <div>
-                  <h2 className="text-xl sm:text-2xl font-bold mb-3">Start Your Referral Journey</h2>
-                  <p className="text-blue-100 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed">
+                  <h2 className="text-xl sm:text-2xl font-bold mb-3 text-gray-900 dark:text-white">Start Your Referral Journey</h2>
+                  <p className="text-gray-600 dark:text-gray-400 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed">
                     Generate your unique referral code and earn {referralData?.settings?.commissionPercentage || "10"}% commission 
                     on every successful referral. Share with friends, family, and your network!
                   </p>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center items-center text-sm">
-                  <div className="flex items-center">
-                    <Gift className="h-5 w-5 mr-2" />
+                  <div className="flex items-center text-gray-600 dark:text-gray-400">
+                    <Gift className="h-5 w-5 mr-2 text-blue-600" />
                     Easy sharing
                   </div>
-                  <div className="flex items-center">
-                    <DollarSign className="h-5 w-5 mr-2" />
+                  <div className="flex items-center text-gray-600 dark:text-gray-400">
+                    <DollarSign className="h-5 w-5 mr-2 text-blue-600" />
                     Instant earnings
                   </div>
-                  <div className="flex items-center">
-                    <Users className="h-5 w-5 mr-2" />
+                  <div className="flex items-center text-gray-600 dark:text-gray-400">
+                    <Users className="h-5 w-5 mr-2 text-blue-600" />
                     Unlimited referrals
                   </div>
                 </div>
@@ -229,65 +229,65 @@ export default function ReferralDashboardModern() {
           <>
             {/* Stats Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-              <Card className="border-0 shadow-lg bg-gradient-to-br from-green-500 to-emerald-500 text-white">
+              <Card className="border border-gray-200 dark:border-gray-700 shadow-sm bg-white dark:bg-gray-800">
                 <CardContent className="p-4 sm:p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-green-100 text-xs sm:text-sm font-medium">Available Balance</p>
-                      <p className="text-xl sm:text-2xl font-bold">
+                      <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm font-medium">Available Balance</p>
+                      <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
                         ₦{parseFloat(referralData?.earnings?.availableBalance || "0").toLocaleString()}
                       </p>
                     </div>
-                    <div className="bg-white/20 p-2 sm:p-3 rounded-full">
-                      <Wallet className="h-5 w-5 sm:h-6 sm:w-6" />
+                    <div className="bg-green-50 dark:bg-green-900/20 p-2 sm:p-3 rounded-full">
+                      <Wallet className="h-5 w-5 sm:h-6 sm:w-6 text-green-600 dark:text-green-400" />
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-500 to-cyan-500 text-white">
+              <Card className="border border-gray-200 dark:border-gray-700 shadow-sm bg-white dark:bg-gray-800">
                 <CardContent className="p-4 sm:p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-blue-100 text-xs sm:text-sm font-medium">Total Earned</p>
-                      <p className="text-xl sm:text-2xl font-bold">
+                      <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm font-medium">Total Earned</p>
+                      <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
                         ₦{parseFloat(referralData?.earnings?.totalEarned || "0").toLocaleString()}
                       </p>
                     </div>
-                    <div className="bg-white/20 p-2 sm:p-3 rounded-full">
-                      <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6" />
+                    <div className="bg-blue-50 dark:bg-blue-900/20 p-2 sm:p-3 rounded-full">
+                      <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 dark:text-blue-400" />
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-500 to-pink-500 text-white">
+              <Card className="border border-gray-200 dark:border-gray-700 shadow-sm bg-white dark:bg-gray-800">
                 <CardContent className="p-4 sm:p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-purple-100 text-xs sm:text-sm font-medium">Total Referrals</p>
-                      <p className="text-xl sm:text-2xl font-bold">
+                      <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm font-medium">Total Referrals</p>
+                      <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
                         {referralData?.earnings?.totalReferrals || 0}
                       </p>
                     </div>
-                    <div className="bg-white/20 p-2 sm:p-3 rounded-full">
-                      <Users className="h-5 w-5 sm:h-6 sm:w-6" />
+                    <div className="bg-purple-50 dark:bg-purple-900/20 p-2 sm:p-3 rounded-full">
+                      <Users className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600 dark:text-purple-400" />
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="border-0 shadow-lg bg-gradient-to-br from-orange-500 to-red-500 text-white">
+              <Card className="border border-gray-200 dark:border-gray-700 shadow-sm bg-white dark:bg-gray-800">
                 <CardContent className="p-4 sm:p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-orange-100 text-xs sm:text-sm font-medium">Successful</p>
-                      <p className="text-xl sm:text-2xl font-bold">
+                      <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm font-medium">Successful</p>
+                      <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
                         {referralData?.earnings?.successfulReferrals || 0}
                       </p>
                     </div>
-                    <div className="bg-white/20 p-2 sm:p-3 rounded-full">
-                      <CheckCircle className="h-5 w-5 sm:h-6 sm:w-6" />
+                    <div className="bg-orange-50 dark:bg-orange-900/20 p-2 sm:p-3 rounded-full">
+                      <CheckCircle className="h-5 w-5 sm:h-6 sm:w-6 text-orange-600 dark:text-orange-400" />
                     </div>
                   </div>
                 </CardContent>
@@ -297,13 +297,13 @@ export default function ReferralDashboardModern() {
             {/* Main Content Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
               {/* Referral Link Card */}
-              <Card className="border-0 shadow-lg">
+              <Card className="border border-gray-200 dark:border-gray-700 shadow-sm bg-white dark:bg-gray-800">
                 <CardHeader className="pb-4">
-                  <CardTitle className="flex items-center text-lg sm:text-xl">
-                    <Share2 className="h-5 w-5 mr-2 text-blue-500" />
+                  <CardTitle className="flex items-center text-lg sm:text-xl text-gray-900 dark:text-white">
+                    <Share2 className="h-5 w-5 mr-2 text-blue-600" />
                     Your Referral Link
                   </CardTitle>
-                  <CardDescription className="text-sm">
+                  <CardDescription className="text-sm text-gray-600 dark:text-gray-400">
                     Share this link to earn {referralData?.settings?.commissionPercentage || "10"}% commission
                   </CardDescription>
                 </CardHeader>
@@ -324,9 +324,9 @@ export default function ReferralDashboardModern() {
                     </Button>
                   </div>
                   
-                  <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 p-4 rounded-lg border">
+                  <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
                     <div className="flex items-start gap-3">
-                      <div className="bg-blue-500 p-2 rounded-full flex-shrink-0">
+                      <div className="bg-blue-600 p-2 rounded-full flex-shrink-0">
                         <Gift className="h-4 w-4 text-white" />
                       </div>
                       <div>
@@ -344,13 +344,13 @@ export default function ReferralDashboardModern() {
               </Card>
 
               {/* Recent Activity */}
-              <Card className="border-0 shadow-lg">
+              <Card className="border border-gray-200 dark:border-gray-700 shadow-sm bg-white dark:bg-gray-800">
                 <CardHeader className="pb-4">
-                  <CardTitle className="flex items-center text-lg sm:text-xl">
-                    <Clock className="h-5 w-5 mr-2 text-purple-500" />
+                  <CardTitle className="flex items-center text-lg sm:text-xl text-gray-900 dark:text-white">
+                    <Clock className="h-5 w-5 mr-2 text-blue-600" />
                     Recent Referrals
                   </CardTitle>
-                  <CardDescription className="text-sm">
+                  <CardDescription className="text-sm text-gray-600 dark:text-gray-400">
                     Your latest referral activity
                   </CardDescription>
                 </CardHeader>
@@ -358,14 +358,14 @@ export default function ReferralDashboardModern() {
                   {referralData?.referrals && referralData.referrals.length > 0 ? (
                     <div className="space-y-3">
                       {referralData.referrals.slice(0, 3).map((referral: any, index: number) => (
-                        <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                        <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
                           <div className="flex items-center gap-3">
-                            <div className="bg-green-500 p-2 rounded-full">
+                            <div className="bg-green-600 p-2 rounded-full">
                               <DollarSign className="h-3 w-3 text-white" />
                             </div>
                             <div>
-                              <p className="font-medium text-sm">₦{parseFloat(referral.commissionAmount).toLocaleString()}</p>
-                              <p className="text-xs text-gray-500">
+                              <p className="font-medium text-sm text-gray-900 dark:text-white">₦{parseFloat(referral.commissionAmount).toLocaleString()}</p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">
                                 {new Date(referral.createdAt).toLocaleDateString()}
                               </p>
                             </div>
@@ -395,13 +395,13 @@ export default function ReferralDashboardModern() {
             </div>
 
             {/* Withdrawal History */}
-            <Card className="border-0 shadow-lg">
+            <Card className="border border-gray-200 dark:border-gray-700 shadow-sm bg-white dark:bg-gray-800">
               <CardHeader className="pb-4">
-                <CardTitle className="flex items-center text-lg sm:text-xl">
-                  <CreditCard className="h-5 w-5 mr-2 text-green-500" />
+                <CardTitle className="flex items-center text-lg sm:text-xl text-gray-900 dark:text-white">
+                  <CreditCard className="h-5 w-5 mr-2 text-blue-600" />
                   Withdrawal History
                 </CardTitle>
-                <CardDescription className="text-sm">
+                <CardDescription className="text-sm text-gray-600 dark:text-gray-400">
                   Track your withdrawal requests and payments
                 </CardDescription>
               </CardHeader>
@@ -415,19 +415,19 @@ export default function ReferralDashboardModern() {
                 ) : withdrawalHistory && withdrawalHistory.length > 0 ? (
                   <div className="space-y-3">
                     {withdrawalHistory.map((withdrawal: any) => (
-                      <div key={withdrawal.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <div key={withdrawal.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
                         <div className="flex items-center gap-3 flex-1">
-                          <div className="bg-blue-500 p-2 rounded-full flex-shrink-0">
+                          <div className="bg-blue-600 p-2 rounded-full flex-shrink-0">
                             <Wallet className="h-4 w-4 text-white" />
                           </div>
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2 mb-1">
-                              <p className="font-medium text-sm">₦{parseFloat(withdrawal.amount).toLocaleString()}</p>
+                              <p className="font-medium text-sm text-gray-900 dark:text-white">₦{parseFloat(withdrawal.amount).toLocaleString()}</p>
                               <Badge className={`text-xs ${getStatusColor(withdrawal.status)}`}>
                                 {withdrawal.status}
                               </Badge>
                             </div>
-                            <p className="text-xs text-gray-500 truncate">
+                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                               {new Date(withdrawal.createdAt).toLocaleDateString()} • {withdrawal.paymentMethod}
                             </p>
                           </div>
@@ -439,7 +439,7 @@ export default function ReferralDashboardModern() {
                             setSelectedWithdrawal(withdrawal);
                             setIsDetailModalOpen(true);
                           }}
-                          className="ml-2 text-xs"
+                          className="ml-2 text-xs text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
                         >
                           <Eye className="h-3 w-3 mr-1" />
                           View
