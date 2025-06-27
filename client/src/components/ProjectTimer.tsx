@@ -1,288 +1,250 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Clock, Play, Pause, Calendar, User } from 'lucide-react';
+import { Clock, Calendar, User, Building, CheckCircle, AlertCircle } from 'lucide-react';
 
 interface ProjectTimerProps {
   project: any;
 }
 
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case "not_started":
-      return "bg-slate-500";
-    case "active":
-      return "bg-green-500";
-    case "paused":
-      return "bg-yellow-500";
-    case "completed":
-      return "bg-blue-500";
-    default:
-      return "bg-slate-500";
-  }
-};
+export default function ProjectTimer({ project }: ProjectTimerProps) {
+  const [timeRemaining, setTimeRemaining] = useState({
+    days: 0,
+    hours: 0,
+    minutes: 0,
+    seconds: 0
+  });
 
-const getStatusVariant = (status: string) => {
-  switch (status) {
-    case "active":
-      return "default";
-    case "completed":
-      return "secondary";
-    case "paused":
-      return "outline";
-    default:
-      return "outline";
-  }
-};
+  const [timeProgress, setTimeProgress] = useState(0);
 
-const parseProjectData = (project: any) => {
-  console.log('ProjectTimer - Raw project data:', project);
-  
-  // If project is already a proper project object with required fields
-  if (project?.projectName && project?.status && !project?.contactInfo) {
-    console.log('ProjectTimer - Using existing project object');
-    return project;
-  }
+  // Parse project data properly
+  let projectData;
+  let contactInfo = {};
+  let projectDetails = {};
 
-  // Handle the case where project might be embedded in customRequest
-  let parsedData = project;
-  
-  // If the project has a customRequest field (from orders table)
-  if (project?.customRequest) {
-    try {
-      if (typeof project.customRequest === 'string') {
-        parsedData = JSON.parse(project.customRequest);
-      } else {
-        parsedData = project.customRequest;
+  console.log('ProjectTimer - Original project data:', project);
+
+  try {
+    // Handle different data formats from the database
+    if (project && typeof project === 'object') {
+      projectData = project;
+
+      // Try to parse customRequest if it exists (for orders converted to projects)
+      if (project.customRequest && typeof project.customRequest === 'string') {
+        try {
+          const customData = JSON.parse(project.customRequest);
+          contactInfo = customData.contactInfo || {};
+          projectDetails = customData.projectDetails || {};
+        } catch (e) {
+          console.warn('ProjectTimer - Could not parse customRequest:', e);
+        }
       }
-      console.log('ProjectTimer - Parsed customRequest:', parsedData);
-    } catch (error) {
-      console.error('ProjectTimer - Failed to parse customRequest:', error);
-      return null;
+
+      // Use order data if available
+      if (project.order && project.order.customRequest) {
+        try {
+          const orderData = JSON.parse(project.order.customRequest);
+          contactInfo = orderData.contactInfo || {};
+          projectDetails = orderData.projectDetails || {};
+        } catch (e) {
+          console.warn('ProjectTimer - Could not parse order customRequest:', e);
+        }
+      }
+    } else {
+      throw new Error('Invalid project data format');
     }
-  }
-  
-  // If the data itself is a string, try to parse it
-  if (typeof parsedData === 'string') {
-    try {
-      parsedData = JSON.parse(parsedData);
-      console.log('ProjectTimer - Parsed string data:', parsedData);
-    } catch (error) {
-      console.error('ProjectTimer - Failed to parse project string:', error);
-      return null;
-    }
+  } catch (error) {
+    console.error('ProjectTimer - Error processing project data:', error);
+    projectData = project || {};
   }
 
-  // Check if this is order data that needs conversion
-  if (parsedData?.contactInfo || parsedData?.projectDetails) {
-    const contactInfo = parsedData.contactInfo || {};
-    const projectDetails = parsedData.projectDetails || {};
-    const selectedAddOns = parsedData.selectedAddOns || [];
-    
-    console.log('ProjectTimer - Converting order data to project format');
-    
-    // Create a proper project object from order data
-    const convertedProject = {
-      id: project?.id || parsedData?.id || 'temp-' + Date.now(),
-      projectName: `${contactInfo.fullName || 'Client'} - ${projectDetails.description?.substring(0, 50) || 'Custom Service'}...`,
-      status: project?.status || "active",
-      progressPercentage: project?.progressPercentage || 25,
-      currentStage: project?.currentStage || "discovery",
-      timelineWeeks: parsedData.timeline || "4 weeks",
-      createdAt: project?.createdAt || parsedData?.createdAt || new Date().toISOString(),
-      dueDate: project?.dueDate || new Date(Date.now() + 28 * 24 * 60 * 60 * 1000).toISOString(),
-      startDate: project?.startDate || project?.createdAt || new Date().toISOString(),
-      contactInfo: contactInfo,
-      projectDetails: projectDetails,
-      selectedAddOns: selectedAddOns,
-      timeline: parsedData.timeline || "4 weeks",
-      paymentMethod: parsedData.paymentMethod || "Paystack",
-      clientName: contactInfo.fullName || 'Client',
-      clientEmail: contactInfo.email || '',
-      clientPhone: contactInfo.phone || '',
-      companyName: contactInfo.company || '',
-      description: projectDetails.description || 'Project in progress',
-      totalPrice: project?.totalPrice || parsedData?.totalPrice || '0'
+  // Extract meaningful project information
+  const getProjectInfo = () => {
+    const now = new Date();
+
+    // Use actual project dates from database
+    const startDate = projectData.startDate ? new Date(projectData.startDate) : 
+                     projectData.createdAt ? new Date(projectData.createdAt) : now;
+
+    const dueDate = projectData.dueDate ? new Date(projectData.dueDate) : 
+                   new Date(startDate.getTime() + (projectData.timelineDays || 28) * 24 * 60 * 60 * 1000);
+
+    // Calculate actual time remaining
+    const timeLeft = Math.max(0, dueDate.getTime() - now.getTime());
+    const totalDuration = dueDate.getTime() - startDate.getTime();
+    const elapsed = now.getTime() - startDate.getTime();
+
+    return {
+      id: projectData.id || 'unknown',
+      projectName: projectData.projectName || 
+                  (contactInfo.fullName ? `${contactInfo.fullName} - Project` : 'Unnamed Project'),
+      status: projectData.status || 'active',
+      progressPercentage: projectData.progressPercentage || Math.min(95, Math.max(5, Math.floor((elapsed / totalDuration) * 100))),
+      currentStage: projectData.currentStage || 'In Progress',
+      startDate,
+      dueDate,
+      timeLeft,
+      totalDuration,
+      elapsed,
+      clientName: contactInfo.fullName || projectData.user?.firstName + ' ' + projectData.user?.lastName || 'Client',
+      clientEmail: contactInfo.email || projectData.user?.email || '',
+      projectDescription: projectDetails.description || projectData.notes || 'Project in progress',
+      timelineWeeks: projectData.timelineWeeks || 4
     };
-    
-    console.log('ProjectTimer - Converted project:', convertedProject);
-    return convertedProject;
-  }
+  };
 
-  // If it's already a proper project object, return as is
-  console.log('ProjectTimer - Using project data as-is');
-  return parsedData;
-};
-
-export default function ProjectTimer({ project: rawProject }: ProjectTimerProps) {
-  const [timeSpent, setTimeSpent] = useState(0);
-  const [isRunning, setIsRunning] = useState(false);
-
-  const project = parseProjectData(rawProject);
-
-  if (!project) {
-    return (
-      <Card className="hover:shadow-lg transition-shadow">
-        <CardContent className="p-6">
-          <div className="text-center text-slate-500">
-            <p>Unable to load project data</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+  const info = getProjectInfo();
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isRunning) {
-      interval = setInterval(() => {
-        setTimeSpent(prev => prev + 1);
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [isRunning]);
+    const calculateTimeRemaining = () => {
+      const timeLeft = Math.max(0, info.dueDate.getTime() - new Date().getTime());
 
-  const formatTime = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+      const days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+
+      setTimeRemaining({ days, hours, minutes, seconds });
+
+      // Calculate time progress based on actual dates
+      const progress = Math.min(100, Math.max(0, (info.elapsed / info.totalDuration) * 100));
+      setTimeProgress(progress);
+    };
+
+    calculateTimeRemaining();
+    const timer = setInterval(calculateTimeRemaining, 1000);
+
+    return () => clearInterval(timer);
+  }, [info.dueDate, info.elapsed, info.totalDuration]);
+
+  const getStatusColor = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'completed':
+        return 'bg-green-100 text-green-800';
+      case 'active':
+        return 'bg-blue-100 text-blue-800';
+      case 'paused':
+        return 'bg-yellow-100 text-yellow-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
   };
 
   return (
-    <Card className="hover:shadow-lg transition-shadow">
-      <CardHeader>
-        <div className="flex justify-between items-start">
-          <CardTitle className="text-lg font-semibold line-clamp-2">
-            {project.projectName || 'Project'}
+    <Card className="w-full">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg font-semibold truncate">
+            {info.projectName}
           </CardTitle>
-          <Badge variant={getStatusVariant(project.status || 'active')}>
-            <div className={`w-2 h-2 rounded-full ${getStatusColor(project.status || 'active')} mr-2`} />
-            {project.status || 'active'}
+          <Badge className={getStatusColor(info.status)}>
+            {info.status}
           </Badge>
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {/* Client Information */}
-          {(project.clientName || project.clientEmail) && (
-            <div className="bg-blue-50 p-3 rounded-lg">
-              <div className="flex items-center space-x-2 mb-2">
-                <User className="h-4 w-4 text-blue-600" />
-                <span className="text-sm font-medium text-blue-900">Client Details</span>
-              </div>
-              <div className="space-y-1">
-                {project.clientName && (
-                  <p className="text-sm text-blue-800 font-medium">
-                    {project.clientName}
-                  </p>
-                )}
-                {project.clientEmail && (
-                  <p className="text-xs text-blue-600">{project.clientEmail}</p>
-                )}
-                {project.clientPhone && (
-                  <p className="text-xs text-blue-600">{project.clientPhone}</p>
-                )}
-                {project.companyName && (
-                  <p className="text-xs text-blue-600">{project.companyName}</p>
-                )}
-              </div>
+
+      <CardContent className="space-y-4">
+        {/* Client Details */}
+        <div className="flex items-center gap-2 text-sm text-gray-600">
+          <User className="h-4 w-4" />
+          <span className="font-medium">Client Details</span>
+        </div>
+
+        <div className="bg-gray-50 rounded-lg p-3 space-y-2">
+          <div className="flex items-center gap-2">
+            <User className="h-4 w-4 text-gray-500" />
+            <span className="text-sm font-medium">{info.clientName}</span>
+          </div>
+          {info.clientEmail && (
+            <div className="text-xs text-gray-600 ml-6">
+              {info.clientEmail}
             </div>
           )}
-
-          {/* Project Description */}
-          {project.description && (
-            <div>
-              <h4 className="font-medium text-slate-900 mb-1">Project Description</h4>
-              <p className="text-sm text-slate-600">{project.description}</p>
+          {info.projectDescription && (
+            <div className="text-xs text-gray-600 ml-6 mt-2">
+              {info.projectDescription.length > 100 
+                ? info.projectDescription.substring(0, 100) + '...'
+                : info.projectDescription}
             </div>
           )}
+        </div>
 
-          {/* Add-ons */}
-          {project.selectedAddOns && project.selectedAddOns.length > 0 && (
-            <div>
-              <h4 className="font-medium text-slate-900 mb-2">Selected Add-ons</h4>
-              <div className="flex flex-wrap gap-1">
-                {project.selectedAddOns.map((addon: any, index: number) => (
-                  <Badge key={index} variant="outline" className="text-xs">
-                    {typeof addon === 'string' ? addon : addon.name || addon}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
+        {/* Project Progress */}
+        <div className="space-y-2">
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-600">Project Progress</span>
+            <span className="font-medium">{info.progressPercentage}%</span>
+          </div>
+          <Progress 
+            value={info.progressPercentage} 
+            className="h-2"
+          />
+        </div>
 
-          {/* Progress Bar */}
+        {/* Time Progress */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-sm">
+            <Clock className="h-4 w-4 text-gray-500" />
+            <span className="text-gray-600">Time Progress</span>
+            <span className="font-medium">{Math.round(timeProgress)}%</span>
+          </div>
+          <Progress 
+            value={timeProgress} 
+            className="h-2"
+          />
+        </div>
+
+        {/* Timeline Information */}
+        <div className="grid grid-cols-3 gap-4 text-center text-xs">
           <div>
-            <div className="flex justify-between text-sm text-slate-600 mb-2">
-              <span>Project Progress</span>
-              <span>{project.progressPercentage || 0}%</span>
+            <div className="text-gray-500">Started</div>
+            <div className="font-medium">
+              {info.startDate.toLocaleDateString()}
             </div>
-            <Progress value={project.progressPercentage || 0} className="h-2" />
+          </div>
+          <div>
+            <div className="text-gray-500">Timeline</div>
+            <div className="font-medium">{info.timelineWeeks}</div>
+          </div>
+          <div>
+            <div className="text-gray-500">Due Date</div>
+            <div className="font-medium">
+              {info.dueDate.toLocaleDateString()}
+            </div>
+          </div>
+        </div>
+
+        {/* Countdown Timer */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-sm">
+            <Clock className="h-4 w-4 text-gray-500" />
+            <span className="text-gray-600">Time Remaining</span>
           </div>
 
-          {/* Time Progress */}
-          <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-            <div className="flex items-center space-x-2">
-              <Clock className="h-4 w-4 text-slate-600" />
-              <span className="text-sm font-medium">Time Progress</span>
+          <div className="grid grid-cols-4 gap-2 text-center">
+            <div className="bg-gray-50 rounded-lg p-2">
+              <div className="text-2xl font-bold text-gray-900">{timeRemaining.days}</div>
+              <div className="text-xs text-gray-500">Days</div>
             </div>
-            <div className="text-sm text-slate-600">{project.progressPercentage || 0}%</div>
+            <div className="bg-gray-50 rounded-lg p-2">
+              <div className="text-2xl font-bold text-gray-900">{timeRemaining.hours}</div>
+              <div className="text-xs text-gray-500">Hours</div>
+            </div>
+            <div className="bg-gray-50 rounded-lg p-2">
+              <div className="text-2xl font-bold text-gray-900">{timeRemaining.minutes}</div>
+              <div className="text-xs text-gray-500">Minutes</div>
+            </div>
+            <div className="bg-gray-50 rounded-lg p-2">
+              <div className="text-2xl font-bold text-gray-900">{timeRemaining.seconds}</div>
+              <div className="text-xs text-gray-500">Seconds</div>
+            </div>
           </div>
+        </div>
 
-          {/* Project Timeline Info */}
-          <div className="grid grid-cols-3 gap-2 text-center">
-            <div>
-              <p className="text-xs text-slate-500">Started</p>
-              <p className="text-sm font-medium">
-                {project.createdAt ? new Date(project.createdAt).toLocaleDateString() : 'N/A'}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-slate-500">Timeline</p>
-              <p className="text-sm font-medium">{project.timeline || project.timelineWeeks || '4 weeks'}</p>
-            </div>
-            <div>
-              <p className="text-xs text-slate-500">Due Date</p>
-              <p className="text-sm font-medium">
-                {project.dueDate ? new Date(project.dueDate).toLocaleDateString() : 'TBD'}
-              </p>
-            </div>
-          </div>
-
-          {/* Time Remaining Countdown */}
-          <div className="bg-slate-50 p-3 rounded-lg">
-            <div className="flex items-center space-x-2 mb-2">
-              <Clock className="h-4 w-4 text-slate-600" />
-              <span className="text-sm font-medium">Time Remaining</span>
-            </div>
-            <div className="grid grid-cols-4 gap-2 text-center">
-              <div>
-                <p className="text-lg font-bold text-slate-900">27</p>
-                <p className="text-xs text-slate-500">Days</p>
-              </div>
-              <div>
-                <p className="text-lg font-bold text-slate-900">23</p>
-                <p className="text-xs text-slate-500">Hours</p>
-              </div>
-              <div>
-                <p className="text-lg font-bold text-slate-900">50</p>
-                <p className="text-xs text-slate-500">Minutes</p>
-              </div>
-              <div>
-                <p className="text-lg font-bold text-slate-900">44</p>
-                <p className="text-xs text-slate-500">Seconds</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Project Stats */}
-          <div className="text-xs text-slate-500 pt-2 border-t">
-            Timeline: {project.timeline || project.timelineWeeks || '4 weeks'} | Created: {project.createdAt ? new Date(project.createdAt).toLocaleDateString() : 'N/A'}
-          </div>
+        {/* Project Stage */}
+        <div className="text-center text-xs text-gray-500 border-t pt-3">
+          Timeline: {info.timelineWeeks} | Created: {info.startDate.toLocaleDateString()}
         </div>
       </CardContent>
     </Card>

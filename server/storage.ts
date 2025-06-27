@@ -568,25 +568,76 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Project operations
-  async getUserProjects(userId: string): Promise<any[]> {
+  async getUserProjects(userId: string) {
     try {
-      // First, ensure all paid orders have corresponding projects
-      await this.ensureProjectsForPaidOrders(userId);
-
-      const results = await db
-        .select()
+      const userProjects = await db
+        .select({
+          id: projects.id,
+          projectName: projects.projectName,
+          status: projects.status,
+          progressPercentage: projects.progressPercentage,
+          currentStage: projects.currentStage,
+          notes: projects.notes,
+          startDate: projects.startDate,
+          dueDate: projects.dueDate,
+          timelineWeeks: projects.timelineWeeks,
+          timelineDays: projects.timelineDays,
+          createdAt: projects.createdAt,
+          orderId: projects.orderId,
+          user: {
+            id: users.id,
+            firstName: users.firstName,
+            lastName: users.lastName,
+            email: users.email,
+          },
+          order: {
+            id: orders.id,
+            customRequest: orders.customRequest,
+            totalPrice: orders.totalPrice,
+            status: orders.status,
+            createdAt: orders.createdAt,
+          }
+        })
         .from(projects)
+        .leftJoin(users, eq(projects.userId, users.id))
+        .leftJoin(orders, eq(projects.orderId, orders.id))
         .where(eq(projects.userId, userId))
         .orderBy(desc(projects.createdAt));
 
-      return results.map(project => ({
-        ...project,
-        order: { service: { name: null } }
-      }));
+      // Calculate actual dates and progress for each project
+      const enhancedProjects = userProjects.map(project => {
+        const now = new Date();
+        const startDate = project.startDate ? new Date(project.startDate) : new Date(project.createdAt);
+
+        // Calculate due date based on timeline
+        let dueDate;
+        if (project.dueDate) {
+          dueDate = new Date(project.dueDate);
+        } else {
+          const daysToAdd = project.timelineDays || (project.timelineWeeks * 7) || 28;
+          dueDate = new Date(startDate.getTime() + daysToAdd * 24 * 60 * 60 * 1000);
+        }
+
+        // Calculate progress based on time elapsed
+        const totalDuration = dueDate.getTime() - startDate.getTime();
+        const elapsed = Math.max(0, now.getTime() - startDate.getTime());
+        const calculatedProgress = Math.min(95, Math.max(5, Math.floor((elapsed / totalDuration) * 100)));
+
+        return {
+          ...project,
+          startDate: startDate.toISOString(),
+          dueDate: dueDate.toISOString(),
+          progressPercentage: project.progressPercentage || calculatedProgress,
+          timelineDays: project.timelineDays || (project.timelineWeeks * 7) || 28
+        };
+      });
+
+      return enhancedProjects;
     } catch (error) {
-      throw new Error(`Failed to fetch user projects: ${(error as Error).message}`);
+      console.error("Error fetching user projects:", error);
+      throw error;
     }
-  }
+  },
 
   parseServiceDuration(duration: string | null): { weeks: number; days: number } {
     if (!duration) return { weeks: 4, days: 28 }; // Default 4 weeks
@@ -819,6 +870,7 @@ export class DatabaseStorage implements IStorage {
     const [project] = await db
       .select()
       .from(projects)
+```text
       .where(and(eq(projects.id, projectId), eq(projects.userId, userId)));
 
     return !!project;
@@ -1676,7 +1728,7 @@ export class DatabaseStorage implements IStorage {
       .from(seoSettings)
       .where(eq(seoSettings.id, "global"))
       .limit(1);
-    
+
     if (!settings) {
       // Create default settings if none exist
       const defaultSettings = {
@@ -1693,11 +1745,202 @@ export class DatabaseStorage implements IStorage {
         breadcrumbsEnabled: true,
         twitterCardsEnabled: true,
       };
-      
+
       const [newSettings] = await db.insert(seoSettings).values(defaultSettings).returning();
       return newSettings;
     }
-    
+
+    return settings;
+  }
+
+  async updateSeoSettings(updates: Partial<InsertSeoSettings>): Promise<SeoSettings> {
+    const [updatedSettings] = await db
+      .update(seoSettings)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(seoSettings.id, "global"))
+      .returning();
+    return updatedSettings;
+  }
+
+  // SEO Pages Methods
+  async getAllSeoPages(): Promise<SeoPage[]> {
+    return await db
+      .select()
+      .from(seoPages)
+      .orderBy(desc(seoPages.priority), seoPages.path);
+  }
+
+  async getSeoPageByPath(path: string): Promise<SeoPage | null> {
+    const [page] = await db
+      .select()
+      .from(seoPages)
+      .where(eq(seoPages.path, path))
+      .limit(1);
+    return page || null;
+  }
+
+  async createSeoPage(pageData: InsertSeoPage): Promise<SeoPage> {
+    const [newPage] = await db.insert(seoPages).values(pageData).returning();
+    return newPage;
+  }
+
+  async updateSeoPage(id: string, updates: Partial<InsertSeoPage>): Promise<SeoPage> {
+    const [updatedPage] = await db
+      .update(seoPages)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(seoPages.id, id))
+      .returning();
+    return updatedPage;
+  }
+
+  async deleteSeoPage(id: string): Promise<void> {
+    await db.delete(seoPages).where(eq(seoPages.id, id));
+  }
+
+  // SEO Rules Methods
+  async getAllSeoRules(): Promise<SeoRule[]> {
+    return await db
+      .select()
+      .from(seoRules)
+      .orderBy(desc(seoRules.priority), seoRules.name);
+  }
+
+  async createSeoRule(ruleData: InsertSeoRule): Promise<SeoRule> {
+    const [newRule] = await db.insert(seoRules).values(ruleData).returning();
+    return newRule;
+  }
+
+  async updateSeoRule(id: string, updates: Partial<InsertSeoRule>): Promise<SeoRule> {
+    const [updatedRule] = await db
+      .update(seoRules)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(seoRules.id, id))
+      .returning();
+    return updatedRule;
+  }
+
+  async deleteSeoRule(id: string): Promise<void> {
+    await db.delete(seoRules).where(eq(seoRules.id, id));
+  }
+
+  // SEO Keywords Methods
+  async getAllSeoKeywords(): Promise<SeoKeyword[]> {
+    return await db
+      .select()
+      .from(seoKeywords)
+      .orderBy(desc(seoKeywords.searchVolume), seoKeywords.keyword);
+  }
+
+  async createSeoKeyword(keywordData: InsertSeoKeyword): Promise<SeoKeyword> {
+    const [newKeyword] = await db.insert(seoKeywords).values(keywordData).returning();
+    return newKeyword;
+  }
+
+  async updateSeoKeyword(id: string, updates: Partial<InsertSeword>): Promise<SeoKeyword> {
+    const [updatedKeyword] = await db
+      .update(seoKeywords)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(seoKeywords.id, id))
+      .returning();
+    return updatedKeyword;
+  }
+
+  async deleteSeoKeyword(id: string): Promise<void> {
+    await db.delete(seoKeywords).where(eq(seoKeywords.id, id));
+  }
+
+  // SEO Analytics Methods
+  async createSeoAnalytics(analyticsData: InsertSeoAnalytics): Promise<SeoAnalytics> {
+    const [newAnalytics] = await db.insert(seoAnalytics).values(analyticsData).returning();
+    return newAnalytics;
+  }
+
+  async getSeoAnalyticsByPage(page: string, startDate?: string, endDate?: string): Promise<SeoAnalytics[]> {
+    const conditions = [eq(seoAnalytics.page, page)];
+
+    if (startDate) {
+      conditions.push(gte(seoAnalytics.date, startDate));
+    }
+    if (endDate) {
+      conditions.push(lte(seoAnalytics.date, endDate));
+    }
+
+    return await db
+      .select()
+      .from(seoAnalytics)
+      .where(and(...conditions))
+      .orderBy(desc(seoAnalytics.date));
+  }
+
+  // SEO Audits Methods
+  async getAllSeoAudits(): Promise<SeoAudit[]> {
+    return await db
+      .select()
+      .from(seoAudits)
+      .orderBy(desc(seoAudits.createdAt));
+  }
+
+  async createSeoAudit(auditData: InsertSeoAudit): Promise<SeoAudit> {
+    const [newAudit] = await db.insert(seoAudits).values(auditData).returning();
+    return newAudit;
+  }
+
+  async updateSeoAudit(id: string, updates: Partial<InsertSeoAudit>): Promise<SeoAudit> {
+    const [updatedAudit] = await db
+      .update(seoAudits)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(seoAudits.id, id))
+      .returning();
+    return updatedAudit;
+  }
+
+  async getSeoAnalyticsByPageAndDate(page: string, date: string): Promise<SeoAnalytics | null> {
+    const [analytics] = await db
+      .select()
+      .from(seoAnalytics)
+      .where(and(eq(seoAnalytics.page, page), eq(seoAnalytics.date, date)))
+      .limit(1);
+    return analytics || null;
+  }
+
+  async updateSeoAnalytics(id: string, updates: Partial<InsertSeoAnalytics>): Promise<SeoAnalytics> {
+    const [updatedAnalytics] = await db
+      .update(seoAnalytics)
+      .set(updates)
+      .where(eq(seoAnalytics.id, id))
+      .returning();
+    return updatedAnalytics;
+  }
+
+  // SEO Settings Methods
+  async getSeoSettings(): Promise<SeoSettings> {
+    const [settings] = await db
+      .select()
+      .from(seoSettings)
+      .where(eq(seoSettings.id, "global"))
+      .limit(1);
+
+    if (!settings) {
+      // Create default settings if none exist
+      const defaultSettings = {
+        id: "global",
+        siteName: "DiSO Webs",
+        siteDescription: "Professional web development and digital solutions",
+        siteUrl: "https://disoweb.replit.app",
+        defaultMetaTitle: "DiSO Webs - Professional Web Development Services",
+        defaultMetaDescription: "Transform your digital presence with DiSO Webs. We create stunning websites, web applications, and digital solutions that drive results.",
+        defaultKeywords: "web development, website design, digital solutions, web applications, responsive design",
+        sitemapEnabled: true,
+        openGraphEnabled: true,
+        structuredDataEnabled: true,
+        breadcrumbsEnabled: true,
+        twitterCardsEnabled: true,
+      };
+
+      const [newSettings] = await db.insert(seoSettings).values(defaultSettings).returning();
+      return newSettings;
+    }
+
     return settings;
   }
 
@@ -1821,36 +2064,6 @@ export class DatabaseStorage implements IStorage {
   }
 
   // SEO Audits Methods
-  async getAllSeoAudits(): Promise<SeoAudit[]> {
-    return await db
-      .select()
-      .from(seoAudits)
-      .orderBy(desc(seoAudits.createdAt));
-  }
-
-  async createSeoAudit(auditData: InsertSeoAudit): Promise<SeoAudit> {
-    const [newAudit] = await db.insert(seoAudits).values(auditData).returning();
-    return newAudit;
-  }
-
-  async updateSeoAudit(id: string, updates: Partial<InsertSeoAudit>): Promise<SeoAudit> {
-    const [updatedAudit] = await db
-      .update(seoAudits)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(seoAudits.id, id))
-      .returning();
-    return updatedAudit;
-  }
-
-  async updateSeoAnalytics(id: string, updates: Partial<InsertSeoAnalytics>): Promise<SeoAnalytics> {
-    const [updatedAnalytics] = await db
-      .update(seoAnalytics)
-      .set(updates)
-      .where(eq(seoAnalytics.id, id))
-      .returning();
-    return updatedAnalytics;
-  }
-
   async getAllSeoAudits(): Promise<SeoAudit[]> {
     return await db
       .select()
