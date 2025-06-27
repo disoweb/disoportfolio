@@ -621,23 +621,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const verifyData = await verifyResponse.json();
 
           if (verifyData.status && verifyData.data.status === 'success') {
-            // Payment verified, update records
-            const orderId = verifyData.data.metadata?.orderId;
-
-            if (orderId) {
-              // Update payment status
-              await db.update(payments).set({
-                status: "succeeded" as any,
-                paidAt: new Date(),
-              }).where(eq(payments.providerId, paymentReference));
-
-              // Update order status  
-              await db.update(orders).set({
-                status: "paid" as any
-              }).where(eq(orders.id, orderId));
-
-              console.log(`Payment verified and updated for order: ${orderId}`);
-            }
+            // Payment verified, use the centralized success handler
+            await storage.handleSuccessfulPayment(verifyData.data);
+            console.log(`Payment verified and processed for order: ${verifyData.data.metadata?.orderId}`);
 
             // Redirect to dashboard with success and clear payment flag
             return res.redirect('/?payment=success&clear_payment=true#dashboard');
