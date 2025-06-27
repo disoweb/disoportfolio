@@ -40,6 +40,10 @@ export default function Checkout() {
     // Scroll to top when component mounts
     window.scrollTo(0, 0);
     
+    // Clear any stale payment states
+    sessionStorage.removeItem('payment_in_progress');
+    sessionStorage.removeItem('checkout_ready_for_payment');
+    
     console.log('Checkout page - URL params:', {
       serviceId,
       price,

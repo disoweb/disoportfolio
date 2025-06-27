@@ -137,49 +137,62 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
         totalAmount: data.overrideTotalAmount || totalPrice,
       };
 
-      // Enhanced authentication verification for post-auth users
+      // Enhanced authentication verification for all users
       const authCompleted = sessionStorage.getItem('auth_completed');
       const authTimestamp = sessionStorage.getItem('auth_timestamp');
       
       // If user just completed auth, add extra verification time
       if (authCompleted === 'true' && authTimestamp) {
         const timeSinceAuth = Date.now() - parseInt(authTimestamp);
-        if (timeSinceAuth < 5000) { // Within 5 seconds of auth completion
+        if (timeSinceAuth < 10000) { // Within 10 seconds of auth completion
           // Wait for session to fully stabilize
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise(resolve => setTimeout(resolve, 1500));
         }
         // Clear the auth flags after use
         sessionStorage.removeItem('auth_completed');
         sessionStorage.removeItem('auth_timestamp');
       }
       
-      // Multiple verification attempts for recently authenticated users
+      // Multiple verification attempts for all users
       let authVerified = false;
-      for (let attempt = 0; attempt < 3; attempt++) {
-        const authCheck = await fetch("/api/auth/user", { 
-          credentials: "include",
-          headers: {
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
+      let lastError = null;
+      
+      for (let attempt = 0; attempt < 5; attempt++) {
+        try {
+          const authCheck = await fetch("/api/auth/user", { 
+            credentials: "include",
+            headers: {
+              'Cache-Control': 'no-cache',
+              'Pragma': 'no-cache',
+              'Accept': 'application/json',
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (authCheck.ok) {
+            const userData = await authCheck.json();
+            if (userData && userData.id) {
+              console.log(`🔐 AUTH CHECK: Authentication verified on attempt ${attempt + 1}`);
+              authVerified = true;
+              break;
+            }
+          } else {
+            lastError = `HTTP ${authCheck.status}: ${authCheck.statusText}`;
           }
-        });
-        
-        if (authCheck.ok) {
-          const userData = await authCheck.json();
-          if (userData && userData.id) {
-            authVerified = true;
-            break;
-          }
+        } catch (error) {
+          lastError = error instanceof Error ? error.message : 'Network error';
+          console.log(`🔐 AUTH CHECK: Attempt ${attempt + 1} failed:`, lastError);
         }
         
         // Progressive delay between attempts
-        if (attempt < 2) {
-          await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1)));
+        if (attempt < 4) {
+          await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
         }
       }
       
       if (!authVerified) {
-        throw new Error("Authentication required - please log in again");
+        console.error('🔐 AUTH CHECK: All authentication attempts failed. Last error:', lastError);
+        throw new Error("Authentication required - session may have expired. Please log in again.");
       }
 
       try {
@@ -216,15 +229,53 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
       // Hide loader on error
       setShowPaymentLoader(false);
       
-      if (error.message.includes("Authentication")) {
+      if (error.message.includes("Authentication") || error.message.includes("session")) {
+        // Store current form data before redirect
+        if (contactData) {
+          storeFormData('checkout_contact_data', contactData);
+        }
+        
+        // Create checkout session for recovery
+        const createSessionData = {
+          serviceId: service.id,
+          serviceData: {
+            id: service.id,
+            name: service.name,
+            price: service.price,
+            description: service.description
+          },
+          contactData: contactData || getStoredFormData('checkout_contact_data'),
+          selectedAddOns,
+          totalPrice,
+          userId: null
+        };
+
+        fetch("/api/checkout-sessions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(createSessionData),
+        })
+        .then(res => res.json())
+        .then(result => {
+          if (result.sessionToken) {
+            sessionStorage.setItem('checkoutSessionToken', result.sessionToken);
+          }
+        })
+        .catch(() => {
+          // Silent failure - user can try again
+        });
+        
         toast({
-          title: "Authentication Error",
-          description: "Please log in again to complete your order.",
+          title: "Session Expired",
+          description: "Your session has expired. Redirecting to login...",
           variant: "destructive",
         });
+        
         setTimeout(() => {
-          window.location.href = "/auth";
-        }, 1500);
+          const sessionToken = sessionStorage.getItem('checkoutSessionToken');
+          const redirectUrl = sessionToken ? `/auth?checkout=${sessionToken}` : "/auth";
+          window.location.href = redirectUrl;
+        }, 2000);
       } else {
         toast({
           title: "Order failed",
@@ -235,12 +286,10 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
     },
   });
 
-  // SINGLE consolidated auto-payment logic
+  // Enhanced auto-payment logic with better error handling
   useEffect(() => {
-
-    
+    // Wait for authentication state to be fully loaded
     if (!user || !sessionData) {
-
       return;
     }
 
@@ -251,12 +300,9 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
     const shouldAutoSubmit = autoSubmitPayment === 'true' || 
       (stepParam === 'payment' && sessionData?.contactData);
     
-
-
-    // Security: Server-side validation will prevent unauthorized payments
-    // Client-side flags are for UX only
+    // Only proceed if we have valid session data and user is authenticated
     if (shouldAutoSubmit && sessionData?.contactData && !orderMutation.isPending) {
-
+      console.log('🔄 AUTO-PAYMENT: Preparing to submit payment for authenticated user');
       
       // Clear the auto-submit flag immediately to prevent replay
       sessionStorage.removeItem('auto_submit_payment');
@@ -264,12 +310,16 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
       // Pre-populate form with validated session data
       setContactData(sessionData.contactData);
       
-      // Trigger payment with validated data
-      orderMutation.mutate({
-        ...sessionData.contactData,
-        paymentMethod: 'paystack',
-        timeline: 'standard'
-      });
+      // Add a small delay to ensure session is fully stable
+      setTimeout(() => {
+        console.log('🔄 AUTO-PAYMENT: Submitting order mutation');
+        orderMutation.mutate({
+          paymentMethod: 'paystack',
+          timeline: 'standard',
+          overrideSelectedAddOns: sessionData.selectedAddOns,
+          overrideTotalAmount: sessionData.totalPrice
+        });
+      }, 500);
     }
   }, [user, sessionData, orderMutation]);
 

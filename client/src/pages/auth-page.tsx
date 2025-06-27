@@ -48,77 +48,99 @@ export default function AuthPage() {
   const { providers, hasAnyProvider } = useOAuthProviders();
   const [redirectHandled, setRedirectHandled] = useState(false);
 
-  // Handle pending checkout completion and redirect if already logged in
+  // Enhanced checkout completion and redirect handling
   useEffect(() => {
     if (!isLoading && user && !redirectHandled) {
       const urlParams = new URLSearchParams(window.location.search);
       const checkoutParam = urlParams.get('checkout');
       const sessionToken = sessionStorage.getItem('checkoutSessionToken');
       
-
+      console.log('🔄 AUTH: User authenticated, checking for checkout session');
+      console.log('🔄 AUTH: checkoutParam:', checkoutParam);
+      console.log('🔄 AUTH: sessionToken:', sessionToken);
       
       const tokenToUse = checkoutParam || sessionToken;
       
       if (tokenToUse) {
-        // Fetch checkout session from database
-        fetch(`/api/checkout-sessions/${tokenToUse}`)
-        .then(res => res.json())
-        .then(sessionData => {
-          if (sessionData && !sessionData.error) {
-
-            
-            // Update session with user ID
-            fetch(`/api/checkout-sessions/${tokenToUse}`, {
-              method: "PUT",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ userId: user.id }),
-            }).catch(() => {
-              // Silent error handling for session update
-            });
-            
-            // Add session stabilization flags
-            sessionStorage.setItem('auth_completed', 'true');
-            sessionStorage.setItem('auth_timestamp', Date.now().toString());
-            sessionStorage.setItem('checkout_ready_for_payment', 'true');
-            
-            setRedirectHandled(true);
-            
-            // Build checkout URL with session token to go directly to payment step
-            const params = new URLSearchParams({
-              service: sessionData.serviceId,
-              checkout: tokenToUse,
-              step: 'payment' // Direct to payment step
-            });
-            
-            console.log('🔄 AUTH: Redirecting to auto-payment with session:', tokenToUse);
-            console.log('🔄 AUTH: Setting auto_submit_payment flag to true');
-            
-            // Set flag for auto-payment and redirect immediately
-            sessionStorage.setItem('auto_submit_payment', 'true');
-            
-            console.log('🔄 AUTH: Redirecting to:', `/checkout?${params.toString()}`);
-            console.log('🔄 AUTH: sessionStorage after setting flag:', {
-              auto_submit_payment: sessionStorage.getItem('auto_submit_payment'),
-              checkoutSessionToken: sessionStorage.getItem('checkoutSessionToken')
-            });
-            
-            // Use window.location.href for immediate redirect to ensure it works
-            window.location.href = `/checkout?${params.toString()}`;
-          } else {
-            console.log('Auth page - No valid checkout session found');
-            sessionStorage.removeItem('checkoutSessionToken');
-            setRedirectHandled(true);
-            setLocation("/dashboard");
+        console.log('🔄 AUTH: Found checkout token, fetching session data');
+        
+        // Fetch checkout session from database with retry logic
+        const fetchCheckoutSession = async (retries = 3) => {
+          for (let attempt = 0; attempt < retries; attempt++) {
+            try {
+              const response = await fetch(`/api/checkout-sessions/${tokenToUse}`, {
+                credentials: 'include',
+                headers: {
+                  'Cache-Control': 'no-cache',
+                  'Pragma': 'no-cache',
+                }
+              });
+              
+              if (response.ok) {
+                const sessionData = await response.json();
+                if (sessionData && !sessionData.error) {
+                  console.log('🔄 AUTH: Valid checkout session found');
+                  
+                  // Update session with user ID
+                  try {
+                    await fetch(`/api/checkout-sessions/${tokenToUse}`, {
+                      method: "PUT",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ userId: user.id }),
+                      credentials: 'include'
+                    });
+                  } catch (error) {
+                    console.log('🔄 AUTH: Session update failed (non-critical):', error);
+                  }
+                  
+                  // Add session stabilization flags with extended wait time
+                  sessionStorage.setItem('auth_completed', 'true');
+                  sessionStorage.setItem('auth_timestamp', Date.now().toString());
+                  sessionStorage.setItem('checkout_ready_for_payment', 'true');
+                  
+                  setRedirectHandled(true);
+                  
+                  // Build checkout URL with session token
+                  const params = new URLSearchParams({
+                    service: sessionData.serviceId,
+                    checkout: tokenToUse,
+                    step: 'payment'
+                  });
+                  
+                  console.log('🔄 AUTH: Setting auto_submit_payment flag and redirecting');
+                  sessionStorage.setItem('auto_submit_payment', 'true');
+                  
+                  // Add delay to ensure session is fully established
+                  setTimeout(() => {
+                    window.location.href = `/checkout?${params.toString()}`;
+                  }, 1000);
+                  
+                  return;
+                }
+              }
+              
+              if (attempt < retries - 1) {
+                await new Promise(resolve => setTimeout(resolve, 1000));
+              }
+            } catch (error) {
+              console.log(`🔄 AUTH: Attempt ${attempt + 1} failed:`, error);
+              if (attempt < retries - 1) {
+                await new Promise(resolve => setTimeout(resolve, 1000));
+              }
+            }
           }
-        })
-        .catch(error => {
-          console.error('Auth page - Error fetching checkout session:', error);
+          
+          // All attempts failed
+          console.log('🔄 AUTH: No valid checkout session found after retries');
           sessionStorage.removeItem('checkoutSessionToken');
           setRedirectHandled(true);
           setLocation("/dashboard");
-        });
+        };
+        
+        fetchCheckoutSession();
       } else {
         // No checkout session, redirect to dashboard
+        console.log('🔄 AUTH: No checkout session, redirecting to dashboard');
         setRedirectHandled(true);
         setLocation("/dashboard");
       }
