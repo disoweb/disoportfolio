@@ -64,7 +64,7 @@ export function createSessionMiddleware(config: SessionConfig): session.SessionO
       secure: false, // Allow non-HTTPS for development
       httpOnly: true,
       maxAge: config.cookieMaxAge || 7 * 24 * 60 * 60 * 1000, // 7 days default
-      sameSite: 'lax',
+      sameSite: 'none', // Allow cross-site cookies for iframe environments
       path: '/'
     }
   };
