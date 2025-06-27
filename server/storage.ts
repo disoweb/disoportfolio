@@ -31,6 +31,11 @@ import {
   type PasswordResetToken,
   type InsertPasswordResetToken,
 } from "@shared/schema";
+
+// Debug schema information
+console.log('🔍 DEBUG: Schema info loaded');
+console.log('🔍 DEBUG: passwordResetTokens table structure available');
+console.log('🔍 DEBUG: users table structure available');
 import { db } from "./db";
 import { eq, desc, and, count, sum, sql, lt } from "drizzle-orm";
 import crypto from "crypto";
@@ -117,8 +122,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.email, email));
-    return user;
+    console.log('🔍 DEBUG: getUserByEmail called with:', email.substring(0, 5) + '***');
+    try {
+      const [user] = await db.select().from(users).where(eq(users.email, email));
+      console.log('🔍 DEBUG: getUserByEmail result:', user ? {
+        id: user.id,
+        email: user.email.substring(0, 5) + '***',
+        provider: user.provider,
+        idType: typeof user.id
+      } : 'null');
+      return user;
+    } catch (error) {
+      console.error('🔍 DEBUG: getUserByEmail error:', error);
+      throw error;
+    }
   }
 
   async createUser(userData: UpsertUser): Promise<User> {
@@ -174,17 +191,48 @@ export class DatabaseStorage implements IStorage {
 
   // Password reset token operations
   async createPasswordResetToken(userId: string, token: string, expiresAt: Date): Promise<PasswordResetToken> {
-    const [passwordResetToken] = await db
-      .insert(passwordResetTokens)
-      .values({
-        id: crypto.randomUUID(),
-        userId,
-        token,
-        expiresAt,
-        used: false
-      })
-      .returning();
-    return passwordResetToken;
+    console.log('🔍 DEBUG: createPasswordResetToken called with:');
+    console.log('  userId:', userId, '(type:', typeof userId, ')');
+    console.log('  token length:', token.length);
+    console.log('  expiresAt:', expiresAt.toISOString());
+    
+    const resetTokenId = crypto.randomUUID();
+    console.log('🔍 DEBUG: Generated reset token ID:', resetTokenId);
+    
+    const insertData = {
+      id: resetTokenId,
+      userId,
+      token,
+      expiresAt,
+      used: false
+    };
+    console.log('🔍 DEBUG: Insert data:', {
+      ...insertData,
+      token: 'HIDDEN',
+      userId: userId.substring(0, 8) + '***'
+    });
+    
+    try {
+      console.log('🔍 DEBUG: Executing database insert...');
+      const [passwordResetToken] = await db
+        .insert(passwordResetTokens)
+        .values(insertData)
+        .returning();
+      console.log('🔍 DEBUG: Database insert successful, returned:', {
+        ...passwordResetToken,
+        token: 'HIDDEN'
+      });
+      return passwordResetToken;
+    } catch (error) {
+      console.error('🔍 DEBUG: Database insert failed:');
+      console.error('Error:', error);
+      console.error('Insert data that failed:', {
+        ...insertData,
+        token: 'HIDDEN',
+        userId: userId.substring(0, 8) + '***'
+      });
+      throw error;
+    }
   }
 
   async getPasswordResetToken(token: string): Promise<PasswordResetToken | undefined> {
