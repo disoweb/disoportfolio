@@ -34,9 +34,21 @@ import {
 } from "lucide-react";
 
 export default function ClientDashboard() {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+
+  // Redirect to auth page if not authenticated
+  React.useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to access your dashboard.",
+        variant: "destructive",
+      });
+      setLocation('/auth');
+    }
+  }, [isAuthenticated, isLoading, setLocation, toast]);
   const [selectedOrder, setSelectedOrder] = React.useState<any>(null);
   const [isOrderModalOpen, setIsOrderModalOpen] = React.useState(false);
   const [processingOrderId, setProcessingOrderId] = React.useState<string | null>(null);
@@ -270,7 +282,19 @@ export default function ClientDashboard() {
     }
   }, [orders, filterCounts, hasSetDefaultFilter]);
 
-  // Remove the duplicate stats query since we already have it above
+  // Show loading state while authentication is being checked
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  // Return early if not authenticated (redirect will happen in useEffect)
+  if (!isAuthenticated) {
+    return null;
+  }
 
   if (projectsLoading || ordersLoading) {
     return (
