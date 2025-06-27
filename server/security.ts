@@ -263,6 +263,15 @@ export function auditLog(action: string, userId?: string, details?: any) {
 
 // Clean session data
 export function clearSessionSecurely(res: Response) {
+  // Clear both possible session cookie names for compatibility
+  res.clearCookie('diso.sid', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'none', // Match session configuration
+    path: '/'
+  });
+  
+  // Also clear the default connect.sid in case it exists
   res.clearCookie('connect.sid', {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',

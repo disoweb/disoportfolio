@@ -552,36 +552,7 @@ app.get('/payment-success', async (req, res) => {
   }
 });
 
-// Add secure logout route before any auth middleware to avoid passport conflicts
-app.post("/api/auth/logout", validateContentType, async (req, res) => {
-  const clientIP = req.ip || req.connection.remoteAddress || 'unknown';
-  
-  // Rate limiting check
-  const rateCheck = checkRateLimit('logout', clientIP);
-  if (!rateCheck.allowed) {
-    return res.status(429).json({ message: rateCheck.message });
-  }
-  
-  // Get current user if logged in
-  const user = await SessionManager.getCurrentUser(req);
-  
-  if (!user) {
-    clearSessionSecurely(res);
-    return res.json({ message: "Already logged out" });
-  }
-
-  // Destroy session using our session manager
-  try {
-    await SessionManager.destroySession(req, res);
-    auditLog('logout_success', user.id, { clientIP });
-    res.json({ message: "Logged out successfully" });
-  } catch (err) {
-    auditLog('logout_error', user.id, { error: (err as Error).message, clientIP });
-    // Still try to clear cookies even if session destroy fails
-    clearSessionSecurely(res);
-    res.json({ message: "Logged out" });
-  }
-});
+// Logout route will be added in registerRoutes after session middleware is initialized
 
 app.use((req, res, next) => {
   const start = Date.now();
