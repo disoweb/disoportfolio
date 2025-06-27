@@ -28,7 +28,8 @@ export default function ProjectTimer({ project }: ProjectTimerProps) {
     id: projectData.id,
     projectName: projectData.projectName,
     contactInfo,
-    projectDetails
+    projectDetails,
+    order: projectData.order
   });
 
   // Extract meaningful project information
@@ -50,7 +51,10 @@ export default function ProjectTimer({ project }: ProjectTimerProps) {
     return {
       id: projectData.id || 'unknown',
       projectName: projectData.projectName || 
-                  (contactInfo.fullName ? `${contactInfo.fullName} - Project` : 'Unnamed Project'),
+                  projectData.order?.serviceName ||
+                  projectData.order?.customRequest?.split('.')[0] ||
+                  projectDetails.projectType || 
+                  'Custom Project',
       status: projectData.status || 'active',
       progressPercentage: projectData.progressPercentage || Math.min(95, Math.max(5, Math.floor((elapsed / totalDuration) * 100))),
       currentStage: projectData.currentStage || 'In Progress',
