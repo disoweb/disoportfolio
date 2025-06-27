@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Shield, BarChart3, Users, Settings, FileText, MessageSquare, CreditCard, LogOut, Package, UserPlus } from "lucide-react";
+import { Menu, X, Shield, BarChart3, Users, Settings, FileText, MessageSquare, CreditCard, LogOut, Package, UserPlus, Search } from "lucide-react";
 
 export default function AdminNavigation() {
   const [isOpen, setIsOpen] = useState(false);
@@ -166,7 +166,7 @@ export default function AdminNavigation() {
                 </Link>
               );
             })}
-            
+
             {/* Mobile User Info */}
             <div className="mt-4 pt-4 border-t border-gray-700">
               <div className="px-3 py-2">
