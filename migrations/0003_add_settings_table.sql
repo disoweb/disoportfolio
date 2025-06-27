@@ -8,5 +8,5 @@ CREATE TABLE IF NOT EXISTS "settings" (
 
 -- Insert default settings
 INSERT INTO "settings" ("id", "whatsapp_number") 
-VALUES ('default', '+2347044688788') 
+VALUES ('default', '+2348065343725') 
 ON CONFLICT ("id") DO NOTHING;
