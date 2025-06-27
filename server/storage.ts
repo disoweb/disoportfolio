@@ -1667,7 +1667,6 @@ export class DatabaseStorage implements IStorage {
       .where(eq(seoAnalytics.id, id))
       .returning();
     return updatedAnalytics;
-      .orderBy(desc(seoAnalytics.date));
   }
 
   async getAllSeoAudits(): Promise<SeoAudit[]> {
@@ -1685,7 +1684,7 @@ export class DatabaseStorage implements IStorage {
   async updateSeoAudit(id: string, updates: Partial<InsertSeoAudit>): Promise<SeoAudit> {
     const [updatedAudit] = await db
       .update(seoAudits)
-      .set(updates)
+      .set({ ...updates, updatedAt: new Date() })
       .where(eq(seoAudits.id, id))
       .returning();
     return updatedAudit;
