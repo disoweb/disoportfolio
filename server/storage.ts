@@ -609,6 +609,27 @@ export class DatabaseStorage implements IStorage {
         const now = new Date();
         const startDate = project.startDate ? new Date(project.startDate) : new Date(project.createdAt);
 
+        // Parse custom request data to extract client info
+        let contactInfo = {};
+        let projectDetails = {};
+        let displayName = project.projectName;
+
+        if (project.order?.customRequest) {
+          try {
+            const customData = JSON.parse(project.order.customRequest);
+            contactInfo = customData.contactInfo || {};
+            projectDetails = customData.projectDetails || {};
+
+            // Create a proper project name from the parsed data
+            if (contactInfo.fullName) {
+              const serviceType = projectDetails.projectType || 'Project';
+              displayName = `${serviceType} - ${contactInfo.fullName}`;
+            }
+          } catch (e) {
+            console.warn('Could not parse customRequest for project:', project.id);
+          }
+        }
+
         // Calculate due date based on timeline
         let dueDate;
         if (project.dueDate) {
@@ -625,10 +646,14 @@ export class DatabaseStorage implements IStorage {
 
         return {
           ...project,
+          projectName: displayName,
           startDate: startDate.toISOString(),
           dueDate: dueDate.toISOString(),
           progressPercentage: project.progressPercentage || calculatedProgress,
-          timelineDays: project.timelineDays || (project.timelineWeeks * 7) || 28
+          timelineDays: project.timelineDays || (project.timelineWeeks * 7) || 28,
+          // Add parsed contact info for easy access
+          contactInfo,
+          projectDetails
         };
       });
 

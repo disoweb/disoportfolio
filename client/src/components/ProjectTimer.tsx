@@ -18,46 +18,17 @@ export default function ProjectTimer({ project }: ProjectTimerProps) {
 
   const [timeProgress, setTimeProgress] = useState(0);
 
-  // Parse project data properly
-  let projectData;
-  let contactInfo = {};
-  let projectDetails = {};
+  // Use parsed data from database
+  const projectData = project || {};
+  const contactInfo = project.contactInfo || {};
+  const projectDetails = project.projectDetails || {};
 
-  console.log('ProjectTimer - Original project data:', project);
-
-  try {
-    // Handle different data formats from the database
-    if (project && typeof project === 'object') {
-      projectData = project;
-
-      // Try to parse customRequest if it exists (for orders converted to projects)
-      if (project.customRequest && typeof project.customRequest === 'string') {
-        try {
-          const customData = JSON.parse(project.customRequest);
-          contactInfo = customData.contactInfo || {};
-          projectDetails = customData.projectDetails || {};
-        } catch (e) {
-          console.warn('ProjectTimer - Could not parse customRequest:', e);
-        }
-      }
-
-      // Use order data if available
-      if (project.order && project.order.customRequest) {
-        try {
-          const orderData = JSON.parse(project.order.customRequest);
-          contactInfo = orderData.contactInfo || {};
-          projectDetails = orderData.projectDetails || {};
-        } catch (e) {
-          console.warn('ProjectTimer - Could not parse order customRequest:', e);
-        }
-      }
-    } else {
-      throw new Error('Invalid project data format');
-    }
-  } catch (error) {
-    console.error('ProjectTimer - Error processing project data:', error);
-    projectData = project || {};
-  }
+  console.log('ProjectTimer - Project data:', {
+    id: projectData.id,
+    projectName: projectData.projectName,
+    contactInfo,
+    projectDetails
+  });
 
   // Extract meaningful project information
   const getProjectInfo = () => {
@@ -87,7 +58,10 @@ export default function ProjectTimer({ project }: ProjectTimerProps) {
       timeLeft,
       totalDuration,
       elapsed,
-      clientName: contactInfo.fullName || projectData.user?.firstName + ' ' + projectData.user?.lastName || 'Client',
+      clientName: contactInfo.fullName || 
+                  (projectData.user?.firstName && projectData.user?.lastName 
+                    ? `${projectData.user.firstName} ${projectData.user.lastName}` 
+                    : projectData.user?.email || 'Client'),
       clientEmail: contactInfo.email || projectData.user?.email || '',
       projectDescription: projectDetails.description || projectData.notes || 'Project in progress',
       timelineWeeks: projectData.timelineWeeks || 4
