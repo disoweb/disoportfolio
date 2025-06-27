@@ -12,6 +12,7 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
+import { useOAuthProviders } from "@/hooks/useOAuthProviders";
 import { Eye, EyeOff, Mail, Lock, User, Building2, Phone } from "lucide-react";
 import { FaGoogle, FaTwitter, FaFacebook } from "react-icons/fa";
 import { SiReplit } from "react-icons/si";
@@ -43,6 +44,7 @@ export default function AuthPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { user, isLoading } = useAuth();
+  const { providers, hasAnyProvider } = useOAuthProviders();
   const [redirectHandled, setRedirectHandled] = useState(false);
 
   // Handle pending checkout completion and redirect if already logged in
@@ -592,53 +594,69 @@ export default function AuthPage() {
               )}
             </div>
 
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <Separator />
+            {hasAnyProvider && (
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <Separator />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-white dark:bg-gray-800 px-2 text-gray-500">Or continue with</span>
+                </div>
               </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white dark:bg-gray-800 px-2 text-gray-500">Or continue with</span>
+            )}
+
+            {/* Social Login Buttons - Dynamic Grid */}
+            {hasAnyProvider && (
+              <div className={`grid gap-3 ${
+                Object.values(providers).filter(Boolean).length <= 2 
+                  ? 'grid-cols-1' 
+                  : 'grid-cols-2'
+              }`}>
+                {providers.google && (
+                  <Button
+                    variant="outline"
+                    className="h-12 text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-950 border-gray-200 dark:border-gray-700 flex flex-col items-center justify-center gap-1 text-xs font-medium"
+                    onClick={() => handleSocialLogin("google")}
+                  >
+                    <FaGoogle className="h-5 w-5 text-red-500" />
+                    Google
+                  </Button>
+                )}
+
+                {providers.facebook && (
+                  <Button
+                    variant="outline"
+                    className="h-12 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-950 border-gray-200 dark:border-gray-700 flex flex-col items-center justify-center gap-1 text-xs font-medium"
+                    onClick={() => handleSocialLogin("facebook")}
+                  >
+                    <FaFacebook className="h-5 w-5 text-blue-600" />
+                    Facebook
+                  </Button>
+                )}
+
+                {providers.twitter && (
+                  <Button
+                    variant="outline"
+                    className="h-12 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-950 border-gray-200 dark:border-gray-700 flex flex-col items-center justify-center gap-1 text-xs font-medium"
+                    onClick={() => handleSocialLogin("twitter")}
+                  >
+                    <FaTwitter className="h-5 w-5 text-blue-500" />
+                    Twitter
+                  </Button>
+                )}
+
+                {providers.replit && (
+                  <Button
+                    variant="outline"
+                    className="h-12 text-gray-700 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-orange-950 border-gray-200 dark:border-gray-700 flex flex-col items-center justify-center gap-1 text-xs font-medium"
+                    onClick={() => handleSocialLogin("replit")}
+                  >
+                    <SiReplit className="h-5 w-5 text-orange-500" />
+                    Replit
+                  </Button>
+                )}
               </div>
-            </div>
-
-            {/* Social Login Buttons - 2x2 Grid */}
-            <div className="grid grid-cols-2 gap-3">
-              <Button
-                variant="outline"
-                className="h-12 text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-950 border-gray-200 dark:border-gray-700 flex flex-col items-center justify-center gap-1 text-xs font-medium"
-                onClick={() => handleSocialLogin("google")}
-              >
-                <FaGoogle className="h-5 w-5 text-red-500" />
-                Google
-              </Button>
-
-              <Button
-                variant="outline"
-                className="h-12 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-950 border-gray-200 dark:border-gray-700 flex flex-col items-center justify-center gap-1 text-xs font-medium"
-                onClick={() => handleSocialLogin("facebook")}
-              >
-                <FaFacebook className="h-5 w-5 text-blue-600" />
-                Facebook
-              </Button>
-
-              <Button
-                variant="outline"
-                className="h-12 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-950 border-gray-200 dark:border-gray-700 flex flex-col items-center justify-center gap-1 text-xs font-medium"
-                onClick={() => handleSocialLogin("twitter")}
-              >
-                <FaTwitter className="h-5 w-5 text-blue-500" />
-                Twitter
-              </Button>
-
-              <Button
-                variant="outline"
-                className="h-12 text-gray-700 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-orange-950 border-gray-200 dark:border-gray-700 flex flex-col items-center justify-center gap-1 text-xs font-medium"
-                onClick={() => handleSocialLogin("replit")}
-              >
-                <SiReplit className="h-5 w-5 text-orange-500" />
-                Replit
-              </Button>
-            </div>
+            )}
           </CardContent>
         </Card>
 

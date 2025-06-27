@@ -562,47 +562,124 @@ export async function setupAuth(app: Express) {
     });
   }
 
-  // Replit auth routes
-  app.get("/api/auth/replit", (req, res) => {
-    // Check if we're in a Replit environment
-    if (process.env.REPLIT_CLUSTER || process.env.REPL_SLUG) {
-      // Use simple Replit header-based auth for development
-      const userId = req.headers['x-replit-user-id'] as string;
-      const userName = req.headers['x-replit-user-name'] as string;
-      const userEmail = `${userName}@replit.com`; // Fallback email
+  // Replit OAuth Strategy - Only register if env vars exist
+  if (process.env.REPL_ID && process.env.REPLIT_DOMAINS) {
+    try {
+      // Import Replit OIDC strategy using dynamic imports
+      const { Strategy } = await import("openid-client/passport");
+      const client = await import("openid-client");
       
-      if (userId && userName) {
-        // Create or get user
-        storage.getUserByEmail(userEmail).then(async (user) => {
-          if (!user) {
-            user = await storage.createUser({
-              email: userEmail,
-              firstName: userName,
-              lastName: '',
-              provider: 'replit',
-              providerId: userId
-            });
-          }
-          
-          if (user) {
-            req.login(user, (err) => {
-              if (err) {
-                return res.status(500).json({ message: "Login failed" });
+      // Configure Replit OIDC
+      const replitConfig = await client.discovery(
+        new URL("https://replit.com/oidc"),
+        process.env.REPL_ID
+      );
+
+      passport.use(
+        new Strategy(
+          {
+            name: "replit",
+            config: replitConfig,
+            scope: "openid email profile",
+            callbackURL: `https://${process.env.REPLIT_DOMAINS?.split(',')[0]}/api/auth/replit/callback`,
+          },
+          async (tokens: any, done: any) => {
+            try {
+              const claims = tokens.claims();
+              const email = claims.email;
+              
+              if (!email) {
+                return done(new Error('No email provided by Replit'));
               }
-              res.redirect("/?auth=success");
-            });
-          } else {
-            res.status(500).json({ message: "Failed to create user" });
+
+              let user = await storage.getUserByEmail(email);
+              
+              if (!user) {
+                user = await storage.createUser({
+                  email,
+                  firstName: claims.first_name || '',
+                  lastName: claims.last_name || '',
+                  profileImageUrl: claims.profile_image_url || '',
+                  provider: 'replit',
+                  providerId: claims.sub
+                });
+              }
+
+              if (!user || !user.id) {
+                return done(new Error('Failed to create or retrieve user'));
+              }
+
+              return done(null, user);
+            } catch (error) {
+              console.error('Replit OAuth error:', error);
+              return done(error);
+            }
           }
-        }).catch(() => {
-          res.status(500).json({ message: "Authentication failed" });
-        });
-      } else {
-        res.status(401).json({ message: "Not authenticated with Replit" });
-      }
-    } else {
-      res.status(501).json({ message: "Replit OAuth only works in Replit environment" });
+        )
+      );
+
+      // Replit OAuth routes
+      app.get("/api/auth/replit", passport.authenticate("replit"));
+      app.get("/api/auth/replit/callback",
+        passport.authenticate("replit", { failureRedirect: "/auth?error=replit_failed" }),
+        (req, res) => {
+          res.redirect("/?auth=success");
+        }
+      );
+    } catch (error) {
+      console.error('Failed to configure Replit OAuth:', error);
+      // Fallback to header-based auth for development
+      app.get("/api/auth/replit", (req, res) => {
+        const userId = req.headers['x-replit-user-id'] as string;
+        const userName = req.headers['x-replit-user-name'] as string;
+        const userEmail = `${userName}@replit.com`;
+        
+        if (userId && userName) {
+          storage.getUserByEmail(userEmail).then(async (user) => {
+            if (!user) {
+              user = await storage.createUser({
+                email: userEmail,
+                firstName: userName,
+                lastName: '',
+                provider: 'replit',
+                providerId: userId
+              });
+            }
+            
+            if (user) {
+              req.login(user, (err) => {
+                if (err) {
+                  return res.status(500).json({ message: "Login failed" });
+                }
+                res.redirect("/?auth=success");
+              });
+            } else {
+              res.status(500).json({ message: "Failed to create user" });
+            }
+          }).catch(() => {
+            res.status(500).json({ message: "Authentication failed" });
+          });
+        } else {
+          res.status(401).json({ message: "Not authenticated with Replit" });
+        }
+      });
     }
+  } else {
+    app.get("/api/auth/replit", (req, res) => {
+      res.status(501).json({ message: "Replit OAuth not configured" });
+    });
+  }
+
+  // OAuth provider status endpoint
+  app.get("/api/auth/providers", (req, res) => {
+    const providers = {
+      google: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
+      facebook: !!(process.env.FACEBOOK_APP_ID && process.env.FACEBOOK_APP_SECRET),
+      twitter: !!(process.env.TWITTER_CONSUMER_KEY && process.env.TWITTER_CONSUMER_SECRET),
+      replit: !!(process.env.REPL_ID && process.env.REPLIT_DOMAINS)
+    };
+    
+    res.json(providers);
   });
 
   // Password reset routes

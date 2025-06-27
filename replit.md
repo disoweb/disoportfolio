@@ -30,11 +30,13 @@ DiSO Webs is a comprehensive web development agency platform that combines a mod
 ## Key Components
 
 ### Authentication System
-- Multi-provider authentication (Local, Google, Twitter, Replit)
+- Multi-provider authentication (Local, Google, Facebook, Twitter, Replit)
+- Dynamic OAuth integration - providers activate when environment secrets are provided
 - Role-based access control (client, admin, pm)
 - Session persistence with PostgreSQL backing
 - Secure password hashing using bcrypt with salt rounds 12
 - Dedicated admin login system at /admin route
+- Smart social login UI that adapts grid layout based on available providers
 
 ### Service Management
 - Service packages with different tiers (Launch, Growth, Elite)
