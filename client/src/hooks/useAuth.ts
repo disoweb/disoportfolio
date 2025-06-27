@@ -11,6 +11,30 @@ export function useAuth() {
     retry: false,
     refetchOnWindowFocus: true,
     staleTime: 0,
+    queryFn: async () => {
+      try {
+        const response = await fetch('/api/auth/user', {
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        if (!response.ok) {
+          if (response.status === 401) {
+            return null; // User not authenticated
+          }
+          throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const userData = await response.json();
+        console.log("Auth hook received user data:", userData);
+        return userData || null;
+      } catch (error) {
+        console.log("Auth hook error:", error);
+        return null;
+      }
+    },
   });
 
 
