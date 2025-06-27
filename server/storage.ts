@@ -877,7 +877,7 @@ export class DatabaseStorage implements IStorage {
         email: params.email,
         amount: params.amount * 100, // Convert to kobo
         reference,
-        callback_url: `${process.env.PAYSTACK_CALLBACK_URL || 'https://disoweb.onrender.com'}/api/payments/callback`,
+        callback_url: `${process.env.PAYSTACK_CALLBACK_URL || 'https://disoweb.onrender.com'}/payment-success`,
         currency: "NGN",
         metadata: {
           orderId: params.orderId,

@@ -600,6 +600,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ message: 'Callback endpoint is working', timestamp: new Date().toISOString() });
   });
 
+
+
   // Payment callback route (for redirect after payment)
   app.get('/api/payments/callback', async (req, res) => {
     const clientIP = req.ip || req.connection.remoteAddress || 'unknown';
