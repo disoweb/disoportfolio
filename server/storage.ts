@@ -41,7 +41,7 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: UpsertUser): Promise<User>;
   upsertUser(user: UpsertUser): Promise<User>;
-  
+
   // Password reset functionality
   createPasswordResetToken(userId: string, token: string, expiresAt: Date): Promise<PasswordResetToken>;
   getPasswordResetToken(token: string): Promise<PasswordResetToken | undefined>;
@@ -214,7 +214,7 @@ export class DatabaseStorage implements IStorage {
       .from(services)
       .where(eq(services.isActive, true))
       .orderBy(services.createdAt);
-    
+
     return result.map(service => ({
       ...service,
       price: parseInt(service.priceUsd),
@@ -230,7 +230,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(services)
       .orderBy(services.createdAt);
-    
+
     return result.map(service => ({
       ...service,
       price: parseInt(service.priceUsd),
@@ -246,9 +246,9 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(services)
       .where(eq(services.id, id));
-    
+
     if (!service) return undefined;
-    
+
     return {
       ...service,
       features: typeof service.features === 'string' ? JSON.parse(service.features) : service.features,
@@ -296,7 +296,7 @@ export class DatabaseStorage implements IStorage {
       industry: typeof service.industry === 'string' ? service.industry : JSON.stringify(service.industry),
       isActive: service.isActive
     };
-    
+
     const [newService] = await db.insert(services).values([serviceData]).returning();
     return newService;
   }
@@ -452,13 +452,13 @@ export class DatabaseStorage implements IStorage {
     try {
       // First, ensure all paid orders have corresponding projects
       await this.ensureProjectsForPaidOrders(userId);
-      
+
       const results = await db
         .select()
         .from(projects)
         .where(eq(projects.userId, userId))
         .orderBy(desc(projects.createdAt));
-      
+
       return results.map(project => ({
         ...project,
         order: { service: { name: null } }
@@ -470,7 +470,7 @@ export class DatabaseStorage implements IStorage {
 
   parseServiceDuration(duration: string | null): { weeks: number; days: number } {
     if (!duration) return { weeks: 4, days: 28 }; // Default 4 weeks
-    
+
     // Extract numbers from duration string like "2-3 weeks", "1 week", "4-6 weeks"
     const weeksMatch = duration.match(/(\d+)(?:-(\d+))?\s*weeks?/i);
     if (weeksMatch) {
@@ -479,7 +479,7 @@ export class DatabaseStorage implements IStorage {
       const avgWeeks = Math.round((min + max) / 2);
       return { weeks: avgWeeks, days: avgWeeks * 7 };
     }
-    
+
     // Extract numbers from duration string like "3-5 days", "4 days", "1-2 days"
     const daysMatch = duration.match(/(\d+)(?:-(\d+))?\s*days?/i);
     if (daysMatch) {
@@ -488,14 +488,14 @@ export class DatabaseStorage implements IStorage {
       const avgDays = Math.round((min + max) / 2);
       return { weeks: Math.ceil(avgDays / 7), days: avgDays };
     }
-    
+
     // If no match, try to extract just numbers (assume weeks)
     const numberMatch = duration.match(/(\d+)/);
     if (numberMatch) {
       const weeks = parseInt(numberMatch[1]);
       return { weeks, days: weeks * 7 };
     }
-    
+
     return { weeks: 4, days: 28 }; // Default fallback
   }
 
@@ -503,7 +503,7 @@ export class DatabaseStorage implements IStorage {
     // Use actual order creation date as project start date
     const startDate = order.createdAt ? new Date(order.createdAt) : new Date();
     const dueDate = new Date(startDate);
-    
+
     // Calculate timeline based on service duration or custom timeline
     const timeline = this.parseServiceDuration(order.serviceDuration);
     let timelineWeeks = timeline.weeks;
@@ -512,7 +512,7 @@ export class DatabaseStorage implements IStorage {
     let notes = '';
     let currentStage = 'Discovery';
     let progressPercentage = Math.floor(Math.random() * 15) + 5; // Random 5-20%
-    
+
     // Parse custom request for additional data
     if (order.customRequest) {
       try {
@@ -527,13 +527,13 @@ export class DatabaseStorage implements IStorage {
       } catch (e) {
         // Handle text format from custom requests
         const customText = order.customRequest;
-        
+
         // Extract service name if specified
         const serviceMatch = customText.match(/Service:\s*([^\n]+)/i);
         if (serviceMatch) {
           projectName = serviceMatch[1].trim();
         }
-        
+
         // Extract timeline from custom request
         const timelineMatch = customText.match(/Timeline:\s*([^\n]+)/i);
         if (timelineMatch) {
@@ -544,32 +544,32 @@ export class DatabaseStorage implements IStorage {
             timelineDays = customTimelineData * 7;
           }
         }
-        
+
         // Use custom request as notes
         notes = customText;
       }
     }
-    
+
     // Calculate progress based on actual time elapsed since order
     const totalDays = timelineDays;
     const daysSinceStart = Math.floor((Date.now() - startDate.getTime()) / (1000 * 60 * 60 * 24));
     const timeProgress = Math.min(Math.round((daysSinceStart / totalDays) * 100), 95);
-    
+
     // Create realistic progress based on time elapsed and add some randomness
     const baseProgress = Math.max(timeProgress * 0.4, 5); // Minimum 5% progress
     const randomVariation = Math.floor(Math.random() * 15); // 0-15% random
     progressPercentage = Math.min(Math.floor(baseProgress + randomVariation), 85);
-    
+
     // Set stage based on progress
     if (progressPercentage < 20) currentStage = 'Discovery';
     else if (progressPercentage < 40) currentStage = 'Design';
     else if (progressPercentage < 70) currentStage = 'Development';
     else if (progressPercentage < 90) currentStage = 'Testing';
     else currentStage = 'Launch';
-    
+
     // Set due date to exact timestamp (order time + timeline days)
     dueDate.setDate(dueDate.getDate() + timelineDays);
-    
+
     return {
       orderId: order.id,
       userId: order.userId,
@@ -587,7 +587,7 @@ export class DatabaseStorage implements IStorage {
 
   parseCustomTimeline(timeline: string): number {
     if (!timeline) return 0;
-    
+
     // Handle formats like "1-2months", "3 weeks", "2-4 weeks"
     const monthMatch = timeline.match(/(\d+)(?:-(\d+))?\s*months?/i);
     if (monthMatch) {
@@ -595,14 +595,14 @@ export class DatabaseStorage implements IStorage {
       const max = monthMatch[2] ? parseInt(monthMatch[2]) : min;
       return Math.round((min + max) / 2) * 4; // Convert months to weeks
     }
-    
+
     const weekMatch = timeline.match(/(\d+)(?:-(\d+))?\s*weeks?/i);
     if (weekMatch) {
       const min = parseInt(weekMatch[1]);
       const max = weekMatch[2] ? parseInt(weekMatch[2]) : min;
       return Math.round((min + max) / 2);
     }
-    
+
     return 0;
   }
 
@@ -737,7 +737,7 @@ export class DatabaseStorage implements IStorage {
     email: string;
     userId: string;
   }): Promise<string> {
-    
+
     const paystackSecretKey = process.env.PAYSTACK_SECRET_KEY;
     if (!paystackSecretKey) {
       throw new Error("Payment service not configured");
@@ -860,11 +860,11 @@ export class DatabaseStorage implements IStorage {
 
     if (orderResult.length > 0) {
       const order = orderResult[0];
-      
+
       // Extract timeline from custom request
       const timelineMatch = order.customRequest?.match(/Timeline: ([^\n]+)/);
       let timelineWeeks = 4; // default
-      
+
       if (timelineMatch) {
         const timelineText = timelineMatch[1].toLowerCase();
         if (timelineText.includes('1-2') || timelineText.includes('1-2weeks')) {
