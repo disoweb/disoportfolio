@@ -200,10 +200,17 @@ function UrgencyBanner() {
   }, []);
 
   return (
-    <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white py-2 px-4 text-center text-sm font-medium">
-      <div className="flex items-center justify-center space-x-2">
-        <AlertCircle className="h-4 w-4" />
-        <span>{urgencyMessages[currentMessage]}</span>
+    <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-blue-700 text-white py-3 px-6 text-center border-b border-blue-200/20">
+      <div className="flex items-center justify-center space-x-3 max-w-4xl mx-auto">
+        <div className="flex items-center space-x-2 bg-white/10 backdrop-blur-sm rounded-full px-3 py-1">
+          <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
+          <span className="text-xs font-medium uppercase tracking-wide">Live</span>
+        </div>
+        <span className="text-sm font-medium">{urgencyMessages[currentMessage]}</span>
+        <div className="hidden sm:flex items-center space-x-1 text-blue-100">
+          <Clock className="h-3 w-3" />
+          <span className="text-xs">Limited time</span>
+        </div>
       </div>
     </div>
   );
