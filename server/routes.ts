@@ -47,8 +47,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Hash the password securely
-      const bcrypt = require('bcrypt');
-      const hashedPassword = await bcrypt.hash(adminPassword, 12);
+      const bcrypt = await import('bcrypt');
+      const hashedPassword = await bcrypt.default.hash(adminPassword, 12);
       
       await storage.createAdminUser(adminEmail, hashedPassword);
       auditLog('admin_user_created', 'system', { email: adminEmail });
