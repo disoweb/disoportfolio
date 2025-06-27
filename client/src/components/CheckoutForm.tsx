@@ -67,16 +67,26 @@ interface CheckoutFormProps {
 }
 
 export default function CheckoutForm({ service, totalPrice, selectedAddOns, sessionData, isPostAuthRedirect, onSuccess }: CheckoutFormProps) {
-  const [currentStep, setCurrentStep] = useState(1);
-  const [contactData, setContactData] = useState<ContactForm | null>(null);
-  const [showPaymentLoader, setShowPaymentLoader] = useState(false);
-  const [showStreamlinedConfirmation, setShowStreamlinedConfirmation] = useState(false);
+  const { user } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const { user } = useAuth();
+  
+  // Immediate auto-payment detection to prevent form flash
+  const autoSubmitPayment = sessionStorage.getItem('auto_submit_payment');
+  const stepParam = new URLSearchParams(window.location.search).get('step');
+  const storedContactData = getStoredFormData('checkout_contact_data');
+  
+  const shouldAutoSubmitImmediately = autoSubmitPayment === 'true' || 
+    (stepParam === 'payment' && (sessionData?.contactData || storedContactData));
+
+  const [currentStep, setCurrentStep] = useState(shouldAutoSubmitImmediately ? 2 : 1);
+  const [contactData, setContactData] = useState<ContactForm | null>(
+    shouldAutoSubmitImmediately ? (sessionData?.contactData || storedContactData) : null
+  );
+  const [showPaymentLoader, setShowPaymentLoader] = useState(false);
+  const [showStreamlinedConfirmation, setShowStreamlinedConfirmation] = useState(shouldAutoSubmitImmediately);
 
   // Step 1: Contact Form with persistent data
-  const storedContactData = getStoredFormData('checkout_contact_data');
   const contactForm = useForm<ContactForm>({
     resolver: zodResolver(contactSchema),
     defaultValues: storedContactData || {
@@ -289,15 +299,6 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
 
   // Streamlined auto-payment with immediate submission after auth
   useEffect(() => {
-    console.log('🔍 AUTO-PAYMENT CHECK:', {
-      user: !!user,
-      sessionData: !!sessionData,
-      sessionDataContent: sessionData,
-      isPending: orderMutation.isPending,
-      autoSubmitFlag: sessionStorage.getItem('auto_submit_payment'),
-      stepParam: new URLSearchParams(window.location.search).get('step')
-    });
-
     if (!user || orderMutation.isPending) {
       return;
     }
@@ -313,9 +314,7 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
     // Use sessionData if available, otherwise fall back to stored data
     const contactInfo = sessionData?.contactData || getStoredFormData('checkout_contact_data');
     
-    if (shouldAutoSubmit && contactInfo) {
-      console.log('🚀 STREAMLINED CHECKOUT: Auto-submitting payment for authenticated user');
-      
+    if (shouldAutoSubmit && contactInfo && !showStreamlinedConfirmation) {
       // Clear the flag to prevent replay
       sessionStorage.removeItem('auto_submit_payment');
       
@@ -337,7 +336,7 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
         });
       }, 2500); // Give user 2.5s to see the confirmation
     }
-  }, [user, sessionData, orderMutation, selectedAddOns, totalPrice]);
+  }, [user, sessionData, orderMutation, selectedAddOns, totalPrice, showStreamlinedConfirmation]);
 
 
 
