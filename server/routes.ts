@@ -1405,34 +1405,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Optimized for instant loading - single fast query
+  // Ultra-fast optimized client stats with aggressive caching
   app.get('/api/client/stats', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
       
-      // Simple count query for speed
-      const userOrders = await db
-        .select({
+      // Set aggressive caching headers for instant loading
+      res.set({
+        'Cache-Control': 'public, max-age=30, s-maxage=60',
+        'ETag': `"stats-${userId}-${Math.floor(Date.now()/30000)}"`,
+        'Last-Modified': new Date().toUTCString()
+      });
+      
+      // Ultra-fast parallel queries for instant stats
+      const [userOrders, userProjects] = await Promise.all([
+        db.select({
           status: orders.status,
           totalPrice: orders.totalPrice
-        })
-        .from(orders)
-        .where(eq(orders.userId, userId));
+        }).from(orders).where(eq(orders.userId, userId)),
+        
+        db.select({
+          status: schema.projects.status
+        }).from(schema.projects).where(eq(schema.projects.userId, userId))
+      ]);
 
       const paidOrders = userOrders.filter(o => o.status === 'paid');
+      const activeProjects = userProjects.filter(p => p.status === 'active').length;
+      const completedProjects = userProjects.filter(p => p.status === 'completed').length;
+      
       const totalSpent = paidOrders.reduce((sum, order) => {
         const price = typeof order.totalPrice === 'string' ? parseInt(order.totalPrice) : (order.totalPrice || 0);
         return sum + price;
       }, 0);
 
-      const stats = {
-        activeProjects: paidOrders.length,
-        completedProjects: 0, // Simplified for speed
+      const optimizedStats = {
+        activeProjects: activeProjects,
+        completedProjects: completedProjects,
         totalSpent: totalSpent,
-        newMessages: 0
+        newMessages: 0 // Fast implementation - can be enhanced later
       };
 
-      res.json(stats);
+      res.json(optimizedStats);
     } catch (error) {
       console.error("Error fetching client stats:", error);
       res.status(500).json({ message: "Failed to fetch stats" });
