@@ -8,6 +8,13 @@
       "when": 1748593888499,
       "tag": "0000_dashing_stepford_cuckoos",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1748593888500,
+      "tag": "0001_fix_password_reset_tokens",
+      "breakpoints": true
     }
   ]
 }
