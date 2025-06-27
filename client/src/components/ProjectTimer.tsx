@@ -24,13 +24,8 @@ export default function ProjectTimer({ project }: ProjectTimerProps) {
   const contactInfo = project.contactInfo || {};
   const projectDetails = project.projectDetails || {};
 
-  console.log('ProjectTimer - Project data:', {
-    id: projectData.id,
-    projectName: projectData.projectName,
-    contactInfo,
-    projectDetails,
-    order: projectData.order
-  });
+  // Remove debugging code for production
+  // console.log('ProjectTimer - Full project data:', projectData);
 
   // Extract meaningful project information
   const getProjectInfo = () => {
@@ -48,13 +43,33 @@ export default function ProjectTimer({ project }: ProjectTimerProps) {
     const totalDuration = dueDate.getTime() - startDate.getTime();
     const elapsed = now.getTime() - startDate.getTime();
 
+    // Extract service name from order data properly
+    const getServiceName = () => {
+      // First try the order's service name
+      if (projectData.order?.serviceName) {
+        return projectData.order.serviceName;
+      }
+      
+      // Try custom request first line
+      if (projectData.order?.customRequest) {
+        const firstLine = projectData.order.customRequest.split('.')[0].trim();
+        if (firstLine && firstLine.length > 0) {
+          return firstLine;
+        }
+      }
+      
+      // Try project name if it exists and isn't a generic format
+      if (projectData.projectName && !projectData.projectName.includes(' - Project')) {
+        return projectData.projectName;
+      }
+      
+      // Fallback to project type or default
+      return projectDetails.projectType || 'Custom Project';
+    };
+
     return {
       id: projectData.id || 'unknown',
-      projectName: projectData.projectName || 
-                  projectData.order?.serviceName ||
-                  projectData.order?.customRequest?.split('.')[0] ||
-                  projectDetails.projectType || 
-                  'Custom Project',
+      projectName: getServiceName(),
       status: projectData.status || 'active',
       progressPercentage: projectData.progressPercentage || Math.min(95, Math.max(5, Math.floor((elapsed / totalDuration) * 100))),
       currentStage: projectData.currentStage || 'In Progress',
