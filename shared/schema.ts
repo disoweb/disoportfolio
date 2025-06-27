@@ -324,32 +324,6 @@ export const seoAudits = pgTable("seo_audits", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const seoAnalytics = pgTable("seo_analytics", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  page: varchar("page").notNull(),
-  date: varchar("date").notNull(),
-  views: integer("views").default(0),
-  clicks: integer("clicks").default(0),
-  impressions: integer("impressions").default(0),
-  averagePosition: decimal("average_position", { precision: 4, scale: 2 }),
-  clickThroughRate: decimal("click_through_rate", { precision: 5, scale: 4 }),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-// Type exports
-export type SeoSettings = typeof seoSettings.$inferSelect;
-export type InsertSeoSettings = typeof seoSettings.$inferInsert;
-export type SeoPage = typeof seoPages.$inferSelect;
-export type InsertSeoPage = typeof seoPages.$inferInsert;
-export type SeoKeyword = typeof seoKeywords.$inferSelect;
-export type InsertSeoKeyword = typeof seoKeywords.$inferInsert;
-export type SeoRule = typeof seoRules.$inferSelect;
-export type InsertSeoRule = typeof seoRules.$inferInsert;
-export type SeoAudit = typeof seoAudits.$inferSelect;
-export type InsertSeoAudit = typeof seoAudits.$inferInsert;
-export type SeoAnalytics = typeof seoAnalytics.$inferSelect;
-export type InsertSeoAnalytics = typeof seoAnalytics.$inferInsert;
-
 export const seoKeywords = pgTable("seo_keywords", {
   id: uuid("id").primaryKey().defaultRandom(),
   keyword: varchar("keyword").notNull(),
@@ -394,6 +368,20 @@ export const seoAudits = pgTable("seo_audits", {
   createdAt: timestamp("created_at").defaultNow(),
   completedAt: timestamp("completed_at"),
 });
+
+// Type exports
+export type SeoSettings = typeof seoSettings.$inferSelect;
+export type InsertSeoSettings = typeof seoSettings.$inferInsert;
+export type SeoPage = typeof seoPages.$inferSelect;
+export type InsertSeoPage = typeof seoPages.$inferInsert;
+export type SeoKeyword = typeof seoKeywords.$inferSelect;
+export type InsertSeoKeyword = typeof seoKeywords.$inferInsert;
+export type SeoRule = typeof seoRules.$inferSelect;
+export type InsertSeoRule = typeof seoRules.$inferInsert;
+export type SeoAudit = typeof seoAudits.$inferSelect;
+export type InsertSeoAudit = typeof seoAudits.$inferInsert;
+export type SeoAnalytics = typeof seoAnalytics.$inferSelect;
+export type InsertSeoAnalytics = typeof seoAnalytics.$inferInsert;
 
 // Relations
 export const usersRelations = relations(users, ({ one, many }) => ({
