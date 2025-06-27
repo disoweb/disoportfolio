@@ -71,6 +71,14 @@ export default function ProjectTimer({ project }: ProjectTimerProps) {
 
   const info = getProjectInfo();
 
+  // Helper function to format dates with 2-digit years
+  const formatShortDate = (date: Date) => {
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    const year = date.getFullYear().toString().slice(-2);
+    return `${month}/${day}/${year}`;
+  };
+
   useEffect(() => {
     const calculateTimeRemaining = () => {
       const timeLeft = Math.max(0, info.dueDate.getTime() - new Date().getTime());
@@ -190,17 +198,17 @@ export default function ProjectTimer({ project }: ProjectTimerProps) {
             <div className="bg-gray-50 rounded-lg p-2">
               <div className="text-xs text-gray-500 mb-1">Started</div>
               <div className="text-xs font-medium text-gray-900">
-                {info.startDate.toLocaleDateString()}
+                {formatShortDate(info.startDate)}
               </div>
             </div>
             <div className="bg-blue-50 rounded-lg p-2">
               <div className="text-xs text-blue-600 mb-1">Duration</div>
-              <div className="text-xs font-medium text-blue-900">{info.timelineWeeks} weeks</div>
+              <div className="text-xs font-medium text-blue-900">{info.timelineWeeks} Wks</div>
             </div>
             <div className="bg-orange-50 rounded-lg p-2">
               <div className="text-xs text-orange-600 mb-1">Due Date</div>
               <div className="text-xs font-medium text-orange-900">
-                {info.dueDate.toLocaleDateString()}
+                {formatShortDate(info.dueDate)}
               </div>
             </div>
           </div>
@@ -220,15 +228,15 @@ export default function ProjectTimer({ project }: ProjectTimerProps) {
             </div>
             <div className="bg-white/80 backdrop-blur-sm rounded-lg p-3 shadow-sm">
               <div className="text-xl font-bold text-orange-600">{timeRemaining.hours}</div>
-              <div className="text-xs text-orange-500 font-medium">Hours</div>
+              <div className="text-xs text-orange-500 font-medium">Hrs</div>
             </div>
             <div className="bg-white/80 backdrop-blur-sm rounded-lg p-3 shadow-sm">
               <div className="text-xl font-bold text-amber-600">{timeRemaining.minutes}</div>
-              <div className="text-xs text-amber-500 font-medium">Minutes</div>
+              <div className="text-xs text-amber-500 font-medium">Mins</div>
             </div>
             <div className="bg-white/80 backdrop-blur-sm rounded-lg p-3 shadow-sm">
               <div className="text-xl font-bold text-yellow-600">{timeRemaining.seconds}</div>
-              <div className="text-xs text-yellow-500 font-medium">Seconds</div>
+              <div className="text-xs text-yellow-500 font-medium">Sec</div>
             </div>
           </div>
         </div>
