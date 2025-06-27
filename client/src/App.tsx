@@ -30,7 +30,7 @@ import AdminSEO from "@/pages/AdminSEO";
 import AdminReferrals from "@/pages/AdminReferrals";
 import AdminLogin from "@/pages/AdminLogin";
 import Checkout from "@/pages/Checkout";
-import ReferralDashboard from "@/pages/ReferralDashboardNew";
+import ReferralDashboard from "@/pages/ReferralDashboardModern";
 import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
 import PaymentSuccess from "@/pages/PaymentSuccess";
