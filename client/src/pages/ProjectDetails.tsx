@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { useLocation } from "wouter";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
@@ -59,14 +59,268 @@ const projectData = {
       author: "Sarah Johnson",
       role: "CEO, Style Haven"
     }
+  },
+  "restaurant-app": {
+    title: "Restaurant Management System",
+    description: "Custom web application for restaurant chain management including ordering, inventory, and staff scheduling.",
+    image: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&h=400&fit=crop",
+    category: "Web Application",
+    technologies: ["Vue.js", "Express", "PostgreSQL", "Stripe", "Socket.io", "Redis"],
+    completedDate: "2023-11-20",
+    client: "Taste Buds Restaurant",
+    duration: "10 weeks",
+    teamSize: "5 developers",
+    challenge: "Taste Buds Restaurant needed to modernize their operations across 5 locations with a unified system for online ordering, table reservations, inventory management, and staff scheduling. They were losing customers due to inefficient manual processes.",
+    solution: "We built a comprehensive restaurant management system with real-time synchronization across all locations. The solution includes customer-facing ordering, internal management tools, and integration with existing POS systems.",
+    features: [
+      "Online ordering system with real-time menu updates",
+      "Table reservation management with automated confirmations",
+      "Comprehensive inventory tracking across all locations",
+      "Staff scheduling with shift management and notifications",
+      "POS integration for seamless order processing",
+      "Customer loyalty program with point tracking",
+      "Analytics dashboard for sales and performance insights",
+      "Mobile app for delivery drivers and staff"
+    ],
+    results: [
+      {
+        metric: "Online Orders Increase",
+        value: "60%",
+        description: "Significant boost in online orders within first month"
+      },
+      {
+        metric: "Table Turnover",
+        value: "30% faster",
+        description: "Improved efficiency in table management"
+      },
+      {
+        metric: "Food Waste Reduction",
+        value: "25%",
+        description: "Better inventory management reduced waste"
+      },
+      {
+        metric: "Locations Managed",
+        value: "5",
+        description: "Streamlined operations across all restaurant locations"
+      }
+    ],
+    testimonial: {
+      text: "DiSO Webs revolutionized our restaurant operations. The system is intuitive, reliable, and has significantly improved our efficiency. Our customers love the seamless ordering experience.",
+      author: "Michael Chen",
+      role: "Operations Manager, Taste Buds Restaurant"
+    }
+  },
+  "healthcare-portal": {
+    title: "Healthcare Patient Portal",
+    description: "Secure patient portal for healthcare providers with appointment booking, medical records, and telemedicine features.",
+    image: "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=800&h=400&fit=crop",
+    category: "Healthcare",
+    technologies: ["React", "Python", "Django", "AWS", "PostgreSQL", "WebRTC"],
+    completedDate: "2023-09-10",
+    client: "MedCare Clinic",
+    duration: "12 weeks",
+    teamSize: "6 developers",
+    challenge: "MedCare Clinic was overwhelmed with phone call bookings and needed a secure digital solution for patient management. They required HIPAA compliance and seamless integration with existing medical systems.",
+    solution: "We developed a comprehensive patient portal with secure authentication, appointment management, and telemedicine capabilities. The solution prioritizes patient privacy while improving operational efficiency.",
+    features: [
+      "Secure patient authentication with two-factor verification",
+      "Comprehensive appointment booking and management system",
+      "Electronic medical records access and management",
+      "Prescription tracking and refill requests",
+      "Integrated telemedicine platform with video consultations",
+      "Automated appointment reminders and notifications",
+      "Insurance verification and billing integration",
+      "Mobile-responsive design for accessibility"
+    ],
+    results: [
+      {
+        metric: "Phone Call Reduction",
+        value: "80%",
+        description: "Dramatic decrease in appointment booking calls"
+      },
+      {
+        metric: "Patient Engagement",
+        value: "50% increase",
+        description: "Higher patient participation in care management"
+      },
+      {
+        metric: "System Uptime",
+        value: "99.9%",
+        description: "Reliable, always-available healthcare access"
+      },
+      {
+        metric: "Security Compliance",
+        value: "100%",
+        description: "Full HIPAA compliance implementation"
+      }
+    ],
+    testimonial: {
+      text: "The patient portal has transformed how we deliver healthcare. Our patients love the convenience, and our staff can focus more on patient care rather than administrative tasks.",
+      author: "Dr. Patricia Williams",
+      role: "Medical Director, MedCare Clinic"
+    }
+  },
+  "education-lms": {
+    title: "Learning Management System",
+    description: "Custom LMS for educational institution with course management, student tracking, and assessment tools.",
+    image: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800&h=400&fit=crop",
+    category: "Education",
+    technologies: ["Angular", "Laravel", "MySQL", "Redis", "AWS", "WebRTC"],
+    completedDate: "2023-06-30",
+    client: "Excellence Academy",
+    duration: "14 weeks",
+    teamSize: "7 developers",
+    challenge: "Excellence Academy needed a robust learning management system to support both in-person and remote learning. They required comprehensive student tracking, assessment tools, and parent communication features.",
+    solution: "We created a full-featured LMS that supports hybrid learning environments with real-time collaboration tools, comprehensive assessment capabilities, and detailed analytics for educators and administrators.",
+    features: [
+      "Comprehensive course content management and delivery",
+      "Real-time student progress tracking and analytics",
+      "Advanced online assessment and quiz creation tools",
+      "Integrated grade book with automated calculations",
+      "Parent portal with progress reports and communications",
+      "Virtual classroom with video conferencing capabilities",
+      "Assignment submission and feedback system",
+      "Mobile application for students and teachers"
+    ],
+    results: [
+      {
+        metric: "Remote Learning",
+        value: "100%",
+        description: "Complete remote learning capability achieved"
+      },
+      {
+        metric: "Student Engagement",
+        value: "40% improvement",
+        description: "Higher participation in online activities"
+      },
+      {
+        metric: "Admin Efficiency",
+        value: "90% reduction",
+        description: "Dramatic decrease in manual administrative tasks"
+      },
+      {
+        metric: "Students Supported",
+        value: "1,000+",
+        description: "Successfully managing over 1,000 students"
+      }
+    ],
+    testimonial: {
+      text: "The LMS has been a game-changer for our institution. It seamlessly supports our hybrid learning model and has greatly improved communication between teachers, students, and parents.",
+      author: "Prof. David Okafor",
+      role: "Academic Director, Excellence Academy"
+    }
+  },
+  "fintech-dashboard": {
+    title: "Financial Analytics Dashboard",
+    description: "Real-time financial dashboard for investment firm with portfolio tracking and market analysis tools.",
+    image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&h=400&fit=crop",
+    category: "Fintech",
+    technologies: ["React", "D3.js", "Node.js", "Redis", "WebSocket", "Python"],
+    completedDate: "2023-04-15",
+    client: "InvestPro Capital",
+    duration: "16 weeks",
+    teamSize: "8 developers",
+    challenge: "InvestPro Capital needed real-time financial analytics and portfolio management tools to serve their high-net-worth clients. They required complex data visualization and integration with multiple market data providers.",
+    solution: "We developed a sophisticated financial dashboard with real-time market data integration, advanced analytics, and intuitive visualization tools that enable quick decision-making for investment professionals.",
+    features: [
+      "Real-time market data integration from multiple sources",
+      "Comprehensive portfolio performance tracking and analysis",
+      "Advanced risk analysis tools with predictive modeling",
+      "Automated report generation and client communications",
+      "Multi-currency support with real-time conversion",
+      "Customizable dashboards for different user roles",
+      "Advanced charting and data visualization tools",
+      "Secure API integration with banking and trading platforms"
+    ],
+    results: [
+      {
+        metric: "Decision Speed",
+        value: "75% faster",
+        description: "Significantly faster investment decision making"
+      },
+      {
+        metric: "Portfolio Monitoring",
+        value: "Real-time",
+        description: "Continuous portfolio performance tracking"
+      },
+      {
+        metric: "Reporting Efficiency",
+        value: "50% reduction",
+        description: "Automated reporting saves significant time"
+      },
+      {
+        metric: "Assets Under Management",
+        value: "₦10B+",
+        description: "Successfully managing over 10 billion naira"
+      }
+    ],
+    testimonial: {
+      text: "The analytics dashboard has revolutionized our investment process. The real-time insights and intuitive interface have made us more responsive to market changes and better at serving our clients.",
+      author: "James Adebayo",
+      role: "Chief Investment Officer, InvestPro Capital"
+    }
+  },
+  "logistics-tracker": {
+    title: "Logistics Tracking System",
+    description: "Comprehensive logistics management system with real-time tracking, route optimization, and delivery management.",
+    image: "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=800&h=400&fit=crop",
+    category: "Logistics",
+    technologies: ["React", "Express", "MongoDB", "Google Maps API", "Socket.io", "Redis"],
+    completedDate: "2023-02-28",
+    client: "SwiftDelivery Ltd",
+    duration: "12 weeks",
+    teamSize: "6 developers",
+    challenge: "SwiftDelivery Ltd was struggling with inefficient route planning, poor package tracking visibility, and high fuel costs. They needed a comprehensive solution to optimize their delivery operations and improve customer satisfaction.",
+    solution: "We built an end-to-end logistics management system with real-time tracking, AI-powered route optimization, and comprehensive analytics to streamline delivery operations and enhance customer experience.",
+    features: [
+      "Real-time package tracking with GPS integration",
+      "AI-powered route optimization for efficient deliveries",
+      "Comprehensive driver mobile application",
+      "Automated customer notifications and updates",
+      "Advanced analytics dashboard for operations management",
+      "Proof of delivery with digital signatures and photos",
+      "Integration with e-commerce platforms",
+      "Fleet management with vehicle maintenance tracking"
+    ],
+    results: [
+      {
+        metric: "Delivery Time",
+        value: "35% reduction",
+        description: "Significantly faster delivery times"
+      },
+      {
+        metric: "Tracking Accuracy",
+        value: "90% improvement",
+        description: "Much more accurate package tracking"
+      },
+      {
+        metric: "Fuel Savings",
+        value: "25%",
+        description: "Optimized routes reduced fuel costs"
+      },
+      {
+        metric: "Monthly Deliveries",
+        value: "10,000+",
+        description: "Processing over 10,000 deliveries monthly"
+      }
+    ],
+    testimonial: {
+      text: "The logistics system has transformed our delivery operations. Our customers are happier with real-time tracking, and we've significantly reduced our operational costs through better route optimization.",
+      author: "Funmi Okoro",
+      role: "Operations Director, SwiftDelivery Ltd"
+    }
   }
-  // Add more projects as needed
 };
 
 export default function ProjectDetails() {
   const [location, setLocation] = useLocation();
   const projectId = location.split('/project/')[1];
   const project = projectData[projectId as keyof typeof projectData];
+
+  // Scroll to top when page loads
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   if (!project) {
     return (
