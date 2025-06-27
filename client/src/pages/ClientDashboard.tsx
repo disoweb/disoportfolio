@@ -40,14 +40,17 @@ export default function ClientDashboard() {
 
   // Redirect to auth page if not authenticated
   React.useEffect(() => {
+    console.log("Dashboard useEffect triggered:", { isLoading, isAuthenticated, user });
     if (!isLoading && (!isAuthenticated || !user)) {
-      console.log("Dashboard authentication check:", { isLoading, isAuthenticated, user });
+      console.log("REDIRECTING TO AUTH - conditions met:", { isLoading, isAuthenticated, user });
       toast({
         title: "Authentication Required",
         description: "Please log in to access your dashboard.",
         variant: "destructive",
       });
       setLocation('/auth');
+    } else {
+      console.log("NOT redirecting:", { isLoading, isAuthenticated, user });
     }
   }, [isAuthenticated, isLoading, user, setLocation, toast]);
   const [selectedOrder, setSelectedOrder] = React.useState<any>(null);
