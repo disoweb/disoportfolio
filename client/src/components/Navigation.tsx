@@ -109,17 +109,28 @@ export default function Navigation() {
             )}
           </div>
 
-          {/* Mobile menu button */}
-          <button
-            className="md:hidden"
-            onClick={() => setIsOpen(!isOpen)}
-          >
-            {isOpen ? (
-              <X className="h-6 w-6 text-slate-600" />
-            ) : (
-              <Menu className="h-6 w-6 text-slate-600" />
+          {/* Mobile Actions */}
+          <div className="md:hidden flex items-center space-x-3">
+            {!isAuthenticated && (
+              <Link href="/services">
+                <Button 
+                  size="sm" 
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium px-4 py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 text-xs"
+                >
+                  Get Started
+                </Button>
+              </Link>
             )}
-          </button>
+            <button
+              onClick={() => setIsOpen(!isOpen)}
+            >
+              {isOpen ? (
+                <X className="h-6 w-6 text-slate-600" />
+              ) : (
+                <Menu className="h-6 w-6 text-slate-600" />
+              )}
+            </button>
+          </div>
         </div>
       </div>
 
