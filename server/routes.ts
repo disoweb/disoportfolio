@@ -16,6 +16,7 @@ import {
 import { z } from "zod";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
+import { cacheManager, CacheKeys } from "./cache";
 import { 
   checkRateLimit, 
   validateContentType, 
@@ -1405,46 +1406,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Ultra-fast optimized client stats with aggressive caching
+  // Redis-cached ultra-fast client stats with multi-tier caching
   app.get('/api/client/stats', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
+      const cacheKey = CacheKeys.userStats(userId);
       
-      // Set aggressive caching headers for instant loading
+      // Try Redis cache first for instant response
+      const cachedStats = await cacheManager.get(cacheKey);
+      if (cachedStats) {
+        res.set({
+          'Cache-Control': 'public, max-age=30, s-maxage=60',
+          'X-Cache': 'HIT'
+        });
+        return res.json(cachedStats);
+      }
+      
+      // Cache miss - compute fresh data with parallel queries
+      const optimizedStats = await cacheManager.getOrSet(
+        cacheKey,
+        async () => {
+          const [userOrders, userProjects] = await Promise.all([
+            db.select({
+              status: orders.status,
+              totalPrice: orders.totalPrice
+            }).from(orders).where(eq(orders.userId, userId)),
+            
+            db.select({
+              status: schema.projects.status
+            }).from(schema.projects).where(eq(schema.projects.userId, userId))
+          ]);
+
+          const paidOrders = userOrders.filter(o => o.status === 'paid');
+          const activeProjects = userProjects.filter(p => p.status === 'active').length;
+          const completedProjects = userProjects.filter(p => p.status === 'completed').length;
+          
+          const totalSpent = paidOrders.reduce((sum, order) => {
+            const price = typeof order.totalPrice === 'string' ? parseInt(order.totalPrice) : (order.totalPrice || 0);
+            return sum + price;
+          }, 0);
+
+          return {
+            activeProjects: activeProjects,
+            completedProjects: completedProjects,
+            totalSpent: totalSpent,
+            newMessages: 0
+          };
+        },
+        30 // 30 second cache
+      );
+
       res.set({
         'Cache-Control': 'public, max-age=30, s-maxage=60',
-        'ETag': `"stats-${userId}-${Math.floor(Date.now()/30000)}"`,
-        'Last-Modified': new Date().toUTCString()
+        'X-Cache': 'MISS'
       });
       
-      // Ultra-fast parallel queries for instant stats
-      const [userOrders, userProjects] = await Promise.all([
-        db.select({
-          status: orders.status,
-          totalPrice: orders.totalPrice
-        }).from(orders).where(eq(orders.userId, userId)),
-        
-        db.select({
-          status: schema.projects.status
-        }).from(schema.projects).where(eq(schema.projects.userId, userId))
-      ]);
-
-      const paidOrders = userOrders.filter(o => o.status === 'paid');
-      const activeProjects = userProjects.filter(p => p.status === 'active').length;
-      const completedProjects = userProjects.filter(p => p.status === 'completed').length;
-      
-      const totalSpent = paidOrders.reduce((sum, order) => {
-        const price = typeof order.totalPrice === 'string' ? parseInt(order.totalPrice) : (order.totalPrice || 0);
-        return sum + price;
-      }, 0);
-
-      const optimizedStats = {
-        activeProjects: activeProjects,
-        completedProjects: completedProjects,
-        totalSpent: totalSpent,
-        newMessages: 0 // Fast implementation - can be enhanced later
-      };
-
       res.json(optimizedStats);
     } catch (error) {
       console.error("Error fetching client stats:", error);

@@ -5,10 +5,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import Navigation from "@/components/Navigation";
+import { useOptimizedStats, useOptimizedProjects, useOptimizedOrders, usePerformanceMetrics } from "@/store/performanceStore";
 import { 
   Clock, 
   DollarSign, 
@@ -24,8 +26,187 @@ import {
   Eye,
   CreditCard,
   XCircle,
-  Loader2
+  Loader2,
+  Zap,
+  Activity
 } from "lucide-react";
+
+// Performance-optimized dashboard with Redis + Zustand caching
+function PerformanceMetrics() {
+  const { metrics } = usePerformanceMetrics();
+  
+  return (
+    <Card className="border-green-200 bg-green-50">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm font-medium text-green-800 flex items-center gap-2">
+          <Zap className="h-4 w-4" />
+          Performance Dashboard
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="grid grid-cols-2 gap-4 text-xs">
+          <div>
+            <p className="text-green-600 font-medium">Cache Hit Rate</p>
+            <div className="flex items-center gap-2">
+              <Progress value={metrics.cacheHitRate} className="flex-1 h-2" />
+              <span className="text-green-800 font-semibold">
+                {metrics.cacheHitRate.toFixed(1)}%
+              </span>
+            </div>
+          </div>
+          <div>
+            <p className="text-green-600 font-medium">Avg Load Time</p>
+            <p className="text-green-800 font-semibold">
+              {metrics.averageLoadTime.toFixed(0)}ms
+            </p>
+          </div>
+          <div>
+            <p className="text-green-600 font-medium">API Calls</p>
+            <p className="text-green-800 font-semibold">{metrics.apiCalls}</p>
+          </div>
+          <div>
+            <p className="text-green-600 font-medium">Cache Hits</p>
+            <p className="text-green-800 font-semibold">{metrics.cacheHits}</p>
+          </div>
+        </div>
+        <div className="text-xs text-green-600">
+          <Activity className="h-3 w-3 inline mr-1" />
+          Redis + Zustand multi-tier caching active
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Optimized stats with intelligent caching
+function OptimizedStatsSection() {
+  const { stats, isLoading, isFresh, setStats, setLoading } = useOptimizedStats();
+  const queryClient = useQueryClient();
+
+  // Enhanced query with Zustand integration
+  const { data: freshStats, error } = useQuery({
+    queryKey: ['/api/client/stats'],
+    enabled: !isFresh, // Only fetch if cache is stale
+    staleTime: 30000,
+    onSuccess: (data) => {
+      setStats(data);
+    },
+    onLoading: (loading) => {
+      setLoading(loading);
+    }
+  });
+
+  const displayStats = stats || freshStats || {
+    activeProjects: 0,
+    completedProjects: 0,
+    totalSpent: 0,
+    newMessages: 0
+  };
+
+  const isActuallyLoading = isLoading || (!stats && !freshStats);
+
+  if (error) {
+    return (
+      <Card className="border-red-200">
+        <CardContent className="p-6">
+          <p className="text-red-600">Unable to load dashboard stats</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <Card className={isFresh ? "border-green-200 bg-green-50" : ""}>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Active Projects</CardTitle>
+          <TrendingUp className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          {isActuallyLoading ? (
+            <div className="h-8 w-16 bg-gray-200 animate-pulse rounded" />
+          ) : (
+            <div className="text-2xl font-bold text-green-600">
+              {displayStats.activeProjects}
+            </div>
+          )}
+          {isFresh && (
+            <p className="text-xs text-green-600 mt-1">
+              <Zap className="h-3 w-3 inline mr-1" />
+              Cached data
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className={isFresh ? "border-green-200 bg-green-50" : ""}>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Completed Projects</CardTitle>
+          <CheckCircle className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          {isActuallyLoading ? (
+            <div className="h-8 w-16 bg-gray-200 animate-pulse rounded" />
+          ) : (
+            <div className="text-2xl font-bold">
+              {displayStats.completedProjects}
+            </div>
+          )}
+          {isFresh && (
+            <p className="text-xs text-green-600 mt-1">
+              <Zap className="h-3 w-3 inline mr-1" />
+              Cached data
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className={isFresh ? "border-green-200 bg-green-50" : ""}>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Total Spent</CardTitle>
+          <DollarSign className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          {isActuallyLoading ? (
+            <div className="h-8 w-24 bg-gray-200 animate-pulse rounded" />
+          ) : (
+            <div className="text-2xl font-bold">
+              ₦{displayStats.totalSpent.toLocaleString()}
+            </div>
+          )}
+          {isFresh && (
+            <p className="text-xs text-green-600 mt-1">
+              <Zap className="h-3 w-3 inline mr-1" />
+              Cached data
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className={isFresh ? "border-green-200 bg-green-50" : ""}>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">New Messages</CardTitle>
+          <MessageSquare className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          {isActuallyLoading ? (
+            <div className="h-8 w-16 bg-gray-200 animate-pulse rounded" />
+          ) : (
+            <div className="text-2xl font-bold">
+              {displayStats.newMessages}
+            </div>
+          )}
+          {isFresh && (
+            <p className="text-xs text-green-600 mt-1">
+              <Zap className="h-3 w-3 inline mr-1" />
+              Cached data
+            </p>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
 
 // Optimized interface for instant loading
 interface OptimizedStats {
@@ -68,13 +249,8 @@ export default function OptimizedClientDashboard() {
 
   const itemsPerPage = 6;
 
-  // Ultra-fast parallel data loading with aggressive caching
-  const { data: stats = { activeProjects: 0, completedProjects: 0, totalSpent: 0, newMessages: 0 } } = useQuery({
-    queryKey: ["/api/client/stats"],
-    enabled: isAuthenticated,
-    staleTime: 30000, // 30 seconds cache
-    refetchOnWindowFocus: false,
-  }) as { data: OptimizedStats };
+  // Performance metrics for real-time monitoring
+  const { metrics } = usePerformanceMetrics();
 
   const { data: projects = [], isLoading: projectsLoading } = useQuery({
     queryKey: ["/api/projects"],
@@ -220,52 +396,13 @@ export default function OptimizedClientDashboard() {
           </p>
         </div>
 
-        {/* Stats Cards - Cached Data for Instant Display */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Projects</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.activeProjects}</div>
-              <p className="text-xs text-muted-foreground">Currently in progress</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Completed</CardTitle>
-              <CheckCircle className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.completedProjects}</div>
-              <p className="text-xs text-muted-foreground">Successfully delivered</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Investment</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">₦{stats.totalSpent.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground">Lifetime spending</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Messages</CardTitle>
-              <MessageSquare className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.newMessages}</div>
-              <p className="text-xs text-muted-foreground">Unread notifications</p>
-            </CardContent>
-          </Card>
+        {/* Performance Metrics - Real-time Caching Dashboard */}
+        <div className="mb-6">
+          <PerformanceMetrics />
         </div>
+
+        {/* Stats Cards - Ultra-fast Cached Data with Visual Cache Indicators */}
+        <OptimizedStatsSection />
 
         {/* Main Content Tabs - Instant Switching */}
         <Tabs defaultValue="projects" className="space-y-6">
