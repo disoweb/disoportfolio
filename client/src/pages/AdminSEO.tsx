@@ -1286,7 +1286,7 @@ export default function AdminSEO() {
                       Start First Audit
                     </Button>
                   </CardContent>
-                </Dialog>
+                </Card>
               )}
             </div>
           </TabsContent>
