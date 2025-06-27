@@ -1,5 +1,5 @@
 
-const { neon } = require('@neondatabase/serverless');
+import { neon } from '@neondatabase/serverless';
 
 async function createMissingTables() {
   console.log('🔧 Creating missing tables directly via SQL...');
