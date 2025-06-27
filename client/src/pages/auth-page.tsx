@@ -608,7 +608,7 @@ export default function AuthPage() {
             {/* Social Login Buttons - Dynamic Grid */}
             {hasAnyProvider && (
               <div className={`grid gap-3 ${
-                Object.values(providers).filter(Boolean).length <= 2 
+                Object.values(providers).filter(Boolean).length === 1 
                   ? 'grid-cols-1' 
                   : 'grid-cols-2'
               }`}>
