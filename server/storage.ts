@@ -177,6 +177,7 @@ export class DatabaseStorage implements IStorage {
     const [passwordResetToken] = await db
       .insert(passwordResetTokens)
       .values({
+        id: crypto.randomUUID(),
         userId,
         token,
         expiresAt,
