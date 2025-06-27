@@ -67,25 +67,16 @@ interface CheckoutFormProps {
 }
 
 export default function CheckoutForm({ service, totalPrice, selectedAddOns, sessionData, isPostAuthRedirect, onSuccess }: CheckoutFormProps) {
-  const { user } = useAuth();
+  const [currentStep, setCurrentStep] = useState(1);
+  const [contactData, setContactData] = useState<ContactForm | null>(null);
+  const [showPaymentLoader, setShowPaymentLoader] = useState(false);
+  const [showStreamlinedConfirmation, setShowStreamlinedConfirmation] = useState(false);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  
-  // Immediate auto-payment detection to prevent form flash
-  const autoSubmitPayment = sessionStorage.getItem('auto_submit_payment');
-  const stepParam = new URLSearchParams(window.location.search).get('step');
-  const storedContactData = getStoredFormData('checkout_contact_data');
-  
-  const shouldAutoSubmitImmediately = autoSubmitPayment === 'true' || 
-    (stepParam === 'payment' && (sessionData?.contactData || storedContactData));
-
-  const [currentStep, setCurrentStep] = useState(shouldAutoSubmitImmediately ? 2 : 1);
-  const [contactData, setContactData] = useState<ContactForm | null>(
-    shouldAutoSubmitImmediately ? (sessionData?.contactData || storedContactData) : null
-  );
-  const [showStreamlinedConfirmation, setShowStreamlinedConfirmation] = useState(shouldAutoSubmitImmediately);
+  const { user } = useAuth();
 
   // Step 1: Contact Form with persistent data
+  const storedContactData = getStoredFormData('checkout_contact_data');
   const contactForm = useForm<ContactForm>({
     resolver: zodResolver(contactSchema),
     defaultValues: storedContactData || {
@@ -215,15 +206,11 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
     },
     onSuccess: (data) => {
       if (data && data.paymentUrl) {
-        
         // Clear stored form data and pending checkout on successful order
         localStorage.removeItem('checkout_contact_data');
         sessionStorage.removeItem('pendingCheckout');
         sessionStorage.removeItem('checkoutSessionToken');
         sessionStorage.removeItem('auto_submit_payment');
-        sessionStorage.removeItem('auto_payment_executed');
-        sessionStorage.removeItem('payment_processing');
-        sessionStorage.removeItem('processing_start_time');
         
         // Clear payment loader state
         sessionStorage.removeItem('payment_in_progress');
@@ -240,6 +227,8 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
       }
     },
     onError: (error) => {
+      // Hide loader on error
+      setShowPaymentLoader(false);
       
       if (error.message.includes("Authentication") || error.message.includes("session")) {
         // Store current form data before redirect
@@ -298,26 +287,57 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
     },
   });
 
-  // Simplified checkout flow - no auto-redirects, just direct payment when authenticated
+  // Streamlined auto-payment with immediate submission after auth
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const stepParam = urlParams.get('step');
+    console.log('🔍 AUTO-PAYMENT CHECK:', {
+      user: !!user,
+      sessionData: !!sessionData,
+      sessionDataContent: sessionData,
+      isPending: orderMutation.isPending,
+      autoSubmitFlag: sessionStorage.getItem('auto_submit_payment'),
+      stepParam: new URLSearchParams(window.location.search).get('step')
+    });
+
+    if (!user || orderMutation.isPending) {
+      return;
+    }
+
+    const autoSubmitPayment = sessionStorage.getItem('auto_submit_payment');
+    const stepParam = new URLSearchParams(window.location.search).get('step');
     
-    // Clear any stuck states from previous sessions
-    if (stepParam !== 'payment') {
-      sessionStorage.removeItem('payment_processing');
+    // Check multiple conditions for auto-submission
+    const shouldAutoSubmit = autoSubmitPayment === 'true' || 
+      (stepParam === 'payment' && sessionData?.contactData) ||
+      (stepParam === 'payment' && getStoredFormData('checkout_contact_data'));
+    
+    // Use sessionData if available, otherwise fall back to stored data
+    const contactInfo = sessionData?.contactData || getStoredFormData('checkout_contact_data');
+    
+    if (shouldAutoSubmit && contactInfo) {
+      console.log('🚀 STREAMLINED CHECKOUT: Auto-submitting payment for authenticated user');
+      
+      // Clear the flag to prevent replay
       sessionStorage.removeItem('auto_submit_payment');
-      sessionStorage.removeItem('processing_start_time');
+      
+      // Set contact data for UI display
+      setContactData(contactInfo);
+      
+      // Show streamlined confirmation UI
+      setShowStreamlinedConfirmation(true);
+      setCurrentStep(2);
+      
+      // Auto-proceed to payment after user sees confirmation
+      setTimeout(() => {
+        setShowPaymentLoader(true);
+        orderMutation.mutate({
+          paymentMethod: 'paystack',
+          timeline: 'standard',
+          overrideSelectedAddOns: sessionData?.selectedAddOns || selectedAddOns,
+          overrideTotalAmount: sessionData?.totalPrice || totalPrice
+        });
+      }, 2500); // Give user 2.5s to see the confirmation
     }
-
-    // If user is authenticated and we have pending checkout data, populate the form
-    if (user && sessionData?.contactData && !contactData?.fullName) {
-      setContactData(sessionData.contactData);
-      setCurrentStep(2); // Go directly to payment step
-    }
-  }, [user, sessionData]);
-
-
+  }, [user, sessionData, orderMutation, selectedAddOns, totalPrice]);
 
 
 
@@ -325,14 +345,6 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
     // Store contact data persistently
     storeFormData('checkout_contact_data', data);
     setContactData(data);
-    
-    // If user is not authenticated, show login prompt
-    if (!user) {
-      setShowStreamlinedConfirmation(true); // Reuse this state for login modal
-      return;
-    }
-    
-    // If authenticated, proceed to payment step
     setCurrentStep(2);
   };
 
@@ -341,16 +353,61 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
     
     // Check if user is authenticated before proceeding with payment
     if (!user) {
-      // Just show message that login is required - no redirect
-      toast({
-        title: "Login Required",
-        description: "Please log in first to complete your payment.",
-        variant: "destructive",
+      // Create checkout session in database
+      const createSessionData = {
+        serviceId: service.id,
+        serviceData: {
+          id: service.id,
+          name: service.name,
+          price: service.price,
+          description: service.description
+        },
+        contactData,
+        selectedAddOns,
+        totalPrice,
+        userId: null
+      };
+
+      // Create database session
+      fetch("/api/checkout-sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(createSessionData),
+      })
+      .then(res => res.json())
+      .then(result => {
+        if (result.sessionToken) {
+          // Store session token for auth redirect
+          sessionStorage.setItem('checkoutSessionToken', result.sessionToken);
+          
+          // Clear any existing auth flags
+          sessionStorage.removeItem('auth_completed');
+          sessionStorage.removeItem('auth_timestamp');
+          
+          // Redirect to auth with session token
+          setLocation(`/auth?checkout=${result.sessionToken}`);
+        } else {
+          toast({
+            title: "Error",
+            description: "Failed to create checkout session. Please try again.",
+            variant: "destructive",
+          });
+        }
+      })
+      .catch(error => {
+        toast({
+          title: "Error", 
+          description: "Failed to create checkout session. Please try again.",
+          variant: "destructive",
+        });
       });
+      
       return;
     }
     
     // User is authenticated, proceed with payment
+    setShowPaymentLoader(true);
+    
     const combinedData = { 
       ...contactData, 
       ...data 
@@ -361,7 +418,7 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
   };
 
   // Show payment loader when processing payment - this should take priority over everything
-  if (orderMutation.isPending) {
+  if (showPaymentLoader || orderMutation.isPending) {
     return (
       <PaymentLoader
         serviceName={service.name}
@@ -553,41 +610,46 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
       </CardContent>
     </Card>
 
-
-      {/* Inline Login Modal for Unauthenticated Users */}
-      {showStreamlinedConfirmation && !user && (
+      {/* Streamlined Payment Confirmation for Post-Auth Users */}
+      {showStreamlinedConfirmation && contactData && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <Card className="w-full max-w-md mx-auto bg-white shadow-2xl">
             <CardContent className="p-8 text-center">
               <div className="mb-6">
-                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <User className="h-8 w-8 text-blue-600" />
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CheckCircle className="h-8 w-8 text-green-600" />
                 </div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">Login Required</h2>
-                <p className="text-gray-600">Please log in to complete your order. Your information has been saved.</p>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome back!</h2>
+                <p className="text-gray-600">Your information is saved. Proceeding to payment...</p>
               </div>
 
-              <div className="space-y-4">
-                <Button 
-                  onClick={() => {
-                    // Just redirect to auth page - no complex session creation
-                    window.location.href = '/auth';
-                  }}
-                  className="w-full bg-blue-600 hover:bg-blue-700"
-                >
-                  Go to Login Page
-                </Button>
-                
-                <Button 
-                  variant="outline"
-                  onClick={() => {
-                    setShowStreamlinedConfirmation(false);
-                    setCurrentStep(1);
-                  }}
-                  className="w-full text-gray-600 border-gray-300"
-                >
-                  Back to Form
-                </Button>
+              <div className="bg-gray-50 rounded-lg p-4 mb-6 text-left">
+                <h3 className="font-semibold text-gray-900 mb-3">Order Summary</h3>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Service:</span>
+                    <span className="font-medium">{service.name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Customer:</span>
+                    <span className="font-medium">{contactData.fullName}</span>
+                  </div>
+                  {selectedAddOns.length > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Add-ons:</span>
+                      <span className="font-medium">{selectedAddOns.length} selected</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between pt-2 border-t border-gray-200">
+                    <span className="font-semibold text-gray-900">Total:</span>
+                    <span className="font-bold text-green-600">₦{totalPrice.toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-center gap-2 text-blue-600">
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
+                <span className="text-sm font-medium">Redirecting to secure payment...</span>
               </div>
             </CardContent>
           </Card>
