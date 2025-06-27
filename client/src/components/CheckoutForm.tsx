@@ -236,8 +236,6 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
       }
     },
     onError: (error) => {
-      // Hide loader on error
-      setShowPaymentLoader(false);
       
       if (error.message.includes("Authentication") || error.message.includes("session")) {
         // Store current form data before redirect
@@ -405,8 +403,6 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
     }
     
     // User is authenticated, proceed with payment
-    setShowPaymentLoader(true);
-    
     const combinedData = { 
       ...contactData, 
       ...data 
@@ -417,7 +413,7 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
   };
 
   // Show payment loader when processing payment - this should take priority over everything
-  if (showPaymentLoader || orderMutation.isPending) {
+  if (orderMutation.isPending) {
     return (
       <PaymentLoader
         serviceName={service.name}
