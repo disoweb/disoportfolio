@@ -1838,7 +1838,6 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(seoPages)
       .where(eq(seoPages.path, path))
-```
       .limit(1);
     return page || null;
   }
