@@ -28,7 +28,7 @@ import AdminServices from "@/pages/AdminServices";
 import AdminReferrals from "@/pages/AdminReferrals";
 import AdminLogin from "@/pages/AdminLogin";
 import Checkout from "@/pages/Checkout";
-import ReferralDashboard from "@/pages/ReferralDashboard";
+import ReferralDashboard from "@/pages/ReferralDashboardFixed";
 import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
 import WhatsAppFloat from "@/components/WhatsAppFloat";

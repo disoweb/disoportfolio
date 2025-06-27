@@ -58,14 +58,21 @@ export default function AdminReferrals() {
   // Fetch referral settings
   const { data: settings, isLoading: isSettingsLoading } = useQuery({
     queryKey: ["/api/admin/referral-settings"],
-    queryFn: () => apiRequest("GET", "/api/admin/referral-settings"),
-    onSuccess: (data) => setSettingsData(data),
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/admin/referral-settings");
+      const data = await response.json();
+      setSettingsData(data);
+      return data;
+    },
   });
 
   // Fetch withdrawal requests
   const { data: withdrawals, isLoading: isWithdrawalsLoading } = useQuery({
     queryKey: ["/api/admin/withdrawals"],
-    queryFn: () => apiRequest("GET", "/api/admin/withdrawals"),
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/admin/withdrawals");
+      return await response.json();
+    },
   });
 
   // Update settings mutation

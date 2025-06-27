@@ -69,18 +69,27 @@ export default function ReferralDashboard() {
   // Fetch referral data
   const { data: referralData, isLoading: isReferralLoading } = useQuery({
     queryKey: ["/api/referrals/my-data"],
-    queryFn: () => apiRequest("GET", "/api/referrals/my-data"),
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/referrals/my-data");
+      return await response.json();
+    },
   });
 
   // Fetch withdrawal requests
   const { data: withdrawals, isLoading: isWithdrawalsLoading } = useQuery({
     queryKey: ["/api/referrals/withdrawals"],
-    queryFn: () => apiRequest("GET", "/api/referrals/withdrawals"),
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/referrals/withdrawals");
+      return await response.json();
+    },
   });
 
   // Generate referral code mutation
   const generateCodeMutation = useMutation({
-    mutationFn: () => apiRequest("POST", "/api/referrals/generate-code"),
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/referrals/generate-code");
+      return await response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/referrals/my-data"] });
       toast({
