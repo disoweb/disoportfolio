@@ -19,12 +19,25 @@ export default function ActiveProjects() {
     queryKey: ["/api/client/stats"],
   });
 
-  // Filter for only active projects
+  // Filter for only active projects and handle different data structures
   const projects = React.useMemo(() => {
     if (!allProjects || !Array.isArray(allProjects)) {
       return [];
     }
-    return allProjects.filter((project: any) => project.status === 'active');
+    
+    // Handle projects that might have different status values or structures
+    return allProjects.filter((project: any) => {
+      // If project has explicit status, use it
+      if (project.status) {
+        return project.status === 'active';
+      }
+      // If project looks like raw order data, consider it active
+      if (project.contactInfo || project.projectDetails) {
+        return true;
+      }
+      // Default to including if structure is unclear
+      return true;
+    });
   }, [allProjects]);
 
   // Pagination logic

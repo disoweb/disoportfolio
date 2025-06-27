@@ -1,94 +1,108 @@
-import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
-import { Clock, Calendar, CheckCircle, AlertCircle } from "lucide-react";
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { Clock, Play, Pause, Calendar, User } from 'lucide-react';
 
 interface ProjectTimerProps {
-  project: {
-    id: string;
-    projectName: string;
-    status: string;
-    startDate: string;
-    dueDate: string;
-    timelineWeeks: number;
-    timelineDays?: number;
-    progressPercentage: number;
-    createdAt: string;
-  };
+  project: any;
 }
 
-export default function ProjectTimer({ project }: ProjectTimerProps) {
-  const [timeRemaining, setTimeRemaining] = React.useState<{
-    days: number;
-    hours: number;
-    minutes: number;
-    seconds: number;
-    isOverdue: boolean;
-  }>({ days: 0, hours: 0, minutes: 0, seconds: 0, isOverdue: false });
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case "not_started":
+      return "bg-slate-500";
+    case "active":
+      return "bg-green-500";
+    case "paused":
+      return "bg-yellow-500";
+    case "completed":
+      return "bg-blue-500";
+    default:
+      return "bg-slate-500";
+  }
+};
 
-  React.useEffect(() => {
-    const calculateTimeRemaining = () => {
-      const now = new Date();
-      const endDate = new Date(project.dueDate);
-      const timeDiff = endDate.getTime() - now.getTime();
-      
-      // Debug: Only log if there are different due dates
-      if (project.projectName === "E-commerce Solution" || project.projectName?.includes("17:51:29")) {
+const getStatusVariant = (status: string) => {
+  switch (status) {
+    case "active":
+      return "default";
+    case "completed":
+      return "secondary";
+    case "paused":
+      return "outline";
+    default:
+      return "outline";
+  }
+};
 
-      }
-      
-      if (timeDiff <= 0) {
-        setTimeRemaining({ days: 0, hours: 0, minutes: 0, seconds: 0, isOverdue: true });
-        return;
-      }
+const extractProjectInfo = (project: any) => {
+  // Handle case where project data might be in different formats
+  if (typeof project === 'string') {
+    try {
+      const parsed = JSON.parse(project);
+      return parsed;
+    } catch {
+      return null;
+    }
+  }
 
-      const days = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
-
-      setTimeRemaining({ days, hours, minutes, seconds, isOverdue: false });
+  // If project has nested structure, extract relevant info
+  if (project.contactInfo || project.projectDetails) {
+    return {
+      projectName: project.projectDetails?.description || project.contactInfo?.fullName + "'s Project" || "Custom Project",
+      status: "active",
+      progressPercentage: 25,
+      currentStage: "discovery",
+      timelineWeeks: 2,
+      createdAt: new Date().toISOString(),
+      dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(), // 2 weeks from now
+      contactInfo: project.contactInfo,
+      projectDetails: project.projectDetails,
+      selectedAddOns: project.selectedAddOns || [],
+      timeline: project.timeline || "2 weeks",
+      paymentMethod: project.paymentMethod || "Paystack"
     };
+  }
 
-    calculateTimeRemaining();
-    const interval = setInterval(calculateTimeRemaining, 1000); // Update every second
+  return project;
+};
 
+export default function ProjectTimer({ project: rawProject }: ProjectTimerProps) {
+  const [timeSpent, setTimeSpent] = useState(0);
+  const [isRunning, setIsRunning] = useState(false);
+
+  const project = extractProjectInfo(rawProject);
+
+  if (!project) {
+    return (
+      <Card className="hover:shadow-lg transition-shadow">
+        <CardContent className="p-6">
+          <div className="text-center text-slate-500">
+            <p>Invalid project data</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isRunning) {
+      interval = setInterval(() => {
+        setTimeSpent(prev => prev + 1);
+      }, 1000);
+    }
     return () => clearInterval(interval);
-  }, [project.dueDate]);
+  }, [isRunning]);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active': return 'bg-blue-500';
-      case 'completed': return 'bg-green-500';
-      case 'paused': return 'bg-yellow-500';
-      default: return 'bg-gray-500';
-    }
+  const formatTime = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
-
-  const getStatusVariant = (status: string) => {
-    switch (status) {
-      case 'active': return 'default';
-      case 'completed': return 'default';
-      case 'paused': return 'secondary';
-      default: return 'outline';
-    }
-  };
-
-  const getTimelineDisplay = () => {
-    // If timelineDays is available and <= 7 days, show in days
-    if (project.timelineDays && project.timelineDays <= 7) {
-      return `${project.timelineDays} day${project.timelineDays !== 1 ? 's' : ''}`;
-    }
-    // Otherwise show in weeks
-    return `${project.timelineWeeks} week${project.timelineWeeks !== 1 ? 's' : ''}`;
-  };
-
-  const startDate = new Date(project.startDate);
-  const endDate = new Date(project.dueDate);
-  const totalDuration = endDate.getTime() - startDate.getTime();
-  const elapsed = new Date().getTime() - startDate.getTime();
-  const timeProgress = Math.min(Math.max((elapsed / totalDuration) * 100, 0), 100);
 
   return (
     <Card className="hover:shadow-lg transition-shadow">
@@ -103,100 +117,54 @@ export default function ProjectTimer({ project }: ProjectTimerProps) {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {/* Progress */}
-          <div>
-            <div className="flex justify-between text-sm text-slate-600 mb-2">
-              <span>Project Progress</span>
-              <span>{project.progressPercentage}%</span>
+          {/* Add-ons */}
+          {project.selectedAddOns && project.selectedAddOns.length > 0 && (
+            <div>
+              <h4 className="font-medium text-slate-900 mb-2">Selected Add-ons</h4>
+              <div className="flex flex-wrap gap-1">
+                {project.selectedAddOns.map((addon: any, index: number) => (
+                  <Badge key={index} variant="outline" className="text-xs">
+                    {addon.name || addon}
+                  </Badge>
+                ))}
+              </div>
             </div>
-            <Progress value={project.progressPercentage} className="h-2" />
+          )}
+
+          {/* Timer */}
+          <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+            <div className="flex items-center space-x-2">
+              <Clock className="h-4 w-4 text-slate-600" />
+              <span className="text-sm font-medium">Time Tracking</span>
+            </div>
+            <div className="text-lg font-mono">{formatTime(timeSpent)}</div>
           </div>
 
-          {/* Time Progress with red indicator */}
-          <div>
-            <div className="flex justify-between text-sm text-slate-600 mb-2">
-              <span>Time Progress</span>
-              <span>{Math.round(timeProgress)}%</span>
-            </div>
-            <div className="relative">
-              <Progress 
-                value={timeProgress} 
-                className={`h-3 ${timeRemaining.isOverdue ? 'bg-red-100' : ''}`}
-              />
-              {/* Red line indicator for current position */}
-              <div 
-                className="absolute top-0 h-3 w-1 bg-red-500 rounded-sm" 
-                style={{ left: `${Math.min(timeProgress, 100)}%`, transform: 'translateX(-50%)' }}
-              />
-            </div>
+          <div className="flex space-x-2">
+            <Button
+              variant={isRunning ? "destructive" : "default"}
+              size="sm"
+              onClick={() => setIsRunning(!isRunning)}
+              className="flex-1"
+            >
+              {isRunning ? <Pause className="h-4 w-4 mr-2" /> : <Play className="h-4 w-4 mr-2" />}
+              {isRunning ? 'Pause' : 'Start'}
+            </Button>
           </div>
 
-          {/* Timeline */}
-          <div className="grid grid-cols-3 gap-3 text-sm">
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-slate-500" />
-              <div>
-                <p className="text-slate-500">Started</p>
-                <p className="font-medium">{startDate.toLocaleDateString()}</p>
-              </div>
+          {/* Project Info */}
+          <div className="flex items-center justify-between text-sm text-slate-600">
+            <div className="flex items-center space-x-1">
+              <Calendar className="h-4 w-4" />
+              <span>Due: {project.dueDate ? new Date(project.dueDate).toLocaleDateString() : 'TBD'}</span>
             </div>
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-slate-500" />
-              <div>
-                <p className="text-slate-500">Timeline</p>
-                <p className="font-medium">{getTimelineDisplay()}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-slate-500" />
-              <div>
-                <p className="text-slate-500">Due Date</p>
-                <p className="font-medium">{endDate.toLocaleDateString()}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Countdown Timer */}
-          <div className="bg-slate-50 p-3 rounded-lg">
-            <div className="flex items-center gap-2 mb-2">
-              {timeRemaining.isOverdue ? (
-                <AlertCircle className="h-4 w-4 text-red-500" />
-              ) : (
-                <Clock className="h-4 w-4 text-blue-500" />
-              )}
-              <span className="text-sm font-medium text-slate-700">
-                {timeRemaining.isOverdue ? 'Overdue' : 'Time Remaining'}
-              </span>
-            </div>
-            
-            {timeRemaining.isOverdue ? (
-              <p className="text-red-600 font-semibold">Project is overdue</p>
-            ) : (
-              <div className="flex gap-4">
-                <div className="text-center">
-                  <div className="text-xl font-bold text-slate-900">{timeRemaining.days}</div>
-                  <div className="text-xs text-slate-500">Days</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-xl font-bold text-slate-900">{timeRemaining.hours}</div>
-                  <div className="text-xs text-slate-500">Hours</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-xl font-bold text-slate-900">{timeRemaining.minutes}</div>
-                  <div className="text-xs text-slate-500">Minutes</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-xl font-bold text-slate-900">{timeRemaining.seconds}</div>
-                  <div className="text-xs text-slate-500">Seconds</div>
-                </div>
-              </div>
-            )}
+            <span className="capitalize">{project.currentStage || 'Discovery'}</span>
           </div>
 
           {/* Project Stats */}
           <div className="text-xs text-slate-500 pt-2 border-t">
-            Timeline: {project.timelineWeeks} weeks | 
-            Created: {new Date(project.createdAt).toLocaleDateString()}
+            Timeline: {project.timelineWeeks || project.timeline || '2'} weeks | 
+            Payment: {project.paymentMethod || 'Paystack'}
           </div>
         </div>
       </CardContent>

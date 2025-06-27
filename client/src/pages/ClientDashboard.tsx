@@ -100,10 +100,10 @@ export default function ClientDashboard() {
     },
     onError: (error: Error) => {
       setProcessingOrderId(null);
-      
+
       // Enhanced error handling with user-friendly messages
       let errorMessage = "Failed to reactivate payment. Please try again.";
-      
+
       if (error.message?.includes("401")) {
         errorMessage = "Session expired. Please refresh and try again.";
       } else if (error.message?.includes("429")) {
@@ -113,7 +113,7 @@ export default function ClientDashboard() {
       } else if (error.message?.includes("400")) {
         errorMessage = "This order cannot be reactivated.";
       }
-      
+
       toast({
         title: "Payment Error",
         description: errorMessage,
@@ -137,7 +137,7 @@ export default function ClientDashboard() {
     const urlParams = new URLSearchParams(window.location.search);
     const hash = window.location.hash;
     const paymentStatus = urlParams.get('payment');
-    
+
     if (paymentStatus === 'success' && hash === '#dashboard') {
       toast({
         title: "Payment Successful!",
@@ -242,12 +242,12 @@ export default function ClientDashboard() {
     if (filterCounts.pending > 0) tabs.push({ key: 'pending', label: 'Pending', count: filterCounts.pending });
     if (filterCounts.paid > 0) tabs.push({ key: 'paid', label: 'Completed', count: filterCounts.paid });
     if (filterCounts.cancelled > 0) tabs.push({ key: 'cancelled', label: 'Cancelled', count: filterCounts.cancelled });
-    
+
     // Always show at least the "All" tab if no other tabs have content
     if (tabs.length === 0) {
       tabs.push({ key: 'all', label: 'All', count: 0 });
     }
-    
+
     return tabs;
   }, [filterCounts]);
 
@@ -280,7 +280,7 @@ export default function ClientDashboard() {
   return (
     <div className="min-h-screen bg-slate-50">
       <Navigation />
-      
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Dashboard Header */}
         <div className="mb-8">
@@ -406,7 +406,7 @@ export default function ClientDashboard() {
                                 const data = JSON.parse(order.customRequest);
                                 const contactInfo = data.contactInfo || {};
                                 const projectDetails = data.projectDetails || {};
-                                
+
                                 return (
                                   <div className="space-y-1">
                                     <p className="text-sm font-medium text-slate-900">
@@ -444,7 +444,7 @@ export default function ClientDashboard() {
                           <p className="text-xs text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity mt-2">
                             Click to view details and contact support
                           </p>
-                          
+
                           {/* Countdown Timer Progress Bar for Paid Orders */}
                           {order.status === 'paid' && (
                             <div className="mt-3">
@@ -464,7 +464,7 @@ export default function ClientDashboard() {
                               </div>
                             </div>
                           )}
-                          
+
                           {/* Action Buttons for Pending Orders */}
                           {order.status === 'pending' && (
                             <div className="mt-3 flex gap-2">
@@ -517,7 +517,7 @@ export default function ClientDashboard() {
                               <div className="text-xs text-slate-600 hidden sm:block">
                                 {startIndex + 1}-{Math.min(endIndex, filteredOrders.length)} of {filteredOrders.length}
                               </div>
-                              
+
                               <div className="flex items-center justify-center gap-1 mx-auto sm:mx-0">
                                 {/* Previous Page */}
                                 <Button
@@ -529,18 +529,18 @@ export default function ClientDashboard() {
                                 >
                                   <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4" />
                                 </Button>
-                                
+
                                 {/* Page Numbers - Mobile optimized */}
                                 {(() => {
                                   const pageNumbers = [];
                                   const maxVisiblePages = 3; // Keep it minimal for mobile
                                   let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
                                   let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-                                  
+
                                   if (endPage - startPage < maxVisiblePages - 1) {
                                     startPage = Math.max(1, endPage - maxVisiblePages + 1);
                                   }
-                                  
+
                                   // Show ellipsis if there are more pages before
                                   if (startPage > 1) {
                                     pageNumbers.push(
@@ -562,7 +562,7 @@ export default function ClientDashboard() {
                                       );
                                     }
                                   }
-                                  
+
                                   for (let i = startPage; i <= endPage; i++) {
                                     pageNumbers.push(
                                       <Button
@@ -576,7 +576,7 @@ export default function ClientDashboard() {
                                       </Button>
                                     );
                                   }
-                                  
+
                                   // Show ellipsis if there are more pages after
                                   if (endPage < totalPages) {
                                     if (endPage < totalPages - 1) {
@@ -598,10 +598,10 @@ export default function ClientDashboard() {
                                       </Button>
                                     );
                                   }
-                                  
+
                                   return pageNumbers;
                                 })()}
-                                
+
                                 {/* Next Page */}
                                 <Button
                                   variant="outline"
@@ -662,7 +662,7 @@ export default function ClientDashboard() {
                           <div className="text-xs text-slate-600 hidden sm:block">
                             {projectStartIndex + 1}-{Math.min(projectEndIndex, projects.length)} of {projects.length}
                           </div>
-                          
+
                           <div className="flex items-center justify-center gap-1 mx-auto sm:mx-0">
                             {/* Previous Page */}
                             <Button
@@ -674,18 +674,18 @@ export default function ClientDashboard() {
                             >
                               <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4" />
                             </Button>
-                            
+
                             {/* Page Numbers - Mobile optimized */}
                             {(() => {
                               const pageNumbers = [];
                               const maxVisiblePages = 3; // Keep it minimal for mobile
                               let startPage = Math.max(1, projectCurrentPage - Math.floor(maxVisiblePages / 2));
                               let endPage = Math.min(projectTotalPages, startPage + maxVisiblePages - 1);
-                              
+
                               if (endPage - startPage < maxVisiblePages - 1) {
                                 startPage = Math.max(1, endPage - maxVisiblePages + 1);
                               }
-                              
+
                               // Show ellipsis if there are more pages before
                               if (startPage > 1) {
                                 pageNumbers.push(
@@ -707,7 +707,7 @@ export default function ClientDashboard() {
                                   );
                                 }
                               }
-                              
+
                               // Show page numbers
                               for (let i = startPage; i <= endPage; i++) {
                                 pageNumbers.push(
@@ -722,7 +722,7 @@ export default function ClientDashboard() {
                                   </Button>
                                 );
                               }
-                              
+
                               // Show ellipsis if there are more pages after
                               if (endPage < projectTotalPages) {
                                 if (endPage < projectTotalPages - 1) {
@@ -744,10 +744,10 @@ export default function ClientDashboard() {
                                   </Button>
                                 );
                               }
-                              
+
                               return pageNumbers;
                             })()}
-                            
+
                             {/* Next Page */}
                             <Button
                               variant="outline"
