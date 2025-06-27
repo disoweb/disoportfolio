@@ -1507,18 +1507,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/referrals/generate-code', isAuthenticated, securityHeaders, authRateLimit('referral_code'), async (req: any, res) => {
     try {
       const userId = req.user.id;
+      console.log('Generating referral code for user:', userId);
+      
       const user = await storage.getUser(userId);
 
       if (!user) {
+        console.error('User not found for referral code generation:', userId);
         return sendSafeErrorResponse(res, 404, new Error("User not found"), 'user_not_found');
       }
 
       // Check if user already has a referral code
       if (user.referralCode) {
+        console.log('User already has referral code:', user.referralCode);
         return res.json({ referralCode: user.referralCode });
       }
 
       const referralCode = await storage.generateReferralCode(userId);
+      console.log('Generated new referral code:', referralCode);
 
       auditLog('referral_code_generated', userId, { referralCode });
 

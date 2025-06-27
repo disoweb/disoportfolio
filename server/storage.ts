@@ -641,7 +641,7 @@ export class DatabaseStorage implements IStorage {
             }
           }
         }
-        
+
         // Additional fallback - if displayName is JSON string, fix it
         if (displayName && typeof displayName === 'string' && displayName.startsWith('{')) {
           try {
@@ -651,7 +651,7 @@ export class DatabaseStorage implements IStorage {
             displayName = 'Custom Project';
           }
         }
-        
+
         // Also check if order has serviceId directly
         if (!displayName || displayName.startsWith('{')) {
           if (project.order?.serviceId) {
@@ -861,6 +861,7 @@ export class DatabaseStorage implements IStorage {
 
       const existingOrderIds = new Set(existingProjects.map(p => p.orderId));
 
+      ```
       // Create projects for paid orders that don't have projects
       for (const order of paidOrders) {
         if (!existingOrderIds.has(order.id)) {
@@ -1389,32 +1390,43 @@ export class DatabaseStorage implements IStorage {
 
   // Referral system methods
   async generateReferralCode(userId: string): Promise<string> {
-    let referralCode: string;
-    let isUnique = false;
+    try {
+      // Check if user already has a referral code
+      const [existingUser] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
 
-    while (!isUnique) {
-      referralCode = `REF${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-      const existing = await this.getUserByReferralCode(referralCode);
-      if (!existing) {
-        isUnique = true;
+      if (existingUser?.referralCode) {
+        return existingUser.referralCode;
       }
+
+      // Generate a unique referral code
+      const referralCode = `REF${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
+
+      // Update user with referral code
+      await db.update(users).set({ 
+        referralCode,
+        updatedAt: new Date() 
+      }).where(eq(users.id, userId));
+
+      // Initialize referral earnings for user
+      const existingEarnings = await db.select().from(referralEarnings).where(eq(referralEarnings.userId, userId)).limit(1);
+
+      if (existingEarnings.length === 0) {
+        await db.insert(referralEarnings).values({
+          userId,
+          totalEarned: "0.00",
+          totalWithdrawn: "0.00",
+          pendingEarnings: "0.00",
+          availableBalance: "0.00",
+          totalReferrals: 0,
+          successfulReferrals: 0,
+        });
+      }
+
+      return referralCode;
+    } catch (error) {
+      console.error('Error generating referral code:', error);
+      throw new Error('Failed to generate referral code');
     }
-
-    // Update user with referral code
-    await db.update(users).set({ referralCode }).where(eq(users.id, userId));
-
-    // Initialize referral earnings for the user
-    await db.insert(referralEarnings).values({
-      userId,
-      totalEarned: "0.00",
-      totalWithdrawn: "0.00",
-      pendingEarnings: "0.00",
-      availableBalance: "0.00",
-      totalReferrals: 0,
-      successfulReferrals: 0,
-    }).onConflictDoNothing();
-
-    return referralCode!;
   }
 
   async getUserByReferralCode(referralCode: string): Promise<User | undefined> {
@@ -1828,6 +1840,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(seoPages)
       .where(eq(seoPages.path, path))
+```
       .limit(1);
     return page || null;
   }

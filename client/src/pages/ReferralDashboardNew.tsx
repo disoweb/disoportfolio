@@ -10,6 +10,30 @@ import { Copy, DollarSign, Users, TrendingUp, Wallet, Calendar, Eye, Clock } fro
 import { useToast } from "@/hooks/use-toast";
 import Navigation from "@/components/Navigation";
 
+// API request helper function
+async function apiRequest(method: string, url: string, data?: any) {
+  const options: RequestInit = {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+  };
+
+  if (data && method !== 'GET') {
+    options.body = JSON.stringify(data);
+  }
+
+  const response = await fetch(url, options);
+  
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ message: 'Request failed' }));
+    throw new Error(errorData.message || `HTTP ${response.status}`);
+  }
+
+  return response;
+}
+
 export default function ReferralDashboardNew() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
