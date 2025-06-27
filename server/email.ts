@@ -26,12 +26,12 @@ export class EmailService {
       console.log(`To: ${options.to}`);
       console.log(`Subject: ${options.subject}`);
       console.log(`HTML Content: ${options.html}`);
-      
+
       auditLog('email_sent', undefined, { 
         to: options.to.substring(0, 5) + '***',
         subject: options.subject 
       });
-      
+
       return true;
     } catch (error) {
       console.error('Email sending failed:', error);
