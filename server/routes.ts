@@ -602,46 +602,261 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Payment callback route (for redirect after payment)
   app.get('/api/payments/callback', async (req, res) => {
-
-
+    const clientIP = req.ip || req.connection.remoteAddress || 'unknown';
+    
     try {
+      // Security: Rate limit callback attempts
+      const { allowed, message } = checkRateLimit('payment_callback', clientIP);
+      if (!allowed) {
+        auditLog('payment_callback_rate_limited', undefined, { clientIP, message });
+        return res.status(429).send(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Payment Processing</title>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <style>
+              body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #f5f5f5; }
+              .container { max-width: 500px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+              .error { color: #dc3545; }
+              .btn { display: inline-block; padding: 12px 24px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; margin-top: 20px; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <h2 class="error">Too Many Requests</h2>
+              <p>Please wait before trying again.</p>
+              <a href="/" class="btn">Return to Home</a>
+            </div>
+          </body>
+          </html>
+        `);
+      }
+
       const { reference, trxref, status } = req.query;
       const paymentReference = (reference || trxref) as string;
+
+      // Security: Validate payment reference format
+      if (!paymentReference || !/^PSK_\d+_[a-z0-9]+$/i.test(paymentReference)) {
+        auditLog('payment_callback_invalid_reference', undefined, { clientIP, reference: paymentReference });
+        return res.status(400).send(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Payment Error</title>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <style>
+              body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #f5f5f5; }
+              .container { max-width: 500px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+              .error { color: #dc3545; }
+              .btn { display: inline-block; padding: 12px 24px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; margin-top: 20px; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <h2 class="error">Invalid Payment Reference</h2>
+              <p>The payment reference provided is not valid.</p>
+              <a href="/" class="btn">Return to Home</a>
+            </div>
+          </body>
+          </html>
+        `);
+      }
 
       if (paymentReference) {
         // Verify payment with Paystack before confirming success
         try {
           const paystackSecretKey = process.env.PAYSTACK_SECRET_KEY;
+          if (!paystackSecretKey) {
+            throw new Error('Payment service not configured');
+          }
+
           const verifyResponse = await fetch(`https://api.paystack.co/transaction/verify/${paymentReference}`, {
             headers: {
               Authorization: `Bearer ${paystackSecretKey}`,
             },
           });
 
+          if (!verifyResponse.ok) {
+            throw new Error(`Paystack API error: ${verifyResponse.status}`);
+          }
+
           const verifyData = await verifyResponse.json();
 
           if (verifyData.status && verifyData.data.status === 'success') {
             // Payment verified, use the centralized success handler
             await storage.handleSuccessfulPayment(verifyData.data);
-            console.log(`Payment verified and processed for order: ${verifyData.data.metadata?.orderId}`);
+            auditLog('payment_callback_success', undefined, { 
+              clientIP, 
+              orderId: verifyData.data.metadata?.orderId,
+              amount: verifyData.data.amount,
+              reference: paymentReference
+            });
 
-            // Redirect to dashboard with success and clear payment flag
-            return res.redirect('/?payment=success&clear_payment=true#dashboard');
+            // Enhanced success page with better UX
+            return res.send(`
+              <!DOCTYPE html>
+              <html>
+              <head>
+                <title>Payment Successful</title>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1">
+                <style>
+                  body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #f5f5f5; }
+                  .container { max-width: 500px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+                  .success { color: #28a745; }
+                  .btn { display: inline-block; padding: 12px 24px; background: #28a745; color: white; text-decoration: none; border-radius: 5px; margin-top: 20px; }
+                  .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #28a745; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 20px auto; }
+                  @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+                </style>
+                <script>
+                  setTimeout(function() {
+                    window.location.href = '/?payment=success&clear_payment=true#dashboard';
+                  }, 3000);
+                </script>
+              </head>
+              <body>
+                <div class="container">
+                  <h2 class="success">✅ Payment Successful!</h2>
+                  <p>Your payment has been processed successfully.</p>
+                  <div class="spinner"></div>
+                  <p>Redirecting you to your dashboard...</p>
+                  <a href="/?payment=success&clear_payment=true#dashboard" class="btn">Go to Dashboard Now</a>
+                </div>
+              </body>
+              </html>
+            `);
           } else {
-            console.log('Payment verification failed:', verifyData);
-            return res.redirect('/?payment=failed&clear_payment=true#dashboard');
+            auditLog('payment_callback_failed', undefined, { 
+              clientIP, 
+              reference: paymentReference,
+              status: verifyData.data?.status || 'unknown'
+            });
+            
+            return res.send(`
+              <!DOCTYPE html>
+              <html>
+              <head>
+                <title>Payment Failed</title>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1">
+                <style>
+                  body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #f5f5f5; }
+                  .container { max-width: 500px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+                  .error { color: #dc3545; }
+                  .btn { display: inline-block; padding: 12px 24px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; margin-top: 20px; }
+                  .btn-retry { background: #ffc107; color: #212529; }
+                </style>
+                <script>
+                  setTimeout(function() {
+                    window.location.href = '/?payment=failed&clear_payment=true#dashboard';
+                  }, 5000);
+                </script>
+              </head>
+              <body>
+                <div class="container">
+                  <h2 class="error">❌ Payment Failed</h2>
+                  <p>Your payment was not successful. You can try again or contact support if you continue to experience issues.</p>
+                  <a href="/services" class="btn btn-retry">Try Again</a>
+                  <a href="/?payment=failed&clear_payment=true#dashboard" class="btn">Go to Dashboard</a>
+                </div>
+              </body>
+              </html>
+            `);
           }
         } catch (verifyError) {
-          console.error("Error verifying payment:", verifyError);
-          return res.redirect('/?payment=error&clear_payment=true#dashboard');
+          auditLog('payment_callback_verify_error', undefined, { 
+            clientIP, 
+            reference: paymentReference,
+            error: (verifyError as Error).message
+          });
+          
+          return res.status(500).send(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <title>Payment Error</title>
+              <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1">
+              <style>
+                body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #f5f5f5; }
+                .container { max-width: 500px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+                .error { color: #dc3545; }
+                .btn { display: inline-block; padding: 12px 24px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; margin-top: 20px; }
+              </style>
+              <script>
+                setTimeout(function() {
+                  window.location.href = '/?payment=error&clear_payment=true#dashboard';
+                }, 5000);
+              </script>
+            </head>
+            <body>
+              <div class="container">
+                <h2 class="error">⚠️ Payment Processing Error</h2>
+                <p>There was an error processing your payment. Please contact support with reference: ${paymentReference}</p>
+                <a href="/?payment=error&clear_payment=true#dashboard" class="btn">Go to Dashboard</a>
+              </div>
+            </body>
+            </html>
+          `);
         }
       } else {
-        console.log('No payment reference provided in callback');
-        return res.redirect('/?payment=failed&clear_payment=true#dashboard');
+        auditLog('payment_callback_no_reference', undefined, { clientIP });
+        return res.status(400).send(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Payment Error</title>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <style>
+              body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #f5f5f5; }
+              .container { max-width: 500px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+              .error { color: #dc3545; }
+              .btn { display: inline-block; padding: 12px 24px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; margin-top: 20px; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <h2 class="error">Missing Payment Reference</h2>
+              <p>No payment reference was provided.</p>
+              <a href="/" class="btn">Return to Home</a>
+            </div>
+          </body>
+          </html>
+        `);
       }
     } catch (error) {
-      console.error("Error handling payment callback:", error);
-      return res.redirect('/?payment=error&clear_payment=true#dashboard');
+      auditLog('payment_callback_error', undefined, { 
+        clientIP, 
+        error: (error as Error).message
+      });
+      
+      return res.status(500).send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Payment Error</title>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <style>
+            body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #f5f5f5; }
+            .container { max-width: 500px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+            .error { color: #dc3545; }
+            .btn { display: inline-block; padding: 12px 24px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; margin-top: 20px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h2 class="error">System Error</h2>
+            <p>There was a system error processing your payment callback. Please contact support.</p>
+            <a href="/" class="btn">Return to Home</a>
+          </div>
+        </body>
+        </html>
+      `);
     }
   });
 
