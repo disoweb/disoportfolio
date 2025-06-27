@@ -311,19 +311,6 @@ export const seoRules = pgTable("seo_rules", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const seoAudits = pgTable("seo_audits", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  auditType: varchar("audit_type").notNull(),
-  page: varchar("page"),
-  status: varchar("status").default("pending"),
-  score: integer("score"),
-  findings: jsonb("findings"),
-  recommendations: jsonb("recommendations"),
-  notes: text("notes"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
 export const seoKeywords = pgTable("seo_keywords", {
   id: uuid("id").primaryKey().defaultRandom(),
   keyword: varchar("keyword").notNull(),
