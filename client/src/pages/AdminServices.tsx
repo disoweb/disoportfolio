@@ -161,11 +161,11 @@ export default function AdminServices() {
       name: service.name,
       description: service.description,
       category: service.category,
-      price: service.price.toString(),
-      priceUsd: service.priceUsd,
-      currency: service.currency,
-      deliveryDays: service.deliveryDays.toString(),
-      features: service.features.length > 0 ? service.features : [''],
+      price: service.price ? service.price.toString() : '',
+      priceUsd: service.priceUsd || '',
+      currency: service.currency || 'NGN',
+      deliveryDays: service.deliveryDays ? service.deliveryDays.toString() : '',
+      features: service.features && service.features.length > 0 ? service.features : [''],
       isActive: service.isActive
     });
     setIsEditDialogOpen(true);
