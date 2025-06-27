@@ -895,7 +895,6 @@ export class DatabaseStorage implements IStorage {
     const [project] = await db
       .select()
       .from(projects)
-```text
       .where(and(eq(projects.id, projectId), eq(projects.userId, userId)));
 
     return !!project;
@@ -1548,8 +1547,36 @@ export class DatabaseStorage implements IStorage {
     return updatedRequest;
   }
 
-  // SEO Management Methods
-  async getSeoSettings(): Promise<SeoSettings> {
+  async processWithdrawal(id: string, adminId: string, status: string, notes?: string): Promise<WithdrawalRequest> {
+    const [withdrawal] = await db
+      .update(withdrawalRequests)
+      .set({
+        status: status as any,
+        processedAt: new Date(),
+        processedBy: adminId,
+        adminNotes: notes,
+      })
+      .where(eq(withdrawalRequests.id, id))
+      .returning();
+
+    // If approved/completed, update user's earnings
+    if (status === "completed") {
+      const amount = parseFloat(withdrawal.amount);
+      await db
+        .update(referralEarnings)
+        .set({
+          totalWithdrawn: sql`${referralEarnings.totalWithdrawn} + ${amount}`,
+          availableBalance: sql`${referralEarnings.availableBalance} - ${amount}`,
+          updatedAt: new Date(),
+        })
+        .where(eq(referralEarnings.userId, withdrawal.userId));
+    }
+
+    return withdrawal;
+  }
+
+   // SEO Management Methods
+   async getSeoSettings(): Promise<SeoSettings> {
     const [settings] = await db
       .select()
       .from(seoSettings)
@@ -1689,43 +1716,12 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(seoAnalytics.date));
   }
 
-  async createSeoPage(pageData: InsertSeoPage): Promise<SeoPage> {
-    const [newPage] = await db.insert(seoPages).values(pageData).returning();
-    return newPage;
-  }
-
-  async updateSeoPage(id: string, updates: Partial<InsertSeoPage>): Promise<SeoPage> {
-    const [updatedPage] = await db
-      .update(seoPages)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(seoPages.id, id))
-      .returning();
-    return updatedPage;
-  }
-
-  async deleteSeoPage(id: string): Promise<void> {
-    await db.delete(seoPages).where(eq(seoPages.id, id));
-  }
-
-  async getAllSeoAudits(): Promise<SeoAudit[]> {
-    return await db
+  async getSeoAuditById(id: string): Promise<SeoAudit | null> {
+    const [audit] = await db
       .select()
       .from(seoAudits)
-      .orderBy(desc(seoAudits.createdAt));
-  }
-
-  async createSeoAudit(auditData: InsertSeoAudit): Promise<SeoAudit> {
-    const [newAudit] = await db.insert(seoAudits).values(auditData).returning();
-    return newAudit;
-  }
-
-  async updateSeoAudit(id: string, updates: Partial<InsertSeoAudit>): Promise<SeoAudit> {
-    const [updatedAudit] = await db
-      .update(seoAudits)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(seoAudits.id, id))
-      .returning();
-    return updatedAudit;
+      .where(eq(seoAudits.id, id));
+    return audit || null;
   }
 
   async getSeoAnalyticsByPageAndDate(page: string, date: string): Promise<SeoAnalytics | null> {
@@ -1850,6 +1846,7 @@ export class DatabaseStorage implements IStorage {
 
   // SEO Keywords Methods
   async getAllSeoKeywords(): Promise<SeoKeyword[]> {
+    ```text
     return await db
       .select()
       .from(seoKeywords)
@@ -1859,233 +1856,6 @@ export class DatabaseStorage implements IStorage {
   async createSeoKeyword(keywordData: InsertSeoKeyword): Promise<SeoKeyword> {
     const [newKeyword] = await db.insert(seoKeywords).values(keywordData).returning();
     return newKeyword;
-  }
-
-  async updateSeoKeyword(id: string, updates: Partial<InsertSeword>): Promise<SeoKeyword> {
-    const [updatedKeyword] = await db
-      .update(seoKeywords)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(seoKeywords.id, id))
-      .returning();
-    return updatedKeyword;
-  }
-
-  async deleteSeoKeyword(id: string): Promise<void> {
-    await db.delete(seoKeywords).where(eq(seoKeywords.id, id));
-  }
-
-  // SEO Analytics Methods
-  async createSeoAnalytics(analyticsData: InsertSeoAnalytics): Promise<SeoAnalytics> {
-    const [newAnalytics] = await db.insert(seoAnalytics).values(analyticsData).returning();
-    return newAnalytics;
-  }
-
-  async getSeoAnalyticsByPage(page: string, startDate?: string, endDate?: string): Promise<SeoAnalytics[]> {
-    const conditions = [eq(seoAnalytics.page, page)];
-
-    if (startDate) {
-      conditions.push(gte(seoAnalytics.date, startDate));
-    }
-    if (endDate) {
-      conditions.push(lte(seoAnalytics.date, endDate));
-    }
-
-    return await db
-      .select()
-      .from(seoAnalytics)
-      .where(and(...conditions))
-      .orderBy(desc(seoAnalytics.date));
-  }
-
-  // SEO Audits Methods
-  async getAllSeoAudits(): Promise<SeoAudit[]> {
-    return await db
-      .select()
-      .from(seoAudits)
-      .orderBy(desc(seoAudits.createdAt));
-  }
-
-  async createSeoAudit(auditData: InsertSeoAudit): Promise<SeoAudit> {
-    const [newAudit] = await db.insert(seoAudits).values(auditData).returning();
-    return newAudit;
-  }
-
-  async updateSeoAudit(id: string, updates: Partial<InsertSeoAudit>): Promise<SeoAudit> {
-    const [updatedAudit] = await db
-      .update(seoAudits)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(seoAudits.id, id))
-      .returning();
-    return updatedAudit;
-  }
-
-  async getSeoAnalyticsByPageAndDate(page: string, date: string): Promise<SeoAnalytics | null> {
-    const [analytics] = await db
-      .select()
-      .from(seoAnalytics)
-      .where(and(eq(seoAnalytics.page, page), eq(seoAnalytics.date, date)))
-      .limit(1);
-    return analytics || null;
-  }
-
-  async updateSeoAnalytics(id: string, updates: Partial<InsertSeoAnalytics>): Promise<SeoAnalytics> {
-    const [updatedAnalytics] = await db
-      .update(seoAnalytics)
-      .set(updates)
-      .where(eq(seoAnalytics.id, id))
-      .returning();
-    return updatedAnalytics;
-  }
-
-  // SEO Settings Methods
-  async getSeoSettings(): Promise<SeoSettings> {
-    const [settings] = await db
-      .select()
-      .from(seoSettings)
-      .where(eq(seoSettings.id, "global"))
-      .limit(1);
-
-    if (!settings) {
-      // Create default settings if none exist
-      const defaultSettings = {
-        id: "global",
-        siteName: "DiSO Webs",
-        siteDescription: "Professional web development and digital solutions",
-        siteUrl: "https://disoweb.replit.app",
-        defaultMetaTitle: "DiSO Webs - Professional Web Development Services",
-        defaultMetaDescription: "Transform your digital presence with DiSO Webs. We create stunning websites, web applications, and digital solutions that drive results.",
-        defaultKeywords: "web development, website design, digital solutions, web applications, responsive design",
-        sitemapEnabled: true,
-        openGraphEnabled: true,
-        structuredDataEnabled: true,
-        breadcrumbsEnabled: true,
-        twitterCardsEnabled: true,
-      };
-
-      const [newSettings] = await db.insert(seoSettings).values(defaultSettings).returning();
-      return newSettings;
-    }
-
-    return settings;
-  }
-
-  async updateSeoSettings(updates: Partial<InsertSeoSettings>): Promise<SeoSettings> {
-    const [updatedSettings] = await db
-      .update(seoSettings)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(seoSettings.id, "global"))
-      .returning();
-    return updatedSettings;
-  }
-
-  // SEO Pages Methods
-  async getAllSeoPages(): Promise<SeoPage[]> {
-    return await db
-      .select()
-      .from(seoPages)
-      .orderBy(desc(seoPages.priority), seoPages.path);
-  }
-
-  async getSeoPageByPath(path: string): Promise<SeoPage | null> {
-    const [page] = await db
-      .select()
-      .from(seoPages)
-      .where(eq(seoPages.path, path))
-      .limit(1);
-    return page || null;
-  }
-
-  async createSeoPage(pageData: InsertSeoPage): Promise<SeoPage> {
-    const [newPage] = await db.insert(seoPages).values(pageData).returning();
-    return newPage;
-  }
-
-  async updateSeoPage(id: string, updates: Partial<InsertSeoPage>): Promise<SeoPage> {
-    const [updatedPage] = await db
-      .update(seoPages)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(seoPages.id, id))
-      .returning();
-    return updatedPage;
-  }
-
-  async deleteSeoPage(id: string): Promise<void> {
-    await db.delete(seoPages).where(eq(seoPages.id, id));
-  }
-
-  // SEO Rules Methods
-  async getAllSeoRules(): Promise<SeoRule[]> {
-    return await db
-      .select()
-      .from(seoRules)
-      .orderBy(desc(seoRules.priority), seoRules.name);
-  }
-
-  async createSeoRule(ruleData: InsertSeoRule): Promise<SeoRule> {
-    const [newRule] = await db.insert(seoRules).values(ruleData).returning();
-    return newRule;
-  }
-
-  async updateSeoRule(id: string, updates: Partial<InsertSeoRule>): Promise<SeoRule> {
-    const [updatedRule] = await db
-      .update(seoRules)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(seoRules.id, id))
-      .returning();
-    return updatedRule;
-  }
-
-  async deleteSeoRule(id: string): Promise<void> {
-    await db.delete(seoRules).where(eq(seoRules.id, id));
-  }
-
-  // SEO Keywords Methods
-  async getAllSeoKeywords(): Promise<SeoKeyword[]> {
-    return await db
-      .select()
-      .from(seoKeywords)
-      .orderBy(desc(seoKeywords.searchVolume), seoKeywords.keyword);
-  }
-
-  async createSeoKeyword(keywordData: InsertSeoKeyword): Promise<SeoKeyword> {
-    const [newKeyword] = await db.insert(seoKeywords).values(keywordData).returning();
-    return newKeyword;
-  }
-
-  async updateSeoKeyword(id: string, updates: Partial<InsertSeoKeyword>): Promise<SeoKeyword> {
-    const [updatedKeyword] = await db
-      .update(seoKeywords)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(seoKeywords.id, id))
-      .returning();
-    return updatedKeyword;
-  }
-
-  async deleteSeoKeyword(id: string): Promise<void> {
-    await db.delete(seoKeywords).where(eq(seoKeywords.id, id));
-  }
-
-  // SEO Analytics Methods
-  async createSeoAnalytics(analyticsData: InsertSeoAnalytics): Promise<SeoAnalytics> {
-    const [newAnalytics] = await db.insert(seoAnalytics).values(analyticsData).returning();
-    return newAnalytics;
-  }
-
-  async getSeoAnalyticsByPage(page: string, startDate?: string, endDate?: string): Promise<SeoAnalytics[]> {
-    const conditions = [eq(seoAnalytics.page, page)];
-
-    if (startDate) {
-      conditions.push(gte(seoAnalytics.date, startDate));
-    }
-    if (endDate) {
-      conditions.push(lte(seoAnalytics.date, endDate));
-    }
-
-    return await db
-      .select()
-      .from(seoAnalytics)
-      .where(and(...conditions))
-      .orderBy(desc(seoAnalytics.date));
   }
 
   // SEO Audits Methods
