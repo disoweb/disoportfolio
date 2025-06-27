@@ -325,16 +325,18 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
       setShowStreamlinedConfirmation(true);
       setCurrentStep(2);
       
-      // Auto-proceed to payment after user sees confirmation
+      // Auto-proceed to payment after user sees confirmation (reduced timeout)
       setTimeout(() => {
-        setShowPaymentLoader(true);
-        orderMutation.mutate({
-          paymentMethod: 'paystack',
-          timeline: 'standard',
-          overrideSelectedAddOns: sessionData?.selectedAddOns || selectedAddOns,
-          overrideTotalAmount: sessionData?.totalPrice || totalPrice
-        });
-      }, 2500); // Give user 2.5s to see the confirmation
+        if (user && contactInfo) { // Double-check before proceeding
+          setShowPaymentLoader(true);
+          orderMutation.mutate({
+            paymentMethod: 'paystack',
+            timeline: 'standard',
+            overrideSelectedAddOns: sessionData?.selectedAddOns || selectedAddOns,
+            overrideTotalAmount: sessionData?.totalPrice || totalPrice
+          });
+        }
+      }, 1500); // Reduced to 1.5 seconds
     }
   }, [user, sessionData, orderMutation, selectedAddOns, totalPrice, showStreamlinedConfirmation]);
 
@@ -646,10 +648,34 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
                 </div>
               </div>
 
-              <div className="flex items-center justify-center gap-2 text-blue-600">
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
-                <span className="text-sm font-medium">Redirecting to secure payment...</span>
-              </div>
+              {showPaymentLoader ? (
+                <div className="flex items-center justify-center gap-2 text-blue-600">
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
+                  <span className="text-sm font-medium">Redirecting to secure payment...</span>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-center gap-2 text-green-600">
+                    <CheckCircle className="h-4 w-4" />
+                    <span className="text-sm font-medium">Ready to proceed</span>
+                  </div>
+                  <Button 
+                    onClick={() => {
+                      setShowPaymentLoader(true);
+                      orderMutation.mutate({
+                        paymentMethod: 'paystack',
+                        timeline: 'standard',
+                        overrideSelectedAddOns: sessionData?.selectedAddOns || selectedAddOns,
+                        overrideTotalAmount: sessionData?.totalPrice || totalPrice
+                      });
+                    }}
+                    disabled={orderMutation.isPending}
+                    className="w-full bg-blue-600 hover:bg-blue-700"
+                  >
+                    Proceed to Payment - ₦{totalPrice.toLocaleString()}
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
