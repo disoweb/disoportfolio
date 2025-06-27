@@ -82,17 +82,15 @@ export async function setupAuth(app: Express) {
 
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || 'dev-secret-key-for-replit-development',
-    resave: false, // Optimized for PostgreSQL session store
-    saveUninitialized: false, // Better security and performance
+    resave: true, // Force session save for PostgreSQL compatibility
+    saveUninitialized: false,
     store: sessionStore,
-    rolling: true, // Extend session on activity
+    rolling: false, // Disable rolling sessions for stability
     cookie: {
       secure: false,
       httpOnly: true,
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      sameSite: 'lax',
-      domain: undefined, // Let browser determine domain
-      path: '/' // Ensure cookie is available for all paths
+      sameSite: 'lax'
     },
     name: 'connect.sid'
   };
@@ -117,27 +115,40 @@ export async function setupAuth(app: Express) {
       { usernameField: 'email' },
       async (email, password, done) => {
         try {
-          console.log('Login attempt for email:', email);
+          console.log('🔍 [LOGIN DEBUG] Login attempt for email:', email);
           const user = await storage.getUserByEmail(email);
+          
           if (!user) {
+            console.log('❌ [LOGIN DEBUG] User not found for email:', email);
             return done(null, false, { message: 'Invalid email or password' });
           }
           
+          console.log('🔍 [LOGIN DEBUG] User found:', {
+            id: user.id,
+            email: user.email,
+            hasPassword: !!user.password,
+            passwordLength: user.password?.length
+          });
+          
           if (!user.password) {
+            console.log('❌ [LOGIN DEBUG] User has no password');
             return done(null, false, { message: 'Invalid email or password' });
           }
 
           // Use bcrypt for all password comparisons
+          console.log('🔍 [LOGIN DEBUG] Comparing passwords...');
           const isValid = await comparePasswords(password, user.password);
+          console.log('🔍 [LOGIN DEBUG] Password comparison result:', isValid);
           
           if (!isValid) {
+            console.log('❌ [LOGIN DEBUG] Password comparison failed');
             return done(null, false, { message: 'Invalid email or password' });
           }
 
-          console.log('Login successful for user:', user.id);
+          console.log('✅ [LOGIN DEBUG] Login successful for user:', user.id);
           return done(null, user);
         } catch (error) {
-          console.error('Login strategy error:', error);
+          console.error('❌ [LOGIN DEBUG] Login strategy error:', error);
           return done(error);
         }
       }
@@ -303,6 +314,30 @@ export async function setupAuth(app: Express) {
     } catch (error) {
       console.error('Deserialization error:', error);
       done(null, false);
+    }
+  });
+
+  // Debug endpoint to test database connection
+  app.get("/api/auth/test-user", async (req, res) => {
+    try {
+      console.log('🔍 [DEBUG] Testing getUserByEmail function...');
+      const user = await storage.getUserByEmail('cyfer33@gmail.com');
+      console.log('🔍 [DEBUG] User lookup result:', {
+        found: !!user,
+        id: user?.id,
+        email: user?.email,
+        hasPassword: !!user?.password,
+        passwordLength: user?.password?.length
+      });
+      res.json({ 
+        success: true, 
+        userFound: !!user,
+        userId: user?.id,
+        hasPassword: !!user?.password 
+      });
+    } catch (error) {
+      console.error('❌ [DEBUG] Database error:', error);
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -475,19 +510,41 @@ export async function setupAuth(app: Express) {
             // Set user ID in the regenerated session
             (req.session as any).userId = user.id;
             
-            // Force session save to PostgreSQL immediately
-            req.session.save((saveErr) => {
-              if (saveErr) {
-                console.error('Session save error:', saveErr);
-                auditLog('login_session_error', user.id, { error: saveErr.message, clientIP });
-                return res.status(500).json({ message: "Login failed" });
+            // Also use passport's session serialization for compatibility
+            req.logIn(user, (loginErr) => {
+              if (loginErr) {
+                console.error('Passport login error:', loginErr);
+                // Continue without passport login, use custom session only
               }
               
-              const sanitizedUser = { ...user };
-              delete (sanitizedUser as any).password;
+              console.log('🔍 [LOGIN DEBUG] Setting userId in session:', user.id);
+              console.log('🔍 [LOGIN DEBUG] Session before save:', {
+                sessionId: req.sessionID,
+                userId: (req.session as any).userId,
+                sessionKeys: Object.keys(req.session)
+              });
               
-              auditLog('login_success', user.id, { email: sanitizedEmail.substring(0, 5) + '***', clientIP });
-              res.json({ user: sanitizedUser });
+              // Force session save to PostgreSQL immediately
+              req.session.save((saveErr) => {
+                if (saveErr) {
+                  console.error('❌ [LOGIN DEBUG] Session save error:', saveErr);
+                  auditLog('login_session_error', user.id, { error: saveErr.message, clientIP });
+                  return res.status(500).json({ message: "Login failed" });
+                }
+                
+                console.log('✅ [LOGIN DEBUG] Session saved successfully');
+                console.log('🔍 [LOGIN DEBUG] Session after save:', {
+                  sessionId: req.sessionID,
+                  userId: (req.session as any).userId,
+                  sessionKeys: Object.keys(req.session)
+                });
+                
+                const sanitizedUser = { ...user };
+                delete (sanitizedUser as any).password;
+                
+                auditLog('login_success', user.id, { email: sanitizedEmail.substring(0, 5) + '***', clientIP });
+                res.json({ user: sanitizedUser });
+              });
             });
           });
         } else {
@@ -505,35 +562,52 @@ export async function setupAuth(app: Express) {
 
   app.get("/api/auth/user", async (req, res) => {
     try {
+      console.log('🔍 [USER DEBUG] Session check:', {
+        sessionExists: !!req.session,
+        sessionId: req.sessionID,
+        sessionUserId: req.session?.userId,
+        sessionKeys: req.session ? Object.keys(req.session) : [],
+        passportUser: req.session?.passport?.user,
+        reqUser: !!req.user
+      });
+
       // Check multiple sources for user authentication
       let userId = null;
       
       // Check custom session userId first
       if (req.session && (req.session as any).userId) {
         userId = (req.session as any).userId;
+        console.log('✅ [USER DEBUG] Found userId in session:', userId);
       }
       // Check passport session
       else if ((req.session as any)?.passport?.user) {
         const sessionUser = (req.session as any).passport.user;
         userId = sessionUser.id || sessionUser;
+        console.log('✅ [USER DEBUG] Found userId in passport session:', userId);
       }
       // Check req.user
       else if (req.user) {
         userId = (req.user as any).id || req.user;
+        console.log('✅ [USER DEBUG] Found userId in req.user:', userId);
       }
       
       if (userId) {
-        const user = await storage.getUser(userId);
+        console.log('🔍 [USER DEBUG] Looking up user by ID:', userId);
+        const user = await storage.getUserById(userId);
+        console.log('🔍 [USER DEBUG] User lookup result:', !!user);
         
         if (user) {
           const sanitizedUser = { ...user };
           delete (sanitizedUser as any).password;
+          console.log('✅ [USER DEBUG] Returning user data');
           return res.json(sanitizedUser);
         }
       }
       
+      console.log('❌ [USER DEBUG] No user found, returning null');
       res.json(null);
     } catch (error) {
+      console.error('❌ [USER DEBUG] Error:', error);
       res.json(null);
     }
   });
@@ -834,18 +908,38 @@ export async function setupAuth(app: Express) {
 
 export const isAuthenticated = async (req: any, res: any, next: any) => {
   try {
+    console.log('🔍 [AUTH DEBUG] Starting authentication check');
+    console.log('🔍 [AUTH DEBUG] Session exists:', !!req.session);
+    console.log('🔍 [AUTH DEBUG] Session ID:', req.sessionID);
+    
+    if (req.session) {
+      console.log('🔍 [AUTH DEBUG] Session data:', {
+        userId: req.session.userId,
+        passport: req.session.passport,
+        sessionKeys: Object.keys(req.session)
+      });
+    }
+    
+    console.log('🔍 [AUTH DEBUG] req.user exists:', !!req.user);
+    console.log('🔍 [AUTH DEBUG] req.isAuthenticated():', req.isAuthenticated ? req.isAuthenticated() : 'N/A');
+    
     // Ensure session is loaded from PostgreSQL database
     if (!req.session) {
+      console.log('❌ [AUTH DEBUG] No session found');
       return res.status(401).json({ message: "Authentication required" });
     }
     
     // Check custom session userId first (from our login system)
     if ((req.session as any).userId) {
       const userId = (req.session as any).userId;
+      console.log('🔍 [AUTH DEBUG] Found custom userId in session:', userId);
       const user = await storage.getUserById(userId);
       if (user) {
+        console.log('✅ [AUTH DEBUG] User found via custom session:', user.email);
         req.user = user;
         return next();
+      } else {
+        console.log('❌ [AUTH DEBUG] User not found for userId:', userId);
       }
     }
 
@@ -855,23 +949,30 @@ export const isAuthenticated = async (req: any, res: any, next: any) => {
         ? req.session.passport.user.id 
         : req.session.passport.user;
       
+      console.log('🔍 [AUTH DEBUG] Found passport userId:', passportUserId);
+      
       if (passportUserId) {
         const user = await storage.getUserById(passportUserId);
         if (user) {
+          console.log('✅ [AUTH DEBUG] User found via passport session:', user.email);
           req.user = user;
           return next();
+        } else {
+          console.log('❌ [AUTH DEBUG] User not found for passport userId:', passportUserId);
         }
       }
     }
     
     // Final fallback for req.user
     if (req.user) {
+      console.log('✅ [AUTH DEBUG] User found via req.user:', req.user.email);
       return next();
     }
     
+    console.log('❌ [AUTH DEBUG] Authentication failed - no valid user found');
     return res.status(401).json({ message: "Authentication required" });
   } catch (error) {
-    console.error('Authentication middleware error:', error);
+    console.error('❌ [AUTH DEBUG] Authentication middleware error:', error);
     res.status(401).json({ message: "Authentication required" });
   }
 };
