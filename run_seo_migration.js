@@ -1,5 +1,5 @@
 
-const { neon } = require('@neondatabase/serverless');
+import { neon } from '@neondatabase/serverless';
 
 async function runSeoMigration() {
   console.log('Running SEO tables migration directly...');
