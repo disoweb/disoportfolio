@@ -272,29 +272,7 @@ export async function setupAuth(app: Express) {
     }
   });
 
-  // Debug endpoint to test database connection
-  app.get("/api/auth/test-user", async (req, res) => {
-    try {
-      console.log('🔍 [DEBUG] Testing getUserByEmail function...');
-      const user = await storage.getUserByEmail('cyfer33@gmail.com');
-      console.log('🔍 [DEBUG] User lookup result:', {
-        found: !!user,
-        id: user?.id,
-        email: user?.email,
-        hasPassword: !!user?.password,
-        passwordLength: user?.password?.length
-      });
-      res.json({ 
-        success: true, 
-        userFound: !!user,
-        userId: user?.id,
-        hasPassword: !!user?.password 
-      });
-    } catch (error) {
-      console.error('❌ [DEBUG] Database error:', error);
-      res.status(500).json({ error: error.message });
-    }
-  });
+
 
   // Auth routes with comprehensive security
   app.post("/api/auth/register", authRateLimit('register'), validateContentType, async (req, res, next) => {
@@ -423,20 +401,13 @@ export async function setupAuth(app: Express) {
       }
 
       // Use our robust SessionManager for consistent session handling
-      console.log('🔑 [LOGIN DEBUG] Login successful, about to create session for user:', user.id);
-      console.log('🔑 [LOGIN DEBUG] Current request session ID:', req.sessionID);
-      
       SessionManager.createUserSession(req, user, 'local').then(() => {
-        console.log('🔑 [LOGIN DEBUG] Session created successfully, sending response to user:', user.id);
-        console.log('🔑 [LOGIN DEBUG] Final session ID after creation:', req.sessionID);
-        
         const sanitizedUser = { ...user };
         delete (sanitizedUser as any).password;
         
         auditLog('login_success', user.id, { email: sanitizedEmail.substring(0, 5) + '***', clientIP });
         res.json({ user: sanitizedUser });
       }).catch((sessionError) => {
-        console.error('🔧 [LOGIN DEBUG] SessionManager error:', sessionError);
         auditLog('login_session_error', user.id, { error: sessionError.message, clientIP });
         res.status(500).json({ message: "Login session creation failed" });
       });
