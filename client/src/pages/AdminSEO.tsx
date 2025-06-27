@@ -174,6 +174,29 @@ export default function AdminSEO() {
     },
   });
 
+  // Delete keyword mutation
+  const deleteKeywordMutation = useMutation({
+    mutationFn: async (keywordId: string) => {
+      const response = await apiRequest("DELETE", `/api/admin/seo/keywords/${keywordId}`);
+      if (!response.ok) throw new Error("Failed to delete keyword");
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/seo/keywords"] });
+      toast({
+        title: "Keyword Deleted",
+        description: "SEO keyword has been deleted successfully!",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete keyword. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Create/Update keyword mutation
   const createKeywordMutation = useMutation({
     mutationFn: async (keywordData: any) => {
@@ -280,6 +303,7 @@ export default function AdminSEO() {
       targetPage: formData.get("targetPage"),
       searchVolume: parseInt(formData.get("searchVolume") as string) || null,
       difficulty: parseFloat(formData.get("difficulty") as string) || null,
+      currentRanking: parseInt(formData.get("currentRanking") as string) || null,
       targetRanking: parseInt(formData.get("targetRanking") as string) || null,
       notes: formData.get("notes"),
     };
@@ -1065,17 +1089,31 @@ export default function AdminSEO() {
                         />
                       </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="targetRanking">Target Ranking</Label>
-                      <Input 
-                        id="targetRanking" 
-                        name="targetRanking" 
-                        type="number" 
-                        min="1" 
-                        max="100" 
-                        placeholder="10" 
-                        defaultValue={selectedKeyword?.targetRanking}
-                      />
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="currentRanking">Current Ranking</Label>
+                        <Input 
+                          id="currentRanking" 
+                          name="currentRanking" 
+                          type="number" 
+                          min="1" 
+                          max="100" 
+                          placeholder="50" 
+                          defaultValue={selectedKeyword?.currentRanking}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="targetRanking">Target Ranking</Label>
+                        <Input 
+                          id="targetRanking" 
+                          name="targetRanking" 
+                          type="number" 
+                          min="1" 
+                          max="100" 
+                          placeholder="10" 
+                          defaultValue={selectedKeyword?.targetRanking}
+                        />
+                      </div>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="notes">Notes</Label>
@@ -1137,6 +1175,19 @@ export default function AdminSEO() {
                           </Button>
                           <Button variant="outline" size="sm">
                             <BarChart3 className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => {
+                              if (confirm('Are you sure you want to delete this keyword?')) {
+                                deleteKeywordMutation.mutate(keyword.id);
+                              }
+                            }}
+                            disabled={deleteKeywordMutation.isPending}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                       </div>

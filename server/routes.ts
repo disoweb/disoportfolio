@@ -1791,6 +1791,116 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin: Update SEO rule
+  app.patch('/api/admin/seo/rules/:id', isAuthenticated, securityHeaders, validateContentType, validateRequestSize(), authRateLimit('seo_rule_update'), async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.role !== 'admin') {
+        auditLog('unauthorized_seo_rule_update_attempt', userId, { ruleId: req.params.id });
+        return sendSafeErrorResponse(res, 403, new Error("Unauthorized"), 'unauthorized_seo_rule_update');
+      }
+
+      const ruleId = sanitizeInput(req.params.id);
+      const { name, description, ruleType, conditions, actions, priority, isActive } = req.body;
+
+      const updates: any = {};
+      if (name !== undefined) updates.name = sanitizeInput(name);
+      if (description !== undefined) updates.description = sanitizeInput(description);
+      if (ruleType !== undefined) updates.ruleType = sanitizeInput(ruleType);
+      if (conditions !== undefined) updates.conditions = conditions;
+      if (actions !== undefined) updates.actions = actions;
+      if (priority !== undefined) updates.priority = parseInt(priority);
+      if (isActive !== undefined) updates.isActive = Boolean(isActive);
+
+      const updatedRule = await storage.updateSeoRule(ruleId, updates);
+      auditLog('seo_rule_updated', userId, { ruleId, updates });
+      res.json(updatedRule);
+    } catch (error) {
+      console.error("Error updating SEO rule:", error);
+      sendSafeErrorResponse(res, 500, error, 'seo_rule_update_error');
+    }
+  });
+
+  // Admin: Delete SEO rule
+  app.delete('/api/admin/seo/rules/:id', isAuthenticated, securityHeaders, authRateLimit('seo_rule_delete'), async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.role !== 'admin') {
+        auditLog('unauthorized_seo_rule_delete_attempt', userId, { ruleId: req.params.id });
+        return sendSafeErrorResponse(res, 403, new Error("Unauthorized"), 'unauthorized_seo_rule_delete');
+      }
+
+      const ruleId = sanitizeInput(req.params.id);
+      await storage.deleteSeoRule(ruleId);
+      auditLog('seo_rule_deleted', userId, { ruleId });
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting SEO rule:", error);
+      sendSafeErrorResponse(res, 500, error, 'seo_rule_delete_error');
+    }
+  });
+
+  // Admin: Update SEO keyword
+  app.patch('/api/admin/seo/keywords/:id', isAuthenticated, securityHeaders, validateContentType, validateRequestSize(), authRateLimit('seo_keyword_update'), async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.role !== 'admin') {
+        auditLog('unauthorized_seo_keyword_update_attempt', userId, { keywordId: req.params.id });
+        return sendSafeErrorResponse(res, 403, new Error("Unauthorized"), 'unauthorized_seo_keyword_update');
+      }
+
+      const keywordId = sanitizeInput(req.params.id);
+      const {
+        keyword, targetPage, searchVolume, difficulty,
+        currentRanking, targetRanking, notes, isActive
+      } = req.body;
+
+      const updates: any = {};
+      if (keyword !== undefined) updates.keyword = sanitizeInput(keyword);
+      if (targetPage !== undefined) updates.targetPage = sanitizeInput(targetPage);
+      if (searchVolume !== undefined) updates.searchVolume = parseInt(searchVolume);
+      if (difficulty !== undefined) updates.difficulty = parseFloat(difficulty);
+      if (currentRanking !== undefined) updates.currentRanking = parseInt(currentRanking);
+      if (targetRanking !== undefined) updates.targetRanking = parseInt(targetRanking);
+      if (notes !== undefined) updates.notes = sanitizeInput(notes);
+      if (isActive !== undefined) updates.isActive = Boolean(isActive);
+
+      const updatedKeyword = await storage.updateSeoKeyword(keywordId, updates);
+      auditLog('seo_keyword_updated', userId, { keywordId, updates });
+      res.json(updatedKeyword);
+    } catch (error) {
+      console.error("Error updating SEO keyword:", error);
+      sendSafeErrorResponse(res, 500, error, 'seo_keyword_update_error');
+    }
+  });
+
+  // Admin: Delete SEO keyword
+  app.delete('/api/admin/seo/keywords/:id', isAuthenticated, securityHeaders, authRateLimit('seo_keyword_delete'), async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (user?.role !== 'admin') {
+        auditLog('unauthorized_seo_keyword_delete_attempt', userId, { keywordId: req.params.id });
+        return sendSafeErrorResponse(res, 403, new Error("Unauthorized"), 'unauthorized_seo_keyword_delete');
+      }
+
+      const keywordId = sanitizeInput(req.params.id);
+      await storage.deleteSeoKeyword(keywordId);
+      auditLog('seo_keyword_deleted', userId, { keywordId });
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting SEO keyword:", error);
+      sendSafeErrorResponse(res, 500, error, 'seo_keyword_delete_error');
+    }
+  });
+
   // Admin: Delete SEO page
   app.delete('/api/admin/seo/pages/:id', isAuthenticated, securityHeaders, authRateLimit('seo_page_delete'), async (req: any, res) => {
     try {

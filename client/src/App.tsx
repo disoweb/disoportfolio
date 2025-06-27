@@ -33,6 +33,7 @@ import ReferralDashboard from "@/pages/ReferralDashboardNew";
 import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
 import WhatsAppFloat from "@/components/WhatsAppFloat";
+import DynamicSEOHead from "@/components/DynamicSEOHead";
 
 function Router() {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -47,11 +48,11 @@ function Router() {
 
   useEffect(() => {
     setMounted(true);
-    
+
     // Debug and clear any persistent payment flags on app start
     const paymentFlag = sessionStorage.getItem('payment_in_progress');
 
-    
+
     // Clear the flag on fresh app load to prevent persistent loader
     if (paymentFlag === 'true') {
 
@@ -72,9 +73,9 @@ function Router() {
         // Check payment flags immediately
         const inProgress = sessionStorage.getItem('payment_in_progress') === 'true';
         const pendingCheckout = sessionStorage.getItem('pendingCheckout');
-        
 
-        
+
+
         // Set payment loader if payment is in progress or authenticated user has pending checkout
         if (inProgress || (isAuthenticated && pendingCheckout)) {
           setPaymentInProgress(true);
@@ -113,7 +114,7 @@ function Router() {
   // Check for immediate payment conditions
   const pendingCheckout = typeof window !== 'undefined' && sessionStorage.getItem('pendingCheckout');
   const shouldShowPaymentLoader = paymentInProgress || (isAuthenticated && pendingCheckout);
-  
+
   // Priority render: payment loader before anything else
   if (shouldShowPaymentLoader) {
 
@@ -163,6 +164,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
+        <DynamicSEOHead />
         <Router />
         <Toaster />
         <WhatsAppFloat />
