@@ -362,58 +362,35 @@ export async function setupAuth(app: Express) {
         return res.status(500).json({ message: "User creation failed" });
       }
 
-      // Store user ID in custom session for reliable authentication
-      // Using type assertion for session extension - proper session typing would be ideal
-      const extendedSession = req.session as any;
-      
-      // Regenerate session ID to prevent session fixation attacks
-      req.session.regenerate((err) => {
-        if (err) {
-          console.error('Session regeneration failed:', err);
-          // Continue with existing session if regeneration fails
-          extendedSession.userId = user.id;
-          extendedSession.authCompleted = true;
-          extendedSession.authTimestamp = Date.now();
-        } else {
-          // Set data on new session
-          const newExtendedSession = req.session as any;
-          newExtendedSession.userId = user.id;
-          newExtendedSession.authCompleted = true;
-          newExtendedSession.authTimestamp = Date.now();
-        }
-      });
-      
-      console.log('🚀 REGISTER: Saving session for user:', user.id);
-      
-      // Save session explicitly before responding
-      req.session.save((saveErr: any) => {
-        if (saveErr) {
-          console.error('🚀 REGISTER: Session save error after registration:', saveErr);
-        } else {
-          console.log('🚀 REGISTER: Session saved successfully');
-        }
+      // Use SessionManager to create a reliable session after registration
+      try {
+        // Create user session using our robust session manager
+        await SessionManager.createUserSession(req, user, 'local');
         
-        // Log in the user automatically with passport
-        req.login(user, (err: any) => {
-          if (err) {
-            console.error('🚀 REGISTER: Auto-login error after registration:', err);
-            // Even if passport login fails, we have custom session
-          } else {
-            console.log('🚀 REGISTER: Passport login successful');
-          }
-          
-          auditLog('register_success', user.id, { email: sanitizedEmail.substring(0, 5) + '***', clientIP });
-          
-          const sanitizedUser = { ...user };
-          delete (sanitizedUser as any).password;
-          
-          console.log('🚀 REGISTER: Returning user data:', sanitizedUser.id);
-          res.status(201).json({ 
-            user: sanitizedUser,
-            message: "User created successfully"
-          });
+        auditLog('register_success', user.id, { email: sanitizedEmail.substring(0, 5) + '***', clientIP });
+        
+        const sanitizedUser = { ...user };
+        delete (sanitizedUser as any).password;
+        
+        console.log('🚀 REGISTER: Session created successfully for user:', sanitizedUser.id);
+        
+        res.status(201).json({ 
+          user: sanitizedUser,
+          message: "User created successfully"
         });
-      });
+      } catch (sessionError) {
+        console.error('🚀 REGISTER: Session creation error:', sessionError);
+        auditLog('register_session_failed', user.id, { email: sanitizedEmail.substring(0, 5) + '***', clientIP, error: (sessionError as Error).message });
+        
+        // Even if session creation fails, user was created successfully
+        const sanitizedUser = { ...user };
+        delete (sanitizedUser as any).password;
+        
+        res.status(201).json({ 
+          user: sanitizedUser,
+          message: "User created successfully. Please login."
+        });
+      }
     } catch (error) {
       console.error("Registration error:", error);
       res.status(500).json({ message: "Registration failed" });
