@@ -215,11 +215,14 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
     },
     onSuccess: (data) => {
       if (data && data.paymentUrl) {
+        
         // Clear stored form data and pending checkout on successful order
         localStorage.removeItem('checkout_contact_data');
         sessionStorage.removeItem('pendingCheckout');
         sessionStorage.removeItem('checkoutSessionToken');
         sessionStorage.removeItem('auto_submit_payment');
+        sessionStorage.removeItem('auto_payment_executed');
+        sessionStorage.removeItem('payment_processing');
         
         // Clear payment loader state
         sessionStorage.removeItem('payment_in_progress');
@@ -294,47 +297,45 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
     },
   });
 
-  // Streamlined auto-payment with immediate submission after auth
+  // Simple auto-payment logic with single execution protection
   useEffect(() => {
-    if (!user || orderMutation.isPending) {
+    // Only trigger if user is authenticated and we have session data with auto_submit flag
+    if (!user || !sessionData?.contactData || orderMutation.isPending) {
       return;
     }
 
     const autoSubmitPayment = sessionStorage.getItem('auto_submit_payment');
     const stepParam = new URLSearchParams(window.location.search).get('step');
     
-    // Check multiple conditions for auto-submission
-    const shouldAutoSubmit = autoSubmitPayment === 'true' || 
-      (stepParam === 'payment' && sessionData?.contactData) ||
-      (stepParam === 'payment' && getStoredFormData('checkout_contact_data'));
-    
-    // Use sessionData if available, otherwise fall back to stored data
-    const contactInfo = sessionData?.contactData || getStoredFormData('checkout_contact_data');
-    
-    if (shouldAutoSubmit && contactInfo && !showStreamlinedConfirmation) {
-      // Clear the flag to prevent replay
+    // Only auto-submit if explicitly flagged or step=payment
+    if (autoSubmitPayment === 'true' || stepParam === 'payment') {
+      // Prevent multiple executions
+      if (sessionStorage.getItem('payment_processing') === 'true') {
+        return;
+      }
+      
+      // Set processing flag
+      sessionStorage.setItem('payment_processing', 'true');
       sessionStorage.removeItem('auto_submit_payment');
       
-      // Set contact data for UI display
-      setContactData(contactInfo);
-      
-      // Show streamlined confirmation UI
+      // Set contact data and show confirmation
+      setContactData(sessionData.contactData);
       setShowStreamlinedConfirmation(true);
       setCurrentStep(2);
       
-      // Auto-proceed to payment after user sees confirmation (reduced timeout)
+      // Execute payment after short delay
       setTimeout(() => {
-        if (user && contactInfo) { // Double-check before proceeding
+        if (user && sessionData.contactData && !orderMutation.isPending) {
           orderMutation.mutate({
             paymentMethod: 'paystack',
             timeline: 'standard',
-            overrideSelectedAddOns: sessionData?.selectedAddOns || selectedAddOns,
-            overrideTotalAmount: sessionData?.totalPrice || totalPrice
+            overrideSelectedAddOns: sessionData.selectedAddOns || selectedAddOns,
+            overrideTotalAmount: sessionData.totalPrice || totalPrice
           });
         }
-      }, 1000); // Reduced to 1 second
+      }, 500);
     }
-  }, [user, sessionData, orderMutation, selectedAddOns, totalPrice, showStreamlinedConfirmation]);
+  }, [user, sessionData, orderMutation.isPending]);
 
 
 
