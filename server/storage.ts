@@ -1,6 +1,6 @@
 import { drizzle } from "drizzle-orm/neon-serverless";
 import { Pool } from "@neondatabase/serverless";
-import { eq, desc, and, or, like, sql } from "drizzle-orm";
+import { eq, desc, and, or, like, sql, asc } from "drizzle-orm";
 import * as schema from "../shared/schema";
 import { nanoid } from "nanoid";
 
@@ -54,6 +54,12 @@ export class Storage {
   // Service management
   async getAllServices() {
     return await db.select().from(services).orderBy(desc(services.createdAt));
+  }
+
+  async getActiveServices() {
+    return await db.select().from(services)
+      .where(eq(services.isActive, true))
+      .orderBy(services.name);
   }
 
   async getServiceById(id: string) {

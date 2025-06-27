@@ -9,6 +9,7 @@ import {
   clearSessionSecurely,
   validateRequestSize 
 } from "./security";
+import { SessionManager } from "./sessionManager";
 
 const app = express();
 app.use(express.json({ limit: '10mb' }));
@@ -552,7 +553,7 @@ app.get('/payment-success', async (req, res) => {
 });
 
 // Add secure logout route before any auth middleware to avoid passport conflicts
-app.post("/api/auth/logout", validateContentType, (req, res) => {
+app.post("/api/auth/logout", validateContentType, async (req, res) => {
   const clientIP = req.ip || req.connection.remoteAddress || 'unknown';
   
   // Rate limiting check
@@ -561,26 +562,25 @@ app.post("/api/auth/logout", validateContentType, (req, res) => {
     return res.status(429).json({ message: rateCheck.message });
   }
   
-  // Check if user is actually logged in
-  if (!req.session || !(req.session as any).passport || !(req.session as any).passport.user) {
+  // Get current user if logged in
+  const user = await SessionManager.getCurrentUser(req);
+  
+  if (!user) {
     clearSessionSecurely(res);
     return res.json({ message: "Already logged out" });
   }
 
-  // Store user ID for audit logging
-  const userId = (req.session as any).passport.user;
-  
-  // Destroy session securely
-  req.session.destroy((err) => {
-    if (err) {
-      auditLog('logout_error', userId, { error: err.message, clientIP });
-      return res.status(500).json({ message: "Error destroying session" });
-    }
-    
-    clearSessionSecurely(res);
-    auditLog('logout_success', userId, { clientIP });
+  // Destroy session using our session manager
+  try {
+    await SessionManager.destroySession(req, res);
+    auditLog('logout_success', user.id, { clientIP });
     res.json({ message: "Logged out successfully" });
-  });
+  } catch (err) {
+    auditLog('logout_error', user.id, { error: (err as Error).message, clientIP });
+    // Still try to clear cookies even if session destroy fails
+    clearSessionSecurely(res);
+    res.json({ message: "Logged out" });
+  }
 });
 
 app.use((req, res, next) => {
