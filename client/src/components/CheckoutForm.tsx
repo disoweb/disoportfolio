@@ -14,7 +14,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
-import { CreditCard, ArrowLeft, User, Mail, Phone, Building2, FileText } from "lucide-react";
+import { CreditCard, ArrowLeft, User, Mail, Phone, Building2, FileText, CheckCircle } from "lucide-react";
 import PaymentLoader from "@/components/PaymentLoader";
 
 const contactSchema = z.object({
@@ -70,6 +70,7 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
   const [currentStep, setCurrentStep] = useState(1);
   const [contactData, setContactData] = useState<ContactForm | null>(null);
   const [showPaymentLoader, setShowPaymentLoader] = useState(false);
+  const [showStreamlinedConfirmation, setShowStreamlinedConfirmation] = useState(false);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { user } = useAuth();
@@ -286,40 +287,41 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
     },
   });
 
-  // Enhanced auto-payment logic with better error handling
+  // Streamlined auto-payment with immediate submission after auth
   useEffect(() => {
-    // Wait for authentication state to be fully loaded
-    if (!user || !sessionData) {
+    if (!user || !sessionData || orderMutation.isPending) {
       return;
     }
 
     const autoSubmitPayment = sessionStorage.getItem('auto_submit_payment');
     const stepParam = new URLSearchParams(window.location.search).get('step');
     
-    // Check if we should auto-submit payment
     const shouldAutoSubmit = autoSubmitPayment === 'true' || 
       (stepParam === 'payment' && sessionData?.contactData);
     
-    // Only proceed if we have valid session data and user is authenticated
-    if (shouldAutoSubmit && sessionData?.contactData && !orderMutation.isPending) {
-      console.log('🔄 AUTO-PAYMENT: Preparing to submit payment for authenticated user');
+    if (shouldAutoSubmit && sessionData?.contactData) {
+      console.log('🚀 STREAMLINED CHECKOUT: Auto-submitting payment for authenticated user');
       
-      // Clear the auto-submit flag immediately to prevent replay
+      // Clear the flag to prevent replay
       sessionStorage.removeItem('auto_submit_payment');
       
-      // Pre-populate form with validated session data
+      // Set contact data for UI display
       setContactData(sessionData.contactData);
       
-      // Add a small delay to ensure session is fully stable
+      // Show streamlined confirmation UI
+      setShowStreamlinedConfirmation(true);
+      setCurrentStep(2);
+      
+      // Auto-proceed to payment after user sees confirmation
       setTimeout(() => {
-        console.log('🔄 AUTO-PAYMENT: Submitting order mutation');
+        setShowPaymentLoader(true);
         orderMutation.mutate({
           paymentMethod: 'paystack',
           timeline: 'standard',
           overrideSelectedAddOns: sessionData.selectedAddOns,
           overrideTotalAmount: sessionData.totalPrice
         });
-      }, 500);
+      }, 2500); // Give user 2.5s to see the confirmation
     }
   }, [user, sessionData, orderMutation]);
 
@@ -416,7 +418,8 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
   }
 
   return (
-    <Card className="w-full max-w-2xl mx-auto">
+    <>
+      <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <CreditCard className="h-5 w-5" />
@@ -592,5 +595,52 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
         )}
       </CardContent>
     </Card>
+
+      {/* Streamlined Payment Confirmation for Post-Auth Users */}
+      {showStreamlinedConfirmation && contactData && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <Card className="w-full max-w-md mx-auto bg-white shadow-2xl">
+            <CardContent className="p-8 text-center">
+              <div className="mb-6">
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CheckCircle className="h-8 w-8 text-green-600" />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome back!</h2>
+                <p className="text-gray-600">Your information is saved. Proceeding to payment...</p>
+              </div>
+
+              <div className="bg-gray-50 rounded-lg p-4 mb-6 text-left">
+                <h3 className="font-semibold text-gray-900 mb-3">Order Summary</h3>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Service:</span>
+                    <span className="font-medium">{service.name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Customer:</span>
+                    <span className="font-medium">{contactData.fullName}</span>
+                  </div>
+                  {selectedAddOns.length > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Add-ons:</span>
+                      <span className="font-medium">{selectedAddOns.length} selected</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between pt-2 border-t border-gray-200">
+                    <span className="font-semibold text-gray-900">Total:</span>
+                    <span className="font-bold text-green-600">₦{totalPrice.toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-center gap-2 text-blue-600">
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
+                <span className="text-sm font-medium">Redirecting to secure payment...</span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+    </>
   );
 }
