@@ -2,13 +2,18 @@ import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import ServicePackages from "@/components/ServicePackages";
 import CustomQuoteForm from "@/components/CustomQuoteForm";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle, X } from "lucide-react";
 
 export default function Services() {
   const [showQuoteForm, setShowQuoteForm] = useState(false);
+
+  // Scroll to top when page loads
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   return (
     <div className="min-h-screen bg-slate-50">
