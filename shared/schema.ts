@@ -207,6 +207,7 @@ export const referralSettings = pgTable("referral_settings", {
   commissionPercentage: decimal("commission_percentage", { precision: 5, scale: 2 }).default("10.00"), // Default 10%
   minimumWithdrawal: decimal("minimum_withdrawal", { precision: 10, scale: 2 }).default("50.00"), // Minimum $50
   payoutSchedule: varchar("payout_schedule").default("monthly"), // weekly, monthly, manual
+  baseUrl: varchar("base_url", { length: 255 }), // Configurable base URL for referral links
   isActive: boolean("is_active").default(true),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

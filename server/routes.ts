@@ -1350,7 +1350,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         settings: {
           commissionPercentage: settings.commissionPercentage,
           minimumWithdrawal: settings.minimumWithdrawal,
-          isActive: settings.isActive
+          isActive: settings.isActive,
+          baseUrl: process.env.REFERRAL_BASE_URL || settings.baseUrl
         }
       });
     } catch (error) {
@@ -1372,10 +1373,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create withdrawal request
-  app.post('/api/referrals/withdraw', isAuthenticated, securityHeaders, validateContentType, validateRequestSize(), authRateLimit('withdrawal_request'), async (req: any, res) => {
+  app.post('/api/referrals/request-withdrawal', isAuthenticated, securityHeaders, validateContentType, validateRequestSize(), authRateLimit('withdrawal_request'), async (req: any, res) => {
     try {
       const userId = req.user.id;
-      const { amount, paymentMethod, paymentDetails } = req.body;
+      const { amount, paymentDetails } = req.body;
+      const paymentMethod = "manual"; // Default payment method
 
       // Validate amount
       if (!amount || amount <= 0) {

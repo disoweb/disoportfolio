@@ -4,12 +4,17 @@ import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Copy, DollarSign, Users, TrendingUp } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Copy, DollarSign, Users, TrendingUp, Wallet } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function ReferralDashboardFixed() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [withdrawalAmount, setWithdrawalAmount] = useState("");
+  const [paymentDetails, setPaymentDetails] = useState("");
 
   // Fetch referral data
   const { data: referralData, isLoading: isReferralLoading } = useQuery({
@@ -42,15 +47,52 @@ export default function ReferralDashboardFixed() {
     },
   });
 
+  // Request withdrawal mutation
+  const withdrawalMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/referrals/request-withdrawal", {
+        amount: parseFloat(withdrawalAmount),
+        paymentDetails: paymentDetails,
+      });
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/referrals/my-data"] });
+      setWithdrawalAmount("");
+      setPaymentDetails("");
+      toast({
+        title: "Withdrawal Requested",
+        description: "Your withdrawal request has been submitted for review!",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to submit withdrawal request. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const copyReferralCode = () => {
     if (referralData?.referralCode) {
-      const referralUrl = `${window.location.origin}?ref=${referralData.referralCode}`;
+      // Use configurable base URL if available, otherwise fallback to current origin
+      const baseUrl = referralData?.settings?.baseUrl || window.location.origin;
+      const referralUrl = `${baseUrl}?ref=${referralData.referralCode}`;
       navigator.clipboard.writeText(referralUrl);
       toast({
         title: "Copied!",
         description: "Referral link copied to clipboard.",
       });
     }
+  };
+
+  const getReferralUrl = () => {
+    if (referralData?.referralCode) {
+      const baseUrl = referralData?.settings?.baseUrl || window.location.origin;
+      return `${baseUrl}?ref=${referralData.referralCode}`;
+    }
+    return "";
   };
 
   const formatCurrency = (amount: string | number) => {
@@ -102,6 +144,58 @@ export default function ReferralDashboardFixed() {
                 <div className="text-2xl font-bold">
                   {formatCurrency(referralData?.earnings?.availableBalance || "0")}
                 </div>
+                {parseFloat(referralData?.earnings?.availableBalance || "0") > 0 && (
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="sm" className="mt-2">
+                        <Wallet className="h-4 w-4 mr-2" />
+                        Withdraw
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Request Withdrawal</DialogTitle>
+                        <DialogDescription>
+                          Request a withdrawal of your available earnings. Minimum withdrawal amount applies.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="amount">Withdrawal Amount</Label>
+                          <Input
+                            id="amount"
+                            type="number"
+                            placeholder="Enter amount"
+                            value={withdrawalAmount}
+                            onChange={(e) => setWithdrawalAmount(e.target.value)}
+                            max={referralData?.earnings?.availableBalance || "0"}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="payment-details">Payment Details</Label>
+                          <Textarea
+                            id="payment-details"
+                            placeholder="Enter your bank account details, PayPal email, or other payment information"
+                            value={paymentDetails}
+                            onChange={(e) => setPaymentDetails(e.target.value)}
+                          />
+                        </div>
+                        <Button
+                          onClick={() => withdrawalMutation.mutate()}
+                          disabled={
+                            withdrawalMutation.isPending ||
+                            !withdrawalAmount ||
+                            !paymentDetails ||
+                            parseFloat(withdrawalAmount) <= 0
+                          }
+                          className="w-full"
+                        >
+                          {withdrawalMutation.isPending ? "Processing..." : "Submit Withdrawal Request"}
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                )}
               </CardContent>
             </Card>
 
@@ -153,7 +247,7 @@ export default function ReferralDashboardFixed() {
             <CardContent>
               <div className="flex items-center space-x-2">
                 <Input
-                  value={`${window.location.origin}?ref=${referralData.referralCode}`}
+                  value={getReferralUrl()}
                   readOnly
                   className="flex-1"
                 />
