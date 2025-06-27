@@ -69,6 +69,17 @@ function WhatsAppSettings() {
       return;
     }
 
+    // Validate phone number format
+    const phoneRegex = /^\+[1-9]\d{1,14}$/;
+    if (!phoneRegex.test(whatsappNumber.trim())) {
+      toast({
+        title: "Error",
+        description: "Please enter a valid international phone number (e.g., +2348065343725)",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
       const response = await fetch("/api/admin/settings", {

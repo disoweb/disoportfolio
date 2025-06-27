@@ -776,10 +776,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "WhatsApp number is required" });
       }
 
-      // Validate phone number format (basic validation)
+      // Validate phone number format (improved validation)
       const phoneRegex = /^\+[1-9]\d{1,14}$/;
-      if (!phoneRegex.test(whatsappNumber)) {
-        return res.status(400).json({ error: "Invalid phone number format. Use international format (e.g., +234123456789)" });
+      const trimmedNumber = whatsappNumber.trim();
+      if (!phoneRegex.test(trimmedNumber)) {
+        return res.status(400).json({ error: "Invalid phone number format. Use international format starting with + followed by country code (e.g., +2348065343725)" });
       }
 
       // Check if settings exist
