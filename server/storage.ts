@@ -1840,8 +1840,6 @@ export class DatabaseStorage implements IStorage {
       .where(eq(seoAudits.id, id))
       .returning();
     return updatedAudit;
-  }mit(1);
-    return analytics || null;
   }
 
   async updateSeoAnalytics(id: string, updates: Partial<InsertSeoAnalytics>): Promise<SeoAnalytics> {
