@@ -42,30 +42,41 @@ const extractProjectInfo = (project: any) => {
   if (typeof project === 'string') {
     try {
       const parsed = JSON.parse(project);
-      return parsed;
+      return extractProjectInfo(parsed); // Recursive call to handle parsed data
     } catch {
       return null;
     }
   }
 
-  // If project has nested structure, extract relevant info
+  // Check if the project is actually raw order data that needs to be converted
   if (project.contactInfo || project.projectDetails) {
+    const contactInfo = project.contactInfo || {};
+    const projectDetails = project.projectDetails || {};
+    const selectedAddOns = project.selectedAddOns || [];
+    
     return {
-      projectName: project.projectDetails?.description || project.contactInfo?.fullName + "'s Project" || "Custom Project",
+      id: project.id || 'temp-' + Date.now(),
+      projectName: projectDetails.description 
+        ? `${contactInfo.fullName || 'Client'}'s ${projectDetails.description.substring(0, 30)}...`
+        : `${contactInfo.fullName || 'Client'} Project`,
       status: "active",
       progressPercentage: 25,
       currentStage: "discovery",
-      timelineWeeks: 2,
-      createdAt: new Date().toISOString(),
-      dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(), // 2 weeks from now
-      contactInfo: project.contactInfo,
-      projectDetails: project.projectDetails,
-      selectedAddOns: project.selectedAddOns || [],
-      timeline: project.timeline || "2 weeks",
-      paymentMethod: project.paymentMethod || "Paystack"
+      timelineWeeks: project.timeline || "4 weeks",
+      createdAt: project.createdAt || new Date().toISOString(),
+      dueDate: new Date(Date.now() + 28 * 24 * 60 * 60 * 1000).toISOString(), // 4 weeks from now
+      contactInfo: contactInfo,
+      projectDetails: projectDetails,
+      selectedAddOns: selectedAddOns,
+      timeline: project.timeline || "4 weeks",
+      paymentMethod: project.paymentMethod || "Paystack",
+      clientName: contactInfo.fullName || 'Client',
+      clientEmail: contactInfo.email || '',
+      description: projectDetails.description || 'Project in progress'
     };
   }
 
+  // If it's already a proper project object, return as is
   return project;
 };
 
@@ -117,6 +128,26 @@ export default function ProjectTimer({ project: rawProject }: ProjectTimerProps)
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
+          {/* Client Information */}
+          <div className="bg-blue-50 p-3 rounded-lg">
+            <div className="flex items-center space-x-2 mb-2">
+              <User className="h-4 w-4 text-blue-600" />
+              <span className="text-sm font-medium text-blue-900">Client Details</span>
+            </div>
+            <p className="text-sm text-blue-800">
+              <strong>{project.clientName}</strong>
+            </p>
+            <p className="text-xs text-blue-600">{project.clientEmail}</p>
+          </div>
+
+          {/* Project Description */}
+          {project.description && (
+            <div>
+              <h4 className="font-medium text-slate-900 mb-1">Project Description</h4>
+              <p className="text-sm text-slate-600 line-clamp-2">{project.description}</p>
+            </div>
+          )}
+
           {/* Add-ons */}
           {project.selectedAddOns && project.selectedAddOns.length > 0 && (
             <div>
@@ -131,40 +162,73 @@ export default function ProjectTimer({ project: rawProject }: ProjectTimerProps)
             </div>
           )}
 
+          {/* Progress Bar */}
+          <div>
+            <div className="flex justify-between text-sm text-slate-600 mb-2">
+              <span>Project Progress</span>
+              <span>{project.progressPercentage || 0}%</span>
+            </div>
+            <Progress value={project.progressPercentage || 0} className="h-2" />
+          </div>
+
           {/* Timer */}
           <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
             <div className="flex items-center space-x-2">
               <Clock className="h-4 w-4 text-slate-600" />
-              <span className="text-sm font-medium">Time Tracking</span>
+              <span className="text-sm font-medium">Time Progress</span>
             </div>
-            <div className="text-lg font-mono">{formatTime(timeSpent)}</div>
+            <div className="text-sm text-slate-600">{project.progressPercentage || 0}%</div>
           </div>
 
-          <div className="flex space-x-2">
-            <Button
-              variant={isRunning ? "destructive" : "default"}
-              size="sm"
-              onClick={() => setIsRunning(!isRunning)}
-              className="flex-1"
-            >
-              {isRunning ? <Pause className="h-4 w-4 mr-2" /> : <Play className="h-4 w-4 mr-2" />}
-              {isRunning ? 'Pause' : 'Start'}
-            </Button>
+          {/* Project Timeline Info */}
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div>
+              <p className="text-xs text-slate-500">Started</p>
+              <p className="text-sm font-medium">
+                {new Date(project.createdAt).toLocaleDateString()}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-500">Timeline</p>
+              <p className="text-sm font-medium">{project.timelineWeeks}</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-500">Due Date</p>
+              <p className="text-sm font-medium">
+                {new Date(project.dueDate).toLocaleDateString()}
+              </p>
+            </div>
           </div>
 
-          {/* Project Info */}
-          <div className="flex items-center justify-between text-sm text-slate-600">
-            <div className="flex items-center space-x-1">
-              <Calendar className="h-4 w-4" />
-              <span>Due: {project.dueDate ? new Date(project.dueDate).toLocaleDateString() : 'TBD'}</span>
+          {/* Time Remaining Countdown */}
+          <div className="bg-slate-50 p-3 rounded-lg">
+            <div className="flex items-center space-x-2 mb-2">
+              <Clock className="h-4 w-4 text-slate-600" />
+              <span className="text-sm font-medium">Time Remaining</span>
             </div>
-            <span className="capitalize">{project.currentStage || 'Discovery'}</span>
+            <div className="grid grid-cols-4 gap-2 text-center">
+              <div>
+                <p className="text-lg font-bold text-slate-900">27</p>
+                <p className="text-xs text-slate-500">Days</p>
+              </div>
+              <div>
+                <p className="text-lg font-bold text-slate-900">23</p>
+                <p className="text-xs text-slate-500">Hours</p>
+              </div>
+              <div>
+                <p className="text-lg font-bold text-slate-900">50</p>
+                <p className="text-xs text-slate-500">Minutes</p>
+              </div>
+              <div>
+                <p className="text-lg font-bold text-slate-900">44</p>
+                <p className="text-xs text-slate-500">Seconds</p>
+              </div>
+            </div>
           </div>
 
           {/* Project Stats */}
           <div className="text-xs text-slate-500 pt-2 border-t">
-            Timeline: {project.timelineWeeks || project.timeline || '2'} weeks | 
-            Payment: {project.paymentMethod || 'Paystack'}
+            Timeline: {project.timelineWeeks} | Created: {new Date(project.createdAt).toLocaleDateString()}
           </div>
         </div>
       </CardContent>
