@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Shield, BarChart3, Users, Settings, FileText, MessageSquare, CreditCard, LogOut, Package } from "lucide-react";
+import { Menu, X, Shield, BarChart3, Users, Settings, FileText, MessageSquare, CreditCard, LogOut, Package, UserPlus } from "lucide-react";
 
 export default function AdminNavigation() {
   const [isOpen, setIsOpen] = useState(false);
@@ -27,6 +27,12 @@ export default function AdminNavigation() {
       href: "/admin/services", 
       icon: Package,
       description: "Manage Service Packages"
+    },
+    { 
+      name: "Referrals", 
+      href: "/admin/referrals", 
+      icon: UserPlus,
+      description: "Manage Referral System"
     },
     { 
       name: "Orders", 

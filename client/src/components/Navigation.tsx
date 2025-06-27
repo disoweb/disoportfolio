@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Menu, X, User, LogOut } from "lucide-react";
+import { Menu, X, User, LogOut, Users } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -73,6 +73,12 @@ export default function Navigation() {
                       <Link href="/dashboard" className="flex items-center">
                         <User className="h-4 w-4 mr-2" />
                         Dashboard
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/referrals" className="flex items-center">
+                        <Users className="h-4 w-4 mr-2" />
+                        Referrals
                       </Link>
                     </DropdownMenuItem>
                     {user?.role === 'admin' && (
