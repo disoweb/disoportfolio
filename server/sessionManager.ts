@@ -61,11 +61,12 @@ export function createSessionMiddleware(config: SessionConfig): session.SessionO
     saveUninitialized: false, // Don't create session until something stored
     rolling: true, // Reset expiry on activity
     cookie: {
-      secure: process.env.NODE_ENV === 'production',
+      secure: false, // Force secure to false for development debugging
       httpOnly: true,
       maxAge: config.cookieMaxAge || 7 * 24 * 60 * 60 * 1000, // 7 days default
       sameSite: 'lax',
-      path: '/'
+      path: '/',
+      domain: undefined // Don't set domain to allow localhost/127.0.0.1
     }
   };
 }

@@ -423,7 +423,13 @@ export async function setupAuth(app: Express) {
       }
 
       // Use our robust SessionManager for consistent session handling
+      console.log('🔑 [LOGIN DEBUG] Login successful, about to create session for user:', user.id);
+      console.log('🔑 [LOGIN DEBUG] Current request session ID:', req.sessionID);
+      
       SessionManager.createUserSession(req, user, 'local').then(() => {
+        console.log('🔑 [LOGIN DEBUG] Session created successfully, sending response to user:', user.id);
+        console.log('🔑 [LOGIN DEBUG] Final session ID after creation:', req.sessionID);
+        
         const sanitizedUser = { ...user };
         delete (sanitizedUser as any).password;
         
