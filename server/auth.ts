@@ -2,6 +2,7 @@ import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { Strategy as TwitterStrategy } from "passport-twitter";
+import { Strategy as FacebookStrategy } from "passport-facebook";
 import { Express } from "express";
 import session from "express-session";
 import bcrypt from "bcrypt";
@@ -177,6 +178,50 @@ export async function setupAuth(app: Express) {
             return done(null, user);
           } catch (error) {
             console.error('Google OAuth error:', error);
+            return done(error);
+          }
+        }
+      )
+    );
+  }
+
+  // Facebook Strategy - Only register if env vars exist
+  if (process.env.FACEBOOK_APP_ID && process.env.FACEBOOK_APP_SECRET) {
+    passport.use(
+      new FacebookStrategy(
+        {
+          clientID: process.env.FACEBOOK_APP_ID,
+          clientSecret: process.env.FACEBOOK_APP_SECRET,
+          callbackURL: "/api/auth/facebook/callback",
+          profileFields: ['id', 'email', 'name', 'picture']
+        },
+        async (accessToken, refreshToken, profile, done) => {
+          try {
+            const email = profile.emails?.[0]?.value;
+            if (!email) {
+              return done(new Error('No email provided by Facebook'));
+            }
+
+            let user = await storage.getUserByEmail(email);
+            
+            if (!user) {
+              user = await storage.createUser({
+                email,
+                firstName: profile.name?.givenName || '',
+                lastName: profile.name?.familyName || '',
+                profileImageUrl: profile.photos?.[0]?.value || '',
+                provider: 'facebook',
+                providerId: profile.id
+              });
+            }
+
+            if (!user || !user.id) {
+              return done(new Error('Failed to create or retrieve user'));
+            }
+
+            return done(null, user);
+          } catch (error) {
+            console.error('Facebook OAuth error:', error);
             return done(error);
           }
         }
@@ -484,6 +529,20 @@ export async function setupAuth(app: Express) {
   } else {
     app.get("/api/auth/google", (req, res) => {
       res.status(501).json({ message: "Google OAuth not configured" });
+    });
+  }
+
+  if (process.env.FACEBOOK_APP_ID && process.env.FACEBOOK_APP_SECRET) {
+    app.get("/api/auth/facebook", passport.authenticate("facebook", { scope: ["email"] }));
+    app.get("/api/auth/facebook/callback",
+      passport.authenticate("facebook", { failureRedirect: "/auth?error=facebook_failed" }),
+      (req, res) => {
+        res.redirect("/?auth=success");
+      }
+    );
+  } else {
+    app.get("/api/auth/facebook", (req, res) => {
+      res.status(501).json({ message: "Facebook OAuth not configured" });
     });
   }
 

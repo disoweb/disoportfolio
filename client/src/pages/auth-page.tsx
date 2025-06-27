@@ -12,8 +12,8 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
-import { Eye, EyeOff, Mail, Lock, User, Building2, Phone } from "lucide-react";
-import { FaGoogle, FaTwitter } from "react-icons/fa";
+import { Eye, EyeOff, Mail, Lock, User, Building2, Phone, ArrowLeft } from "lucide-react";
+import { FaGoogle, FaTwitter, FaFacebook } from "react-icons/fa";
 import { SiReplit } from "react-icons/si";
 
 const loginSchema = z.object({
@@ -348,6 +348,19 @@ export default function AuthPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-6">
+        {/* Back to Home Button */}
+        <div className="flex justify-start">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setLocation("/")}
+            className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Home
+          </Button>
+        </div>
+
         {/* Header */}
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
@@ -585,33 +598,42 @@ export default function AuthPage() {
               </div>
             </div>
 
-            {/* Social Login Buttons */}
-            <div className="space-y-3">
+            {/* Social Login Buttons - 2x2 Grid */}
+            <div className="grid grid-cols-2 gap-3">
               <Button
                 variant="outline"
-                className="w-full h-11 text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-950 border-gray-200 dark:border-gray-700"
+                className="h-12 text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-950 border-gray-200 dark:border-gray-700 flex flex-col items-center justify-center gap-1 text-xs font-medium"
                 onClick={() => handleSocialLogin("google")}
               >
-                <FaGoogle className="mr-2 h-4 w-4 text-red-500" />
-                Continue with Google
+                <FaGoogle className="h-5 w-5 text-red-500" />
+                Google
               </Button>
 
               <Button
                 variant="outline"
-                className="w-full h-11 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-950 border-gray-200 dark:border-gray-700"
+                className="h-12 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-950 border-gray-200 dark:border-gray-700 flex flex-col items-center justify-center gap-1 text-xs font-medium"
+                onClick={() => handleSocialLogin("facebook")}
+              >
+                <FaFacebook className="h-5 w-5 text-blue-600" />
+                Facebook
+              </Button>
+
+              <Button
+                variant="outline"
+                className="h-12 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-950 border-gray-200 dark:border-gray-700 flex flex-col items-center justify-center gap-1 text-xs font-medium"
                 onClick={() => handleSocialLogin("twitter")}
               >
-                <FaTwitter className="mr-2 h-4 w-4 text-blue-500" />
-                Continue with Twitter
+                <FaTwitter className="h-5 w-5 text-blue-500" />
+                Twitter
               </Button>
 
               <Button
                 variant="outline"
-                className="w-full h-11 text-gray-700 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-orange-950 border-gray-200 dark:border-gray-700"
+                className="h-12 text-gray-700 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-orange-950 border-gray-200 dark:border-gray-700 flex flex-col items-center justify-center gap-1 text-xs font-medium"
                 onClick={() => handleSocialLogin("replit")}
               >
-                <SiReplit className="mr-2 h-4 w-4 text-orange-500" />
-                Continue with Replit
+                <SiReplit className="h-5 w-5 text-orange-500" />
+                Replit
               </Button>
             </div>
           </CardContent>
