@@ -32,7 +32,7 @@ export default function Navigation() {
             <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg">
               <span className="text-white font-bold text-lg">D</span>
             </div>
-            <span className="text-2xl font-light text-blue-600 tracking-wide" style={{ fontFamily: 'Inter, system-ui, -apple-system, sans-serif' }}>
+            <span className="text-2xl font-semibold text-blue-600 tracking-wide" style={{ fontFamily: 'Inter, system-ui, -apple-system, sans-serif' }}>
               DiSO Webs
             </span>
           </Link>
