@@ -166,6 +166,13 @@ export default function Navigation() {
                 >
                   Dashboard
                 </Link>
+                <Link
+                  href="/referrals"
+                  className="block px-3 py-2 text-slate-600 hover:text-blue-600"
+                  onClick={() => setIsOpen(false)}
+                >
+                  Referrals
+                </Link>
                 <button
                   onClick={logout}
                   disabled={isLoggingOut}
