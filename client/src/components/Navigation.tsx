@@ -160,7 +160,7 @@ export default function Navigation() {
                     </Button>
                   </Link>
                   <Link href="/auth" className="flex-1" onClick={() => setIsOpen(false)}>
-                    <Button variant="ghost" size="sm" className="w-full">
+                    <Button variant="ghost" size="sm" className="w-full border border-blue-200 rounded-lg hover:bg-blue-50 hover:border-blue-300">
                       Login
                     </Button>
                   </Link>
