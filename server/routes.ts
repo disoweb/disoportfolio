@@ -758,7 +758,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const existingSettings = await db.select().from(schema.settings).where(eq(schema.settings.id, "default")).limit(1);
 
       const settings = {
-        whatsappNumber: existingSettings[0]?.whatsappNumber || "+2347044688788"
+        whatsappNumber: existingSettings[0]?.whatsappNumber || "+2348065343725"
       };
 
       res.json(settings);

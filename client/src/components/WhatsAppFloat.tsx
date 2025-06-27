@@ -9,7 +9,7 @@ export default function WhatsAppFloat() {
     retry: false,
   });
 
-  const whatsappNumber = settings?.whatsappNumber || "+2347044688788";
+  const whatsappNumber = settings?.whatsappNumber || "+2348065343725";
   const whatsappURL = `https://wa.me/${whatsappNumber.replace(/[^\d]/g, '')}?text=Hello! I'm interested in your web development services.`;
 
   return (
