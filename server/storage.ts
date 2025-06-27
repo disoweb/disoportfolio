@@ -977,9 +977,7 @@ export class DatabaseStorage implements IStorage {
       throw new Error('Invalid payment parameters');
     }
 
-    const reference = `PSK_${Date.now()}_${Math.random()
-      .toString(36)
-      .substr(2, 9)}`;
+    const reference = `PSK_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
     try {
       const requestBody = {
