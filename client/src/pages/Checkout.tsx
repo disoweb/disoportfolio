@@ -210,6 +210,7 @@ export default function Checkout() {
           }}
           totalPrice={finalTotal}
           selectedAddOns={selectedAddOns}
+          sessionData={sessionData}
           onSuccess={() => {
             // Don't redirect here - let CheckoutForm handle the flow
             // If payment URL exists, CheckoutForm will show loader and redirect to Paystack

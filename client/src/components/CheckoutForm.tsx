@@ -289,24 +289,38 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
 
   // Streamlined auto-payment with immediate submission after auth
   useEffect(() => {
-    if (!user || !sessionData || orderMutation.isPending) {
+    console.log('🔍 AUTO-PAYMENT CHECK:', {
+      user: !!user,
+      sessionData: !!sessionData,
+      sessionDataContent: sessionData,
+      isPending: orderMutation.isPending,
+      autoSubmitFlag: sessionStorage.getItem('auto_submit_payment'),
+      stepParam: new URLSearchParams(window.location.search).get('step')
+    });
+
+    if (!user || orderMutation.isPending) {
       return;
     }
 
     const autoSubmitPayment = sessionStorage.getItem('auto_submit_payment');
     const stepParam = new URLSearchParams(window.location.search).get('step');
     
+    // Check multiple conditions for auto-submission
     const shouldAutoSubmit = autoSubmitPayment === 'true' || 
-      (stepParam === 'payment' && sessionData?.contactData);
+      (stepParam === 'payment' && sessionData?.contactData) ||
+      (stepParam === 'payment' && getStoredFormData('checkout_contact_data'));
     
-    if (shouldAutoSubmit && sessionData?.contactData) {
+    // Use sessionData if available, otherwise fall back to stored data
+    const contactInfo = sessionData?.contactData || getStoredFormData('checkout_contact_data');
+    
+    if (shouldAutoSubmit && contactInfo) {
       console.log('🚀 STREAMLINED CHECKOUT: Auto-submitting payment for authenticated user');
       
       // Clear the flag to prevent replay
       sessionStorage.removeItem('auto_submit_payment');
       
       // Set contact data for UI display
-      setContactData(sessionData.contactData);
+      setContactData(contactInfo);
       
       // Show streamlined confirmation UI
       setShowStreamlinedConfirmation(true);
@@ -318,12 +332,12 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
         orderMutation.mutate({
           paymentMethod: 'paystack',
           timeline: 'standard',
-          overrideSelectedAddOns: sessionData.selectedAddOns,
-          overrideTotalAmount: sessionData.totalPrice
+          overrideSelectedAddOns: sessionData?.selectedAddOns || selectedAddOns,
+          overrideTotalAmount: sessionData?.totalPrice || totalPrice
         });
       }, 2500); // Give user 2.5s to see the confirmation
     }
-  }, [user, sessionData, orderMutation]);
+  }, [user, sessionData, orderMutation, selectedAddOns, totalPrice]);
 
 
 
