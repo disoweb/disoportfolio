@@ -596,6 +596,7 @@ export class DatabaseStorage implements IStorage {
             totalPrice: orders.totalPrice,
             status: orders.status,
             createdAt: orders.createdAt,
+            serviceId: orders.serviceId,
           }
         })
         .from(projects)
@@ -620,13 +621,44 @@ export class DatabaseStorage implements IStorage {
             contactInfo = customData.contactInfo || {};
             projectDetails = customData.projectDetails || {};
 
-            // Create a proper project name from the parsed data
-            if (contactInfo.fullName) {
-              const serviceType = projectDetails.projectType || 'Project';
-              displayName = `${serviceType} - ${contactInfo.fullName}`;
+            // Use project type or service ID, NOT client name
+            if (projectDetails.projectType) {
+              displayName = projectDetails.projectType;
+            } else if (project.order?.serviceId) {
+              // Convert service ID like 'landing-page' to 'Landing Page'
+              displayName = project.order.serviceId.split('-')
+                .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
+                .join(' ');
             }
           } catch (e) {
             console.warn('Could not parse customRequest for project:', project.id);
+            // If custom request is not JSON, use it as is (first line)
+            if (typeof project.order?.customRequest === 'string') {
+              const firstLine = project.order.customRequest.split('.')[0].trim();
+              if (firstLine && !firstLine.startsWith('{')) {
+                displayName = firstLine;
+              }
+            }
+          }
+        }
+        
+        // Additional fallback - if displayName is JSON string, fix it
+        if (displayName && typeof displayName === 'string' && displayName.startsWith('{')) {
+          try {
+            const parsed = JSON.parse(displayName);
+            displayName = parsed.projectType || parsed.serviceName || 'Custom Project';
+          } catch (e) {
+            displayName = 'Custom Project';
+          }
+        }
+        
+        // Also check if order has serviceId directly
+        if (!displayName || displayName.startsWith('{')) {
+          if (project.order?.serviceId) {
+            // Convert service ID to readable name
+            displayName = project.order.serviceId.split('-')
+              .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
+              .join(' ');
           }
         }
 

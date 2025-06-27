@@ -25,7 +25,6 @@ export default function ProjectTimer({ project }: ProjectTimerProps) {
   const projectDetails = project.projectDetails || {};
 
   // Remove debugging code for production
-  // console.log('ProjectTimer - Full project data:', projectData);
 
   // Extract meaningful project information
   const getProjectInfo = () => {
@@ -52,19 +51,46 @@ export default function ProjectTimer({ project }: ProjectTimerProps) {
       
       // Try custom request first line
       if (projectData.order?.customRequest) {
-        const firstLine = projectData.order.customRequest.split('.')[0].trim();
-        if (firstLine && firstLine.length > 0) {
+        // Handle if customRequest is a JSON string
+        let customRequest = projectData.order.customRequest;
+        if (typeof customRequest === 'string' && customRequest.startsWith('{')) {
+          try {
+            const parsed = JSON.parse(customRequest);
+            customRequest = parsed.description || parsed.projectType || customRequest;
+          } catch (e) {
+            // If parsing fails, use as is
+          }
+        }
+        
+        const firstLine = customRequest.split('.')[0].trim();
+        if (firstLine && firstLine.length > 0 && !firstLine.startsWith('{')) {
           return firstLine;
         }
       }
       
-      // Try project name if it exists and isn't a generic format
-      if (projectData.projectName && !projectData.projectName.includes(' - Project')) {
+      // Try project name if it exists and isn't a generic format or JSON
+      if (projectData.projectName && 
+          !projectData.projectName.includes(' - Project') && 
+          !projectData.projectName.startsWith('{')) {
         return projectData.projectName;
       }
       
-      // Fallback to project type or default
-      return projectDetails.projectType || 'Custom Project';
+      // Try to extract from projectDetails
+      if (projectDetails.projectType && typeof projectDetails.projectType === 'string') {
+        return projectDetails.projectType;
+      }
+      
+      // If we have service ID from order, format it nicely
+      if (projectData.order?.serviceId) {
+        const serviceId = projectData.order.serviceId;
+        // Convert service IDs like 'landing-page' to 'Landing Page'
+        return serviceId.split('-').map((word: string) => 
+          word.charAt(0).toUpperCase() + word.slice(1)
+        ).join(' ');
+      }
+      
+      // Fallback to a generic name
+      return 'Custom Project';
     };
 
     return {
