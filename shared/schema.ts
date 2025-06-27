@@ -57,9 +57,9 @@ export const users = pgTable("users", {
 
 // Password reset tokens table
 export const passwordResetTokens = pgTable("password_reset_tokens", {
-  id: varchar("id").primaryKey(),
-  userId: varchar("user_id").notNull(),
-  token: varchar("token").notNull().unique(),
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  token: text("token").notNull().unique(),
   expiresAt: timestamp("expires_at").notNull(),
   used: boolean("used").default(false),
   createdAt: timestamp("created_at").defaultNow(),
@@ -340,3 +340,14 @@ export type InsertCheckoutSession = z.infer<typeof insertCheckoutSessionSchema>;
 export type CheckoutSession = typeof checkoutSessions.$inferSelect;
 export type InsertPasswordResetToken = z.infer<typeof insertPasswordResetTokenSchema>;
 export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
+export type NewPasswordResetToken = typeof passwordResetTokens.$inferInsert;
+
+export const settings = pgTable("settings", {
+  id: text("id").primaryKey().default("default"),
+  whatsappNumber: text("whatsapp_number"),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type Settings = typeof settings.$inferSelect;
+export type NewSettings = typeof settings.$inferInsert;

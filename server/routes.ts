@@ -30,6 +30,7 @@ import {
   validateUserId,
   sendSafeErrorResponse
 } from "./security";
+import * as schema from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware - always use standard auth
@@ -45,11 +46,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!adminPassword) {
         throw new Error('ADMIN_PASSWORD environment variable must be set for admin user creation');
       }
-      
+
       // Hash the password securely
       const bcrypt = await import('bcrypt');
       const hashedPassword = await bcrypt.default.hash(adminPassword, 12);
-      
+
       await storage.createAdminUser(adminEmail, hashedPassword);
       auditLog('admin_user_created', 'system', { email: adminEmail });
     }
@@ -61,12 +62,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // No need for separate auth routes as they're handled in setupAuth
 
   // Security middleware is applied in server/index.ts globally
-  
+
   // Services routes with rate limiting
   app.get('/api/services', authRateLimit('api'), async (req, res) => {
     try {
       const services = await storage.getActiveServices();
-      
+
       // Remove sensitive internal data before sending to client
       const publicServices = services.map(service => ({
         ...service,
@@ -74,7 +75,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         createdAt: undefined,
         updatedAt: undefined
       }));
-      
+
       res.json(publicServices);
     } catch (error) {
       console.error("Error fetching services:", error);
@@ -182,11 +183,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.id;
       const clientIP = req.ip || req.connection.remoteAddress;
       const orderData = req.body;
-      
+
       // Input validation and sanitization - handle both formats
       const hasContactInfo = orderData.contactInfo || (orderData.fullName && orderData.email);
       const hasTotalAmount = orderData.totalAmount || orderData.totalPrice;
-      
+
       if (!orderData.serviceId || !hasContactInfo || !hasTotalAmount) {
         auditLog('order_validation_failed', userId, { reason: 'missing_required_fields', clientIP });
         return res.status(400).json({ message: "Missing required order data" });
@@ -236,7 +237,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timeline: sanitizeInput(orderData.timeline || ''),
         paymentMethod: sanitizeInput(orderData.paymentMethod || 'paystack')
       };
-      
+
       // Prepare validated order data
       const validatedOrderData = {
         userId,
@@ -245,7 +246,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         totalPrice: amount.toString(),
         status: 'pending' as const,
       };
-      
+
       // Create the order
       const order = await storage.createOrder(validatedOrderData);
       auditLog('order_created', userId, { 
@@ -255,7 +256,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         addOnsCount: selectedAddOns.length,
         clientIP 
       });
-      
+
       // Initialize payment
       if (order?.id) {
         try {
@@ -265,7 +266,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             email: contactInfo.email,
             userId,
           });
-          
+
           auditLog('payment_initialized', userId, { orderId: order.id, amount, clientIP });
           res.json({ ...order, paymentUrl });
         } catch (paymentError) {
@@ -322,7 +323,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.id;
       const { orderId } = req.params;
       const clientIP = req.ip || req.connection.remoteAddress;
-      
+
       // Security check: additional rate limiting for order cancellation
       const rateCheck = checkRateLimit('order_cancel', clientIP);
       if (!rateCheck.allowed) {
@@ -332,12 +333,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const order = await storage.cancelOrder(orderId, userId);
       auditLog('order_cancelled', userId, { orderId, totalPrice: order.totalPrice, clientIP });
-      
+
       res.json({ message: "Order cancelled successfully", order });
     } catch (error) {
       console.error("Error cancelling order:", error);
       auditLog('order_cancel_failed', req.user?.id, { orderId: req.params.orderId, error: (error as Error).message, clientIP: req.ip });
-      
+
       if ((error as Error).message.includes('not found') || (error as Error).message.includes('not authorized')) {
         return res.status(404).json({ message: "Order not found or not authorized" });
       }
@@ -359,7 +360,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const userId = req.user?.id || req.user;
         const { orderId } = req.params;
         const clientIP = req.ip || req.connection.remoteAddress;
-        
+
         // Enhanced order ID validation
         if (!validateOrderId(orderId)) {
           auditLog('security_violation', userId, { 
@@ -369,16 +370,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
           return res.status(400).json({ message: "Invalid order ID format" });
         }
-        
+
         // Security delay for payment operations
         const delay = getSecurityDelay(1);
         if (delay > 0) {
           await new Promise(resolve => setTimeout(resolve, delay));
         }
-        
+
         const paymentUrl = await storage.reactivatePayment(orderId, userId);
         auditLog('payment_reactivated', userId, { orderId, clientIP });
-        
+
         res.json({ paymentUrl });
       } catch (error) {
         const userId = req.user?.id || req.user;
@@ -387,7 +388,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           error: (error as Error).message, 
           clientIP: req.ip 
         });
-        
+
         if ((error as Error).message.includes('not found') || (error as Error).message.includes('not authorized')) {
           return res.status(404).json({ message: "Order not found or not authorized" });
         }
@@ -439,21 +440,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Try to get user ID from different possible sources
       const userId = req.user?.id || req.user?.claims?.sub;
-      
+
       if (!userId) {
         console.error("No user ID found in request:", req.user);
         return res.status(401).json({ message: "User ID not found" });
       }
-      
+
       const user = await storage.getUser(userId);
-      
+
       if (!user) {
         console.error("User not found for ID:", userId);
         return res.status(401).json({ message: "User not found" });
       }
-      
+
       console.log("Projects request - User role:", user.role, "User ID:", userId);
-      
+
       // If admin, return all projects with user and order details
       if (user?.role === 'admin') {
         const projects = await storage.getAllProjects();
@@ -501,7 +502,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { id } = req.params;
-      
+
       // Convert date strings to Date objects if they exist
       const updates = { ...req.body };
       if (updates.dueDate && typeof updates.dueDate === 'string') {
@@ -510,12 +511,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (updates.startDate && typeof updates.startDate === 'string') {
         updates.startDate = new Date(updates.startDate);
       }
-      
+
       // Debug: Log the updates being applied
       console.log('Updating project with:', { id, updates });
-      
+
       const project = await storage.updateProject(id, updates);
-      
+
       console.log('Updated project result:', project);
       res.json(project);
     } catch (error) {
@@ -602,11 +603,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Payment callback route (for redirect after payment)
   app.get('/api/payments/callback', async (req, res) => {
 
-    
+
     try {
       const { reference, trxref, status } = req.query;
       const paymentReference = (reference || trxref) as string;
-      
+
       if (paymentReference) {
         // Verify payment with Paystack before confirming success
         try {
@@ -616,28 +617,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
               Authorization: `Bearer ${paystackSecretKey}`,
             },
           });
-          
+
           const verifyData = await verifyResponse.json();
-          
+
           if (verifyData.status && verifyData.data.status === 'success') {
             // Payment verified, update records
             const orderId = verifyData.data.metadata?.orderId;
-            
+
             if (orderId) {
               // Update payment status
               await db.update(payments).set({
                 status: "succeeded" as any,
                 paidAt: new Date(),
               }).where(eq(payments.providerId, paymentReference));
-              
+
               // Update order status  
               await db.update(orders).set({
                 status: "paid" as any
               }).where(eq(orders.id, orderId));
-              
+
               console.log(`Payment verified and updated for order: ${orderId}`);
             }
-            
+
             // Redirect to dashboard with success and clear payment flag
             return res.redirect('/?payment=success&clear_payment=true#dashboard');
           } else {
@@ -660,7 +661,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/payments/webhook', authRateLimit('payment'), validateRequestSize(), async (req, res) => {
     const clientIP = req.ip || req.connection.remoteAddress || 'unknown';
-    
+
     try {
       // Verify webhook signature from Paystack
       const hash = req.headers['x-paystack-signature'];
@@ -751,6 +752,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin settings routes
+  app.get("/api/admin/settings", async (req, res) => {
+    try {
+      const existingSettings = await db.select().from(schema.settings).where(eq(schema.settings.id, "default")).limit(1);
+
+      const settings = {
+        whatsappNumber: existingSettings[0]?.whatsappNumber || "+2347044688788"
+      };
+
+      res.json(settings);
+    } catch (error) {
+      console.error("Error fetching settings:", error);
+      res.status(500).json({ error: "Failed to fetch settings" });
+    }
+  });
+
+  app.post("/api/admin/settings", isAuthenticated, async (req: any, res) => {
+    try {
+      const { whatsappNumber } = req.body;
+
+      if (!whatsappNumber) {
+        return res.status(400).json({ error: "WhatsApp number is required" });
+      }
+
+      // Validate phone number format (basic validation)
+      const phoneRegex = /^\+[1-9]\d{1,14}$/;
+      if (!phoneRegex.test(whatsappNumber)) {
+        return res.status(400).json({ error: "Invalid phone number format. Use international format (e.g., +234123456789)" });
+      }
+
+      // Check if settings exist
+      const existingSettings = await db.select().from(schema.settings).where(eq(schema.settings.id, "default")).limit(1);
+
+      if (existingSettings.length > 0) {
+        // Update existing settings
+        await db.update(schema.settings)
+          .set({ 
+            whatsappNumber,
+            updatedAt: new Date()
+          })
+          .where(eq(schema.settings.id, "default"));
+      } else {
+        // Create new settings
+        await db.insert(schema.settings).values({
+          id: "default",
+          whatsappNumber,
+        });
+      }
+
+      res.json({ 
+        message: "WhatsApp number updated successfully",
+        whatsappNumber 
+      });
+    } catch (error) {
+      console.error("Error updating settings:", error);
+      res.status(500).json({ error: "Failed to update settings" });
+    }
+  });
+
   app.patch('/api/admin/projects/:id', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
@@ -761,7 +821,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { id } = req.params;
-      
+
       // Convert date strings to Date objects if they exist
       const updates = { ...req.body };
       if (updates.dueDate && typeof updates.dueDate === 'string') {
@@ -770,7 +830,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (updates.startDate && typeof updates.startDate === 'string') {
         updates.startDate = new Date(updates.startDate);
       }
-      
+
       const updatedProject = await storage.updateProject(id, updates);
       res.json(updatedProject);
     } catch (error) {
@@ -790,7 +850,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { id } = req.params;
       const { status } = req.body;
-      
+
       const updatedProject = await storage.updateProject(id, { status });
       res.json(updatedProject);
     } catch (error) {
@@ -805,7 +865,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { id } = req.params;
       const userId = req.user?.id;
       const userRole = req.user?.role;
-      
+
       // Check if user has access to update this project
       if (userRole !== 'admin' && userId) {
         const hasAccess = await storage.userHasProjectAccess(userId, id);
@@ -813,7 +873,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(403).json({ message: "Access denied" });
         }
       }
-      
+
       const updatedProject = await storage.updateProject(id, req.body);
       res.json(updatedProject);
     } catch (error) {
@@ -888,7 +948,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { id } = req.params;
-      
+
       // Validate project ID format
       if (!id || typeof id !== 'string' || id.length < 10) {
         return sendSafeErrorResponse(res, 400, new Error("Invalid project ID"), 'invalid_project_id');
@@ -907,7 +967,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       await storage.deleteProject(id);
       auditLog('project_deleted', userId, { projectId: id, projectName: project.projectName });
-      
+
       res.json({ message: "Project deleted successfully" });
     } catch (error) {
       console.error("Error deleting project:", error);
@@ -937,13 +997,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const validatedProject = insertProjectSchema.parse(projectData);
       const project = await storage.createProject(validatedProject);
-      
+
       auditLog('project_created', userId, { 
         projectId: project.id, 
         projectName: project.projectName,
         targetUserId: project.userId 
       });
-      
+
       res.json(project);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -982,13 +1042,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (sanitizedPaymentId) updates.paymentId = sanitizedPaymentId;
 
       const updatedOrder = await storage.updateOrderStatus(id, sanitizedStatus);
-      
+
       auditLog('order_updated_by_admin', userId, { 
         orderId: id, 
         newStatus: sanitizedStatus,
         paymentId: sanitizedPaymentId 
       });
-      
+
       res.json(updatedOrder);
     } catch (error) {
       console.error("Error updating order:", error);
@@ -1035,12 +1095,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const validatedService = insertServiceSchema.parse(serviceData);
       const service = await storage.createService(validatedService);
-      
+
       auditLog('service_created', userId, { 
         serviceId: service.id, 
         serviceName: service.name 
       });
-      
+
       res.json(service);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -1062,7 +1122,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { id } = req.params;
-      
+
       // Sanitize update data
       const updates = {
         ...req.body,
@@ -1076,12 +1136,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       Object.keys(updates).forEach(key => updates[key] === undefined && delete updates[key]);
 
       const updatedService = await storage.updateService(id, updates);
-      
+
       auditLog('service_updated', userId, { 
         serviceId: id, 
         updates: Object.keys(updates) 
       });
-      
+
       res.json(updatedService);
     } catch (error) {
       console.error("Error updating service:", error);
@@ -1101,9 +1161,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { id } = req.params;
       await storage.deleteService(id);
-      
+
       auditLog('service_deleted', userId, { serviceId: id });
-      
+
       res.json({ message: "Service deleted successfully" });
     } catch (error) {
       console.error("Error deleting service:", error);
@@ -1146,15 +1206,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/client/stats', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      
+
       // Get user's orders to count paid orders as active projects
       const userOrders = await storage.getUserOrders(userId);
       const paidOrders = userOrders.filter((order: any) => order.status === 'paid');
-      
+
       // Get actual projects
       const userProjects = await storage.getUserProjects(userId);
       const completedProjects = userProjects.filter((project: any) => project.status === 'completed');
-      
+
       const stats = {
         activeProjects: paidOrders.length, // Paid orders count as active projects
         completedProjects: completedProjects.length,
@@ -1164,7 +1224,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }, 0),
         newMessages: 0 // Can be enhanced later with actual message count
       };
-      
+
       res.json(stats);
     } catch (error) {
       console.error("Error fetching client stats:", error);
@@ -1177,13 +1237,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const sessionData = req.body;
       console.log('Creating checkout session with data:', sessionData);
-      
+
       // Generate unique session token
       const sessionToken = `checkout_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
+
       // Set expiration to 2 hours from now
       const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
-      
+
       const checkoutSession = await storage.createCheckoutSession({
         sessionToken,
         serviceId: sessionData.serviceId,
@@ -1194,7 +1254,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: sessionData.userId || null,
         expiresAt,
       });
-      
+
       console.log('Created checkout session:', checkoutSession);
       res.json({ sessionToken: checkoutSession.sessionToken });
     } catch (error) {
@@ -1207,17 +1267,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { sessionToken } = req.params;
       const session = await storage.getCheckoutSession(sessionToken);
-      
+
       if (!session) {
         return res.status(404).json({ error: "Checkout session not found" });
       }
-      
+
       // Check if session has expired
       if (new Date() > session.expiresAt) {
         await storage.deleteCheckoutSession(sessionToken);
         return res.status(410).json({ error: "Checkout session expired" });
       }
-      
+
       res.json(session);
     } catch (error) {
       console.error("Error fetching checkout session:", error);
@@ -1229,7 +1289,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { sessionToken } = req.params;
       const updates = req.body;
-      
+
       const updatedSession = await storage.updateCheckoutSession(sessionToken, updates);
       res.json(updatedSession);
     } catch (error) {
