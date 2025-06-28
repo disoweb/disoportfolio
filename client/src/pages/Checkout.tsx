@@ -179,11 +179,11 @@ export default function Checkout() {
       <Navigation />
       
       <div className="container mx-auto px-3 py-4 max-w-lg">
-        <div className="mb-4">
+        <div className="mb-4 flex items-center gap-3">
           <Button 
             variant="ghost" 
             onClick={() => setLocation('/')}
-            className="mb-2 h-8 px-2"
+            className="h-8 px-2"
             size="sm"
           >
             <ArrowLeft className="mr-1 h-3 w-3" />
