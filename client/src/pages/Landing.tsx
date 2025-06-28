@@ -498,8 +498,8 @@ export default function Landing() {
           
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8 items-center justify-items-center">
             {/* Microsoft */}
-            <div className="flex items-center justify-center h-12 grayscale hover:grayscale-0 transition-all duration-300 opacity-60 hover:opacity-100">
-              <svg className="h-8 w-auto" viewBox="0 0 96 96" fill="currentColor">
+            <div className="flex items-center justify-center h-12 hover:scale-110 transition-all duration-300">
+              <svg className="h-8 w-auto" viewBox="0 0 96 96">
                 <rect x="0" y="0" width="44" height="44" fill="#F25022"/>
                 <rect x="52" y="0" width="44" height="44" fill="#7FBA00"/>
                 <rect x="0" y="52" width="44" height="44" fill="#00A4EF"/>
@@ -508,8 +508,8 @@ export default function Landing() {
             </div>
             
             {/* Google */}
-            <div className="flex items-center justify-center h-12 grayscale hover:grayscale-0 transition-all duration-300 opacity-60 hover:opacity-100">
-              <svg className="h-6 w-auto" viewBox="0 0 272 92" fill="none">
+            <div className="flex items-center justify-center h-12 hover:scale-110 transition-all duration-300">
+              <svg className="h-6 w-auto" viewBox="0 0 272 92">
                 <path d="M115.75 47.18c0 12.77-9.99 22.18-22.25 22.18s-22.25-9.41-22.25-22.18C71.25 34.32 81.24 25 93.5 25s22.25 9.32 22.25 22.18zm-9.74 0c0-7.98-5.79-13.44-12.51-13.44S80.99 39.2 80.99 47.18c0 7.9 5.79 13.44 12.51 13.44s12.51-5.55 12.51-13.44z" fill="#EA4335"/>
                 <path d="M163.75 47.18c0 12.77-9.99 22.18-22.25 22.18s-22.25-9.41-22.25-22.18c0-12.85 9.99-22.18 22.25-22.18s22.25 9.32 22.25 22.18zm-9.74 0c0-7.98-5.79-13.44-12.51-13.44s-12.51 5.46-12.51 13.44c0 7.9 5.79 13.44 12.51 13.44s12.51-5.55 12.51-13.44z" fill="#FBBC05"/>
                 <path d="M209.75 26.34v39.82c0 16.38-9.66 23.07-21.08 23.07-10.75 0-17.22-7.19-19.66-13.07l8.48-3.53c1.51 3.61 5.21 7.87 11.17 7.87 7.31 0 11.84-4.51 11.84-13v-3.19h-.34c-2.18 2.69-6.38 5.04-11.68 5.04-11.09 0-21.25-9.66-21.25-22.09 0-12.52 10.16-22.26 21.25-22.26 5.29 0 9.49 2.35 11.68 4.96h.34v-3.61h9.25zm-8.56 20.92c0-7.81-5.21-13.52-11.84-13.52-6.72 0-12.35 5.71-12.35 13.52 0 7.73 5.63 13.36 12.35 13.36 6.63 0 11.84-5.63 11.84-13.36z" fill="#34A853"/>
@@ -519,23 +519,23 @@ export default function Landing() {
             </div>
             
             {/* Amazon */}
-            <div className="flex items-center justify-center h-12 grayscale hover:grayscale-0 transition-all duration-300 opacity-60 hover:opacity-100">
-              <svg className="h-5 w-auto" viewBox="0 0 603 181" fill="currentColor">
+            <div className="flex items-center justify-center h-12 hover:scale-110 transition-all duration-300">
+              <svg className="h-5 w-auto" viewBox="0 0 603 181">
                 <path d="M374.1 181c-58.4 43.1-143.1 66.1-216.1 66.1-102.4 0-194.8-37.9-264.6-100.8-5.5-4.9-.6-11.6 6-7.8 75.3 43.8 168.4 70.2 264.4 70.2 64.8 0 136.1-13.4 201.7-41.2 9.9-4.2 18.2 6.5 8.6 13.5z" fill="#FF9900"/>
                 <path d="M387.8 165.2c-7.5-9.6-49.6-4.5-68.5-2.3-5.8.7-6.7-4.4-.7-8 33.5-23.6 88.6-16.8 95-8.9 6.4 7.9-1.7 62.7-33 88.9-4.8 4-9.4 1.9-7.3-3.4 7.1-17.6 23-57.2 15.5-66.3z" fill="#FF9900"/>
               </svg>
             </div>
             
             {/* Netflix */}
-            <div className="flex items-center justify-center h-12 grayscale hover:grayscale-0 transition-all duration-300 opacity-60 hover:opacity-100">
-              <svg className="h-8 w-auto" viewBox="0 0 1024 276.742" fill="currentColor">
+            <div className="flex items-center justify-center h-12 hover:scale-110 transition-all duration-300">
+              <svg className="h-8 w-auto" viewBox="0 0 1024 276.742">
                 <path d="M140.803 258.904c-15.404 2.705-31.079 3.516-47.294 5.676l-49.458-144.856v151.073c-15.404 1.621-29.457 3.783-44.051 5.945v-276.742h41.08l56.212 157.021v-157.021h43.511v258.904zm85.131-157.558c16.757 0 42.431-.811 57.835-.811v42.431c-19.189 0-41.619 0-57.835.811v64.052c25.405-1.621 50.809-3.785 76.482-4.596v41.617c-31.4 1.783-62.8 3.24-95.117 4.596v-276.742h95.117v42.431h-76.482v86.212zm85.131 157.558c-13.283 0-26.857 1.075-40.349 2.39v-276.742c16.757 0 17.626.322 30.978.322 44.295 0 53.262 24.108 53.262 55.81 0 27.24-8.645 45.408-39.787 48.053v.322c33.537 1.674 42.821 24.538 42.821 50.539 0 36.554-18.137 119.296-46.925 119.296zm-6.28-244.317c-9.969 0-13.283.81-13.283 9.616v62.043c2.002 0 4.84 0 8.322 0 12.404 0 17.974-12.565 17.974-31.347 0-21.405-6.809-40.312-12.73-40.312h-.283z" fill="#E50914"/>
               </svg>
             </div>
             
             {/* Shopify */}
-            <div className="flex items-center justify-center h-12 grayscale hover:grayscale-0 transition-all duration-300 opacity-60 hover:opacity-100">
-              <svg className="h-8 w-auto" viewBox="0 0 109.5 124.5" fill="currentColor">
+            <div className="flex items-center justify-center h-12 hover:scale-110 transition-all duration-300">
+              <svg className="h-8 w-auto" viewBox="0 0 109.5 124.5">
                 <path d="M74.7 14.8s-1.4-.4-3.7-.4c-7.8 0-13.1 2.9-17.5 8.1-3.9 4.6-4.6 8.7-4.8 11.5-.2 2.3.3 3.5.3 3.5s-8.1 2.4-8.1 2.4l-8.5 85.3 75.8-12.3-32.5-97.1z" fill="#95BF46"/>
                 <path d="M74.7 14.8s-1.4-.4-3.7-.4c-7.8 0-13.1 2.9-17.5 8.1-3.9 4.6-4.6 8.7-4.8 11.5-.2 2.3.3 3.5.3 3.5s-8.1 2.4-8.1 2.4L32.4 125l43.3-7 32.5-97.1s-33.5-6.1-33.5-6.1z" fill="#5E8E3E"/>
                 <path d="M79.9 32.1c-.3-1.4-1.2-1.9-2.3-1.9-.9 0-1.9.4-1.9.4s.2-8.1-3.9-8.1c-4.1 0-7.8 6.2-8.8 11.7 0 0-2.9.9-4.7 1.4-1.9.6-1.9.6-2.1 2.3L56 42.2l21.9-3.5 2-6.6z" fill="#5E8E3E"/>
@@ -543,8 +543,8 @@ export default function Landing() {
             </div>
             
             {/* Meta */}
-            <div className="flex items-center justify-center h-12 grayscale hover:grayscale-0 transition-all duration-300 opacity-60 hover:opacity-100">
-              <svg className="h-6 w-auto" viewBox="0 0 1024 414" fill="currentColor">
+            <div className="flex items-center justify-center h-12 hover:scale-110 transition-all duration-300">
+              <svg className="h-6 w-auto" viewBox="0 0 1024 414">
                 <path d="M94.91 334.89c-46.42 0-84.15-37.73-84.15-84.15s37.73-84.15 84.15-84.15c20.86 0 39.96 7.59 54.66 20.14l15.96-30.95c-21.31-17.37-48.41-27.71-77.62-27.71C42.53 128.07 0 170.6 0 215.99s42.53 87.92 94.91 87.92c29.21 0 56.31-10.34 77.62-27.71l-15.96-30.95c-14.7 12.55-33.8 20.14-54.66 20.14z" fill="#1877F2"/>
               </svg>
             </div>
