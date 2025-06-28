@@ -9,24 +9,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
-import { CreditCard, ArrowLeft, User, Mail, Phone, Building2, FileText, CheckCircle, Clock, X } from "lucide-react";
+import { CreditCard, ArrowLeft, User, Mail, Phone, Building2, FileText, Clock, X, Shield, Heart } from "lucide-react";
 import PaymentLoader from "@/components/PaymentLoader";
 
 const contactSchema = z.object({
   fullName: z.string().min(2, "Full name must be at least 2 characters"),
-  email: z.string().email("Please enter a valid email"),
+  email: z.string().email("Please enter a valid email address"),
   phone: z.string().min(10, "Please enter a valid phone number"),
-  company: z.string().optional(),
-  projectDescription: z.string().min(10, "Please provide a detailed project description"),
+  companyName: z.string().optional(),
+  projectDescription: z.string().min(10, "Please provide a brief description of your project"),
 });
 
 const paymentSchema = z.object({
-  paymentMethod: z.literal("paystack"),
   timeline: z.string().min(1, "Please select a timeline"),
 });
 
@@ -53,16 +51,14 @@ export default function CheckoutModal({
   service,
   totalPrice,
   selectedAddOns,
-  onSuccess
+  onSuccess,
 }: CheckoutModalProps) {
-  const [, setLocation] = useLocation();
   const [currentStep, setCurrentStep] = useState(1);
-  const [contactData, setContactData] = useState<ContactForm | null>(null);
   const [showPaymentLoader, setShowPaymentLoader] = useState(false);
-  const [showStreamlinedConfirmation, setShowStreamlinedConfirmation] = useState(false);
   const [paymentCooldown, setPaymentCooldown] = useState(0);
-  const { user } = useAuth();
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const contactForm = useForm<ContactForm>({
     resolver: zodResolver(contactSchema),
@@ -70,7 +66,7 @@ export default function CheckoutModal({
       fullName: "",
       email: "",
       phone: "",
-      company: "",
+      companyName: "",
       projectDescription: "",
     },
   });
@@ -78,52 +74,38 @@ export default function CheckoutModal({
   const paymentForm = useForm<PaymentForm>({
     resolver: zodResolver(paymentSchema),
     defaultValues: {
-      paymentMethod: "paystack",
       timeline: "",
     },
   });
 
-  // Helper functions for local storage
-  const storeFormData = (key: string, data: any) => {
-    try {
-      sessionStorage.setItem(key, JSON.stringify(data));
-    } catch (error) {
-      console.error('Failed to store form data:', error);
+  // Payment cooldown effect
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (paymentCooldown > 0) {
+      interval = setInterval(() => {
+        setPaymentCooldown((prev) => prev - 1);
+      }, 1000);
     }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [paymentCooldown]);
+
+  const handleClose = () => {
+    setCurrentStep(1);
+    contactForm.reset();
+    paymentForm.reset();
+    setShowPaymentLoader(false);
+    onClose();
   };
 
-  const getStoredFormData = (key: string) => {
-    try {
-      const stored = sessionStorage.getItem(key);
-      return stored ? JSON.parse(stored) : null;
-    } catch (error) {
-      console.error('Failed to retrieve form data:', error);
-      return null;
-    }
+  const onContactSubmit = (data: ContactForm) => {
+    setCurrentStep(2);
   };
 
   const orderMutation = useMutation({
-    mutationFn: async (data: PaymentForm & { 
-      overrideSelectedAddOns?: string[], 
-      overrideTotalAmount?: number 
-    }) => {
-      const orderData = {
-        serviceId: service.id,
-        serviceData: {
-          id: service.id,
-          name: service.name,
-          price: service.price,
-          description: service.description
-        },
-        contactData: contactData!,
-        paymentMethod: data.paymentMethod,
-        timeline: data.timeline,
-        selectedAddOns: data.overrideSelectedAddOns || selectedAddOns,
-        totalPrice: data.overrideTotalAmount || totalPrice,
-      };
-
-      // Mark payment attempt
-      sessionStorage.setItem('last_payment_attempt', Date.now().toString());
+    mutationFn: async (orderData: any) => {
+      setShowPaymentLoader(true);
 
       const response = await apiRequest("POST", "/api/orders", orderData);
       return response;
@@ -143,140 +125,55 @@ export default function CheckoutModal({
         onClose();
       }
     },
-    onError: (error) => {
-      console.error("Order creation failed:", error);
+    onError: (error: any) => {
       setShowPaymentLoader(false);
-      setShowStreamlinedConfirmation(false);
+      console.error("Order creation error:", error);
       
+      if (error.message?.includes("cancelled")) {
+        setPaymentCooldown(30);
+        toast({
+          title: "Payment Cancelled",
+          description: "You can try again in 30 seconds.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (error.message?.includes("401")) {
+        setLocation("/auth");
+        return;
+      }
+
       toast({
-        title: "Payment Failed",
-        description: error instanceof Error ? error.message : "Failed to process payment. Please try again.",
+        title: "Error",
+        description: error.message || "Failed to create order. Please try again.",
         variant: "destructive",
       });
     },
   });
 
-  // Check for payment cancellation on modal open
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const urlParams = new URLSearchParams(window.location.search);
-    const cancelled = urlParams.get('cancelled');
-    const paymentCancelled = sessionStorage.getItem('payment_cancelled');
-    
-    if (cancelled === 'true' || paymentCancelled === 'true') {
-      sessionStorage.removeItem('payment_cancelled');
-      sessionStorage.removeItem('auto_submit_payment');
-      
-      const lastPaymentAttempt = sessionStorage.getItem('last_payment_attempt');
-      const now = Date.now();
-      
-      if (lastPaymentAttempt) {
-        const timeSinceLastAttempt = now - parseInt(lastPaymentAttempt);
-        const remainingCooldown = Math.max(0, 30000 - timeSinceLastAttempt);
-        if (remainingCooldown > 0) {
-          setPaymentCooldown(Math.ceil(remainingCooldown / 1000));
-        }
-      }
-      
-      toast({
-        title: "Payment Cancelled",
-        description: "Please try again when you're ready.",
-      });
-    }
-
-    // Load stored form data if available
-    const storedContactData = getStoredFormData('checkout_contact_data');
-    if (storedContactData) {
-      contactForm.reset(storedContactData);
-      setContactData(storedContactData);
-      setCurrentStep(2);
-    }
-  }, [isOpen]);
-
-  // Countdown timer for payment cooldown
-  useEffect(() => {
-    if (paymentCooldown > 0) {
-      const timer = setTimeout(() => {
-        setPaymentCooldown(prev => Math.max(0, prev - 1));
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [paymentCooldown]);
-
-  const onContactSubmit = (data: ContactForm) => {
-    storeFormData('checkout_contact_data', data);
-    setContactData(data);
-    setCurrentStep(2);
-  };
-
-  const onPaymentSubmit = (data: PaymentForm) => {
-    if (!contactData) return;
-    
+  const onPaymentSubmit = async (data: PaymentForm) => {
     if (!user) {
-      // Create checkout session and redirect to auth
-      const createSessionData = {
-        serviceId: service.id,
-        serviceData: {
-          id: service.id,
-          name: service.name,
-          price: service.price,
-          description: service.description
-        },
-        contactData,
-        selectedAddOns,
-        totalPrice,
-        userId: null
-      };
-
-      fetch("/api/checkout-sessions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(createSessionData),
-      })
-      .then(res => res.json())
-      .then(result => {
-        if (result.sessionToken) {
-          sessionStorage.setItem('checkoutSessionToken', result.sessionToken);
-          sessionStorage.removeItem('auth_completed');
-          sessionStorage.removeItem('auth_timestamp');
-          
-          onClose(); // Close modal before redirect
-          setLocation(`/auth?checkout=${result.sessionToken}`);
-        } else {
-          toast({
-            title: "Error",
-            description: "Failed to create checkout session. Please try again.",
-            variant: "destructive",
-          });
-        }
-      })
-      .catch(error => {
-        toast({
-          title: "Error",
-          description: "Failed to create checkout session. Please try again.",
-          variant: "destructive",
-        });
-      });
+      setLocation("/auth");
       return;
     }
 
-    // Proceed with payment for authenticated users
-    setShowPaymentLoader(true);
-    orderMutation.mutate(data);
-  };
+    const contactData = contactForm.getValues();
+    const orderData = {
+      serviceId: service.id,
+      serviceName: service.name,
+      servicePrice: totalPrice,
+      contactName: contactData.fullName,
+      contactEmail: contactData.email,
+      contactPhone: contactData.phone,
+      companyName: contactData.companyName || "",
+      projectDescription: contactData.projectDescription,
+      customRequests: `Timeline: ${data.timeline}`,
+      addOns: selectedAddOns,
+      totalAmount: totalPrice,
+    };
 
-  const handleClose = () => {
-    if (showPaymentLoader || orderMutation.isPending) {
-      return; // Prevent closing during payment
-    }
-    onClose();
-    setCurrentStep(1);
-    setContactData(null);
-    setShowStreamlinedConfirmation(false);
-    setShowPaymentLoader(false);
-    contactForm.reset();
-    paymentForm.reset();
+    orderMutation.mutate(orderData);
   };
 
   // Show payment loader when processing payment
@@ -298,128 +195,155 @@ export default function CheckoutModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
-        <DialogHeader className="pb-3">
-          <DialogTitle className="flex items-center gap-2 text-lg">
-            <CreditCard className="h-4 w-4" />
-            Complete Your Order
-          </DialogTitle>
-          <p className="text-sm text-gray-600">
+      <DialogContent className="sm:max-w-md max-h-[80vh] overflow-y-auto p-0 rounded-xl">
+        {/* Header with service info and trust badges */}
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 border-b">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                <CreditCard className="h-4 w-4 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-slate-900 text-sm">{service.name}</h3>
+                <span className="text-xl font-bold text-blue-600">₦{totalPrice.toLocaleString()}</span>
+              </div>
+            </div>
+            <button
+              onClick={handleClose}
+              className="p-1 hover:bg-white/50 rounded-full transition-colors"
+            >
+              <X className="w-4 h-4 text-slate-500" />
+            </button>
+          </div>
+          
+          {/* Trust badges */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full">
+              <Shield className="w-3 h-3" />
+              SSL Secured
+            </div>
+            <div className="flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
+              <Heart className="w-3 h-3" />
+              Trusted by 500+ clients
+            </div>
+          </div>
+        </div>
+
+        {/* Form content */}
+        <div className="p-4">
+          <p className="text-xs text-gray-600 mb-4 text-center">
             {currentStep === 1 
-              ? "Provide your contact information" 
-              : "Review and proceed with payment"
+              ? "Step 1 of 2: Contact Information" 
+              : "Step 2 of 2: Payment Confirmation"
             }
           </p>
-        </DialogHeader>
 
-        {currentStep === 1 ? (
-          <form onSubmit={contactForm.handleSubmit(onContactSubmit)} className="space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="fullName" className="text-sm font-medium">Full Name *</Label>
-              <div className="relative">
-                <User className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                <Input
-                  id="fullName"
-                  {...contactForm.register("fullName")}
-                  className="pl-10 h-9"
-                  placeholder="Your full name"
-                />
+          {currentStep === 1 ? (
+            <form onSubmit={contactForm.handleSubmit(onContactSubmit)} className="space-y-3">
+              <div className="space-y-1">
+                <Label htmlFor="fullName" className="text-xs font-medium text-gray-700">Full Name *</Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                  <Input
+                    id="fullName"
+                    {...contactForm.register("fullName")}
+                    className="pl-10 h-9 text-sm"
+                    placeholder="Your full name"
+                  />
+                </div>
+                {contactForm.formState.errors.fullName && (
+                  <p className="text-xs text-red-500">{contactForm.formState.errors.fullName.message}</p>
+                )}
               </div>
-              {contactForm.formState.errors.fullName && (
-                <p className="text-xs text-red-500">{contactForm.formState.errors.fullName.message}</p>
-              )}
-            </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="email" className="text-sm font-medium">Email Address *</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                <Input
-                  id="email"
-                  type="email"
-                  {...contactForm.register("email")}
-                  className="pl-10 h-9"
-                  placeholder="your@email.com"
-                />
+              <div className="space-y-1">
+                <Label htmlFor="email" className="text-xs font-medium text-gray-700">Email Address *</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                  <Input
+                    id="email"
+                    type="email"
+                    {...contactForm.register("email")}
+                    className="pl-10 h-9 text-sm"
+                    placeholder="your@email.com"
+                  />
+                </div>
+                {contactForm.formState.errors.email && (
+                  <p className="text-xs text-red-500">{contactForm.formState.errors.email.message}</p>
+                )}
               </div>
-              {contactForm.formState.errors.email && (
-                <p className="text-xs text-red-500">{contactForm.formState.errors.email.message}</p>
-              )}
-            </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="phone" className="text-sm font-medium">Phone Number *</Label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                <Input
-                  id="phone"
-                  {...contactForm.register("phone")}
-                  className="pl-10 h-9"
-                  placeholder="+234 123 456 7890"
-                />
+              <div className="space-y-1">
+                <Label htmlFor="phone" className="text-xs font-medium text-gray-700">Phone Number *</Label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                  <Input
+                    id="phone"
+                    {...contactForm.register("phone")}
+                    className="pl-10 h-9 text-sm"
+                    placeholder="+234 xxx xxx xxxx"
+                  />
+                </div>
+                {contactForm.formState.errors.phone && (
+                  <p className="text-xs text-red-500">{contactForm.formState.errors.phone.message}</p>
+                )}
               </div>
-              {contactForm.formState.errors.phone && (
-                <p className="text-xs text-red-500">{contactForm.formState.errors.phone.message}</p>
-              )}
-            </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="company" className="text-sm font-medium">Company (Optional)</Label>
-              <div className="relative">
-                <Building2 className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                <Input
-                  id="company"
-                  {...contactForm.register("company")}
-                  className="pl-10 h-9"
-                  placeholder="Your company name"
-                />
+              <div className="space-y-1">
+                <Label htmlFor="companyName" className="text-xs font-medium text-gray-700">Company Name (Optional)</Label>
+                <div className="relative">
+                  <Building2 className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                  <Input
+                    id="companyName"
+                    {...contactForm.register("companyName")}
+                    className="pl-10 h-9 text-sm"
+                    placeholder="Your company"
+                  />
+                </div>
               </div>
-            </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="projectDescription" className="text-sm font-medium">Project Description *</Label>
-              <div className="relative">
-                <FileText className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                <Textarea
-                  id="projectDescription"
-                  {...contactForm.register("projectDescription")}
-                  className="pl-10 min-h-[70px] text-sm resize-none"
-                  placeholder="Brief description of your project..."
-                />
+              <div className="space-y-1">
+                <Label htmlFor="projectDescription" className="text-xs font-medium text-gray-700">Project Description *</Label>
+                <div className="relative">
+                  <FileText className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                  <Textarea
+                    id="projectDescription"
+                    {...contactForm.register("projectDescription")}
+                    className="pl-10 text-sm resize-none"
+                    rows={3}
+                    placeholder="Brief description of your project requirements..."
+                  />
+                </div>
+                {contactForm.formState.errors.projectDescription && (
+                  <p className="text-xs text-red-500">{contactForm.formState.errors.projectDescription.message}</p>
+                )}
               </div>
-              {contactForm.formState.errors.projectDescription && (
-                <p className="text-xs text-red-500">{contactForm.formState.errors.projectDescription.message}</p>
-              )}
-            </div>
 
-            <Button type="submit" className="w-full h-10">
-              Continue to Payment
-            </Button>
-          </form>
-        ) : (
-          <div className="space-y-4">
-            {/* Order Summary */}
-            <div className="bg-gray-50 p-3 rounded-lg">
-              <h3 className="font-semibold mb-2 text-sm">Order Summary</h3>
-              <div className="space-y-1.5 text-xs">
-                <div className="flex justify-between">
+              <Button type="submit" className="w-full h-9 bg-blue-600 hover:bg-blue-700">
+                Continue to Payment
+              </Button>
+            </form>
+          ) : (
+            <form onSubmit={paymentForm.handleSubmit(onPaymentSubmit)} className="space-y-3">
+              <div className="bg-slate-50 rounded-lg p-3 space-y-2">
+                <h4 className="font-medium text-sm text-slate-900">Order Summary</h4>
+                <div className="flex justify-between text-sm">
                   <span>Service:</span>
                   <span className="font-medium">{service.name}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>Contact:</span>
-                  <span className="font-medium truncate ml-2">{contactData?.fullName}</span>
-                </div>
-                <div className="flex justify-between font-semibold text-sm">
+                <div className="flex justify-between text-sm">
                   <span>Total:</span>
-                  <span>₦{totalPrice.toLocaleString()}</span>
+                  <span className="font-bold text-blue-600">₦{totalPrice.toLocaleString()}</span>
                 </div>
+                {selectedAddOns.length > 0 && (
+                  <div className="text-xs text-slate-600">
+                    Add-ons: {selectedAddOns.join(", ")}
+                  </div>
+                )}
               </div>
-            </div>
 
-            <form onSubmit={paymentForm.handleSubmit(onPaymentSubmit)} className="space-y-4">
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Project Timeline</Label>
+                <Label className="text-xs font-medium text-gray-700">Project Timeline</Label>
                 <Select onValueChange={(value) => paymentForm.setValue("timeline", value)}>
                   <SelectTrigger className="h-9">
                     <SelectValue placeholder="Select timeline" />
@@ -431,27 +355,16 @@ export default function CheckoutModal({
                     <SelectItem value="6+ weeks">6+ weeks (Complex)</SelectItem>
                   </SelectContent>
                 </Select>
-                {paymentForm.formState.errors.timeline && (
-                  <p className="text-xs text-red-500">{paymentForm.formState.errors.timeline.message}</p>
-                )}
               </div>
 
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Payment Method</Label>
-                <RadioGroup value="paystack" className="grid grid-cols-1">
-                  <div className="flex items-center space-x-2 border rounded-lg p-3">
-                    <RadioGroupItem value="paystack" id="paystack" />
-                    <Label htmlFor="paystack" className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="font-medium text-sm">Paystack</div>
-                          <div className="text-xs text-gray-500">Secure card & bank payments</div>
-                        </div>
-                        <div className="text-xs text-green-600 font-medium">Recommended</div>
-                      </div>
-                    </Label>
-                  </div>
-                </RadioGroup>
+              <div className="bg-green-50 rounded-lg p-3 border border-green-200">
+                <div className="flex items-center gap-2 text-green-800 text-sm">
+                  <Shield className="w-4 h-4" />
+                  <span className="font-medium">Secure Payment via Paystack</span>
+                </div>
+                <p className="text-xs text-green-700 mt-1">
+                  Your payment is protected by bank-level encryption
+                </p>
               </div>
 
               <div className="flex gap-2 pt-2">
@@ -459,29 +372,29 @@ export default function CheckoutModal({
                   type="button"
                   variant="outline"
                   onClick={() => setCurrentStep(1)}
-                  className="flex items-center gap-1.5 h-9 px-3"
+                  className="flex-1 h-9"
                 >
-                  <ArrowLeft className="h-3.5 w-3.5" />
+                  <ArrowLeft className="w-3 h-3 mr-1" />
                   Back
                 </Button>
-                <Button 
-                  type="submit" 
-                  className="flex-1 h-9"
-                  disabled={paymentCooldown > 0}
+                <Button
+                  type="submit"
+                  disabled={orderMutation.isPending || paymentCooldown > 0}
+                  className="flex-1 h-9 bg-blue-600 hover:bg-blue-700"
                 >
                   {paymentCooldown > 0 ? (
-                    <span className="flex items-center justify-center gap-1.5">
-                      <Clock className="h-3.5 w-3.5" />
-                      <span className="text-sm">Wait {paymentCooldown}s</span>
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      Wait {paymentCooldown}s
                     </span>
                   ) : (
-                    <span className="text-sm">Pay ₦{totalPrice.toLocaleString()}</span>
+                    <span>Pay ₦{totalPrice.toLocaleString()}</span>
                   )}
                 </Button>
               </div>
             </form>
-          </div>
-        )}
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );
