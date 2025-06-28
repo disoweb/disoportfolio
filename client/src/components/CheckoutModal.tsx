@@ -184,7 +184,43 @@ export default function CheckoutModal({
 
   const onPaymentSubmit = async (data: PaymentForm) => {
     if (!user) {
-      setLocation("/auth");
+      // Create checkout session for non-authenticated users
+      try {
+        const contactData = contactForm.getValues();
+        const sessionData = {
+          serviceId: service.id,
+          serviceData: {
+            id: service.id,
+            name: service.name,
+            price: service.price,
+            description: service.description
+          },
+          contactData,
+          selectedAddOns,
+          totalPrice,
+          timeline: data.timeline
+        };
+
+        const response = await apiRequest("POST", "/api/checkout-sessions", sessionData);
+        
+        if (response.sessionToken) {
+          // Redirect to auth with session token
+          setLocation(`/auth?checkout=${response.sessionToken}`);
+        } else {
+          toast({
+            title: "Error",
+            description: "Failed to save checkout data. Please try again.",
+            variant: "destructive",
+          });
+        }
+      } catch (error) {
+        console.error("Checkout session creation error:", error);
+        toast({
+          title: "Error",
+          description: "Failed to save checkout data. Please try again.",
+          variant: "destructive",
+        });
+      }
       return;
     }
 
