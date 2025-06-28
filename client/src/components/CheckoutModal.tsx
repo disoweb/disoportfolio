@@ -210,7 +210,7 @@ export default function CheckoutModal({
   if (showPaymentLoader || orderMutation.isPending) {
     return (
       <Dialog open={isOpen} onOpenChange={() => {}}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent className="w-full max-w-xs mx-auto">
           <PaymentLoader
             serviceName={service.name}
             amount={totalPrice}
@@ -225,7 +225,7 @@ export default function CheckoutModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-sm max-h-[80vh] overflow-y-auto p-0 rounded-xl">
+      <DialogContent className="w-full max-w-xs mx-auto max-h-[80vh] overflow-y-auto p-0 rounded-xl">
         {/* Header with service info and trust badges */}
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 border-b">
           <div className="flex items-center justify-between mb-2">
