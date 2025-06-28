@@ -53,6 +53,10 @@ export default function CheckoutModal({
   selectedAddOns,
   onSuccess,
 }: CheckoutModalProps) {
+  // Don't render if service is null
+  if (!service) {
+    return null;
+  }
   const [currentStep, setCurrentStep] = useState(1);
   const [showPaymentLoader, setShowPaymentLoader] = useState(false);
   const [paymentCooldown, setPaymentCooldown] = useState(0);
