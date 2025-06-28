@@ -46,11 +46,7 @@ export function useAuth() {
     onSuccess: () => {
       queryClient.setQueryData(["/api/auth/user"], null);
       toast({ title: "Logged out successfully" });
-      
-      // Redirect to home page after successful logout
-      setTimeout(() => {
-        window.location.href = "/";
-      }, 500); // Small delay to show the toast
+      // No automatic redirection - user stays on current page
     },
     onError: (error: any) => {
       toast({
