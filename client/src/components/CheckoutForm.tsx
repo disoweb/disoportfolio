@@ -303,13 +303,20 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
       // Clear the cancellation flags
       sessionStorage.removeItem('payment_cancelled');
       sessionStorage.removeItem('auto_submit_payment');
+      sessionStorage.removeItem('checkoutSessionToken');
+      sessionStorage.removeItem('checkout_contact_data');
       
-      // Remove cancelled param from URL
-      urlParams.delete('cancelled');
-      const newUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
-      window.history.replaceState({}, '', newUrl);
+      // Show cancellation message
+      toast({
+        title: "Payment Cancelled",
+        description: "You can choose another service or try again later.",
+      });
       
-      // Don't auto-submit if payment was cancelled
+      // Redirect back to services page
+      setTimeout(() => {
+        setLocation('/services');
+      }, 1500);
+      
       return;
     }
 
