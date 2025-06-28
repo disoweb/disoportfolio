@@ -289,22 +289,43 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
 
   // Streamlined auto-payment with immediate submission after auth
   useEffect(() => {
-    console.log('🔍 AUTO-PAYMENT CHECK:', {
-      user: !!user,
-      sessionData: !!sessionData,
-      sessionDataContent: sessionData,
-      isPending: orderMutation.isPending,
-      autoSubmitFlag: sessionStorage.getItem('auto_submit_payment'),
-      stepParam: new URLSearchParams(window.location.search).get('step')
-    });
-
     if (!user || orderMutation.isPending) {
       return;
     }
 
-    const autoSubmitPayment = sessionStorage.getItem('auto_submit_payment');
-    const stepParam = new URLSearchParams(window.location.search).get('step');
+    // Check if user is coming back from a cancelled payment
+    const urlParams = new URLSearchParams(window.location.search);
+    const cancelled = urlParams.get('cancelled');
+    const paymentCancelled = sessionStorage.getItem('payment_cancelled');
     
+    if (cancelled === 'true' || paymentCancelled === 'true') {
+      // Clear the cancellation flags
+      sessionStorage.removeItem('payment_cancelled');
+      sessionStorage.removeItem('auto_submit_payment');
+      
+      // Remove cancelled param from URL
+      urlParams.delete('cancelled');
+      const newUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
+      window.history.replaceState({}, '', newUrl);
+      
+      // Don't auto-submit if payment was cancelled
+      return;
+    }
+
+    const autoSubmitPayment = sessionStorage.getItem('auto_submit_payment');
+    const stepParam = urlParams.get('step');
+    
+    // Check if we've already attempted payment recently
+    const lastPaymentAttempt = sessionStorage.getItem('last_payment_attempt');
+    const now = Date.now();
+    if (lastPaymentAttempt) {
+      const timeSinceLastAttempt = now - parseInt(lastPaymentAttempt);
+      // If less than 30 seconds since last attempt, don't auto-submit
+      if (timeSinceLastAttempt < 30000) {
+        return;
+      }
+    }
+
     // Check multiple conditions for auto-submission
     const shouldAutoSubmit = autoSubmitPayment === 'true' || 
       (stepParam === 'payment' && sessionData?.contactData) ||
@@ -314,10 +335,11 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
     const contactInfo = sessionData?.contactData || getStoredFormData('checkout_contact_data');
     
     if (shouldAutoSubmit && contactInfo) {
-      console.log('🚀 STREAMLINED CHECKOUT: Auto-submitting payment for authenticated user');
-      
       // Clear the flag to prevent replay
       sessionStorage.removeItem('auto_submit_payment');
+      
+      // Mark payment attempt
+      sessionStorage.setItem('last_payment_attempt', now.toString());
       
       // Set contact data for UI display
       setContactData(contactInfo);
@@ -336,6 +358,17 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
           overrideTotalAmount: sessionData?.totalPrice || totalPrice
         });
       }, 2500); // Give user 2.5s to see the confirmation
+    } else if (stepParam === 'payment' && contactInfo && lastPaymentAttempt) {
+      // User returned from cancelled payment - show form but don't auto-submit
+      setContactData(contactInfo);
+      setShowStreamlinedConfirmation(true);
+      setCurrentStep(2);
+      
+      // Show a message that they need to manually proceed
+      toast({
+        title: "Payment Cancelled",
+        description: "Please click 'Proceed to Payment' when you're ready to try again.",
+      });
     }
   }, [user, sessionData, orderMutation, selectedAddOns, totalPrice]);
 
