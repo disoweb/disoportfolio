@@ -46,106 +46,14 @@ export default function AuthPage() {
   const { toast } = useToast();
   const { user, isLoading } = useAuth();
   const { providers, hasAnyProvider } = useOAuthProviders();
-  const [redirectHandled, setRedirectHandled] = useState(false);
 
-  // Enhanced checkout completion and redirect handling
+  // Simple redirect for already authenticated users
   useEffect(() => {
-    if (!isLoading && user && !redirectHandled) {
-      const urlParams = new URLSearchParams(window.location.search);
-      const checkoutParam = urlParams.get('checkout');
-      const sessionToken = sessionStorage.getItem('checkoutSessionToken');
-      
-      console.log('🔄 AUTH: User authenticated, checking for checkout session');
-      console.log('🔄 AUTH: checkoutParam:', checkoutParam);
-      console.log('🔄 AUTH: sessionToken:', sessionToken);
-      
-      const tokenToUse = checkoutParam || sessionToken;
-      
-      if (tokenToUse) {
-        console.log('🔄 AUTH: Found checkout token, fetching session data');
-        
-        // Fetch checkout session from database with retry logic
-        const fetchCheckoutSession = async (retries = 3) => {
-          for (let attempt = 0; attempt < retries; attempt++) {
-            try {
-              const response = await fetch(`/api/checkout-sessions/${tokenToUse}`, {
-                credentials: 'include',
-                headers: {
-                  'Cache-Control': 'no-cache',
-                  'Pragma': 'no-cache',
-                }
-              });
-              
-              if (response.ok) {
-                const sessionData = await response.json();
-                if (sessionData && !sessionData.error) {
-                  console.log('🔄 AUTH: Valid checkout session found');
-                  
-                  // Update session with user ID
-                  try {
-                    await fetch(`/api/checkout-sessions/${tokenToUse}`, {
-                      method: "PUT",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ userId: user.id }),
-                      credentials: 'include'
-                    });
-                  } catch (error) {
-                    console.log('🔄 AUTH: Session update failed (non-critical):', error);
-                  }
-                  
-                  // Add session stabilization flags with extended wait time
-                  sessionStorage.setItem('auth_completed', 'true');
-                  sessionStorage.setItem('auth_timestamp', Date.now().toString());
-                  sessionStorage.setItem('checkout_ready_for_payment', 'true');
-                  
-                  setRedirectHandled(true);
-                  
-                  // Build checkout URL with session token
-                  const params = new URLSearchParams({
-                    service: sessionData.serviceId,
-                    checkout: tokenToUse,
-                    step: 'payment'
-                  });
-                  
-                  console.log('🔄 AUTH: Setting auto_submit_payment flag and redirecting');
-                  sessionStorage.setItem('auto_submit_payment', 'true');
-                  
-                  // Add delay to ensure session is fully established
-                  setTimeout(() => {
-                    window.location.href = `/checkout?${params.toString()}`;
-                  }, 1000);
-                  
-                  return;
-                }
-              }
-              
-              if (attempt < retries - 1) {
-                await new Promise(resolve => setTimeout(resolve, 1000));
-              }
-            } catch (error) {
-              console.log(`🔄 AUTH: Attempt ${attempt + 1} failed:`, error);
-              if (attempt < retries - 1) {
-                await new Promise(resolve => setTimeout(resolve, 1000));
-              }
-            }
-          }
-          
-          // All attempts failed
-          console.log('🔄 AUTH: No valid checkout session found after retries');
-          sessionStorage.removeItem('checkoutSessionToken');
-          setRedirectHandled(true);
-          setLocation("/dashboard");
-        };
-        
-        fetchCheckoutSession();
-      } else {
-        // No checkout session, redirect to dashboard
-        console.log('🔄 AUTH: No checkout session, redirecting to dashboard');
-        setRedirectHandled(true);
-        setLocation("/dashboard");
-      }
+    if (!isLoading && user) {
+      // User is already authenticated, redirect to dashboard
+      setLocation("/dashboard");
     }
-  }, [user, isLoading, redirectHandled, setLocation]);
+  }, [user, isLoading, setLocation]);
 
   const loginForm = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
@@ -226,7 +134,6 @@ export default function AuthPage() {
       const referralCodeFromUrl = urlParams.get('ref') || "";
       
       if (Object.keys(checkoutData).length > 0) {
-        console.log('🔄 AUTH: Pre-populating registration form with checkout data:', checkoutData);
         registerForm.reset({
           email: checkoutData.email || "",
           password: "",
@@ -250,71 +157,23 @@ export default function AuthPage() {
 
   const loginMutation = useMutation({
     mutationFn: async (data: LoginForm) => {
-      console.log('🚀 [LOGIN MUTATION] Starting login request');
-      console.log('🚀 [LOGIN MUTATION] Login data:', { email: data.email, password: '[HIDDEN]' });
-      
       const response = await apiRequest("POST", "/api/auth/login", data);
-      const result = await response.json();
-      
-      console.log('🚀 [LOGIN MUTATION] Login response received:', result);
-      return result;
+      return response.json();
     },
     onSuccess: async (data) => {
-      console.log('🚀 [LOGIN SUCCESS] Login successful, user data:', data.user);
-      
       queryClient.setQueryData(["/api/auth/user"], data.user);
       toast({ title: "Welcome back!", description: "You've been successfully logged in." });
       
-      console.log('🚀 [LOGIN SUCCESS] Waiting for session establishment...');
-      // Wait a moment for session to be fully established
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Check for checkout token in URL parameters first (priority)
+      // Simple redirect - check if user came from checkout
       const urlParams = new URLSearchParams(window.location.search);
       const checkoutToken = urlParams.get('checkout');
-      const serviceId = urlParams.get('service');
-      const price = urlParams.get('price');
-      const addons = urlParams.get('addons');
       
-      console.log('🔄 AUTH: Post-login redirect check:', {
-        checkoutToken,
-        serviceId,
-        price,
-        addons
-      });
-      
-      if (checkoutToken && serviceId) {
-        // User came from checkout flow - redirect to payment step with auto-submit
-        console.log('🔄 AUTH: Checkout token found, setting up auto-payment redirect');
-        
+      if (checkoutToken) {
+        // User came from checkout - redirect to payment step
         sessionStorage.setItem('auto_submit_payment', 'true');
-        console.log('🔄 AUTH: Set auto_submit_payment flag to true');
-        
-        const addonsParam = addons ? `&addons=${addons}` : '';
-        const redirectUrl = `/checkout?service=${serviceId}&price=${price}&step=payment&checkout=${checkoutToken}${addonsParam}`;
-        
-        console.log('🔄 AUTH: Redirecting to payment step:', redirectUrl);
-        
-        setTimeout(() => {
-          setLocation(redirectUrl);
-        }, 100);
-        return;
-      }
-      
-      // Fallback: Check for pending checkout
-      const pendingCheckout = sessionStorage.getItem('pendingCheckout');
-      if (pendingCheckout) {
-        try {
-          const checkoutData = JSON.parse(pendingCheckout);
-          const redirectUrl = checkoutData.returnUrl || '/checkout';
-          
-          setTimeout(() => {
-            setLocation(redirectUrl);
-          }, 100);
-        } catch (error) {
-          setLocation("/dashboard");
-        }
+        setLocation(`/checkout?step=payment&checkout=${checkoutToken}`);
       } else {
+        // Regular login - go to dashboard
         setLocation("/dashboard");
       }
     },
@@ -342,28 +201,17 @@ export default function AuthPage() {
       return response.json();
     },
     onSuccess: async (data) => {
-      console.log('🚀 [REGISTER SUCCESS] User created:', data.user.email);
-      
-      // Set the user data in React Query cache immediately
       queryClient.setQueryData(["/api/auth/user"], data.user);
       toast({ title: "Welcome!", description: "Your account has been created successfully." });
       
-      console.log('🚀 [REGISTER SUCCESS] Checking for checkout context...');
+      // Simple redirect logic - same as login
+      const urlParams = new URLSearchParams(window.location.search);
+      const checkoutToken = urlParams.get('checkout');
       
-      // Check if this is checkout-initiated registration
-      const checkoutSessionToken = sessionStorage.getItem('checkoutSessionToken');
-      const tokenFromUrl = new URLSearchParams(window.location.search).get('checkout');
-      
-      if (checkoutSessionToken || tokenFromUrl) {
-        console.log('🔄 REGISTER: Checkout context detected, triggering redirect logic');
-        
-        // Wait for session establishment then let useEffect handle redirect
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Force trigger the redirect useEffect by updating state
-        setRedirectHandled(false);
+      if (checkoutToken) {
+        sessionStorage.setItem('auto_submit_payment', 'true');
+        setLocation(`/checkout?step=payment&checkout=${checkoutToken}`);
       } else {
-        console.log('🔄 REGISTER: Direct registration detected, redirecting to dashboard');
         setLocation("/dashboard");
       }
     },
