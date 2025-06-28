@@ -25,22 +25,18 @@ export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
   // Handle authentication redirect with proper hook usage
   React.useEffect(() => {
     if (!isLoading && (!isAuthenticated || !user)) {
-      toast({
-        title: "Authentication Required",
-        description: "Please log in to access this page.",
-        variant: "destructive",
-      });
-      window.location.href = '/auth';
+      // Instead of redirecting to auth, redirect to home page where landing page will be shown
+      window.location.href = '/';
     }
-  }, [isLoading, isAuthenticated, user, toast]);
+  }, [isLoading, isAuthenticated, user]);
 
-  // If not authenticated, show loading/redirect state
+  // If not authenticated, show loading state while redirecting
   if (!isAuthenticated || !user) {
     return fallback || (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Redirecting to login...</p>
+          <p className="text-gray-600">Redirecting...</p>
         </div>
       </div>
     );

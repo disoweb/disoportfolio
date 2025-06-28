@@ -9,8 +9,8 @@ export function useAuth() {
   const { data: user, isLoading, error } = useQuery<User | null>({
     queryKey: ["/api/auth/user"],
     retry: false,
-    refetchOnWindowFocus: true,
-    staleTime: 0,
+    refetchOnWindowFocus: false, // Disable refetch on focus to reduce calls
+    staleTime: 30000, // 30 seconds stale time to reduce calls
     queryFn: async () => {
       try {
         const response = await fetch('/api/auth/user', {
@@ -28,10 +28,8 @@ export function useAuth() {
         }
         
         const userData = await response.json();
-        console.log("Auth hook received user data:", userData);
         return userData || null;
       } catch (error) {
-        console.log("Auth hook error:", error);
         return null;
       }
     },
@@ -44,7 +42,10 @@ export function useAuth() {
       await apiRequest("POST", "/api/auth/logout", {});
     },
     onSuccess: () => {
+      // Immediately clear all authentication-related cache
       queryClient.setQueryData(["/api/auth/user"], null);
+      queryClient.removeQueries({ queryKey: ["/api/auth/user"] });
+      queryClient.clear(); // Clear all cached data for fresh start
       toast({ title: "Logged out successfully" });
       // No automatic redirection - user stays on current page
     },
