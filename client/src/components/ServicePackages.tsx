@@ -31,6 +31,8 @@ import {
   Heart,
 } from "lucide-react";
 
+import CheckoutModal from "@/components/CheckoutModal";
+
 interface AddOn {
   name: string;
   price: number;
@@ -268,6 +270,17 @@ export default function ServicePackages() {
   const [selectedIndustry, setSelectedIndustry] = useState<string>("all");
   const [priceUpdates, setPriceUpdates] = useState<Record<string, number>>({});
   const [selectedAddOns, setSelectedAddOns] = useState<Record<string, string[]>>({});
+  const [checkoutModal, setCheckoutModal] = useState<{
+    isOpen: boolean;
+    service: any;
+    totalPrice: number;
+    selectedAddOns: string[];
+  }>({
+    isOpen: false,
+    service: null,
+    totalPrice: 0,
+    selectedAddOns: [],
+  });
 
   // Helper function to parse PostgreSQL arrays or JSON strings
   const parseArrayField = (field: string | any[]): string[] => {
@@ -367,10 +380,18 @@ export default function ServicePackages() {
     const finalPrice = priceUpdates[serviceId] || service.price;
     const addOns = selectedAddOns[serviceId] || [];
 
-
-
-    // Navigate to checkout with service details (guest checkout allowed)
-    setLocation(`/checkout?service=${serviceId}&price=${finalPrice}&addons=${addOns.join(',')}`);
+    // Open checkout modal instead of navigating to checkout page
+    setCheckoutModal({
+      isOpen: true,
+      service: {
+        id: service.id,
+        name: service.name,
+        price: finalPrice.toString(),
+        description: service.description,
+      },
+      totalPrice: finalPrice,
+      selectedAddOns: addOns,
+    });
   };
 
   const reportPriceUpdate = useCallback((serviceId: string, total: number) => {
@@ -566,6 +587,30 @@ export default function ServicePackages() {
           </div>
         )}
       </div>
+
+      {/* Checkout Modal */}
+      <CheckoutModal
+        isOpen={checkoutModal.isOpen}
+        onClose={() =>
+          setCheckoutModal({
+            isOpen: false,
+            service: null,
+            totalPrice: 0,
+            selectedAddOns: [],
+          })
+        }
+        service={checkoutModal.service}
+        totalPrice={checkoutModal.totalPrice}
+        selectedAddOns={checkoutModal.selectedAddOns}
+        onSuccess={() => {
+          setCheckoutModal({
+            isOpen: false,
+            service: null,
+            totalPrice: 0,
+            selectedAddOns: [],
+          });
+        }}
+      />
     </section>
   );
 }
