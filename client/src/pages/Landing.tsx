@@ -544,71 +544,48 @@ export default function Landing() {
       </section>
 
       {/* Our Process Section */}
-      <section className="py-16 bg-gray-50">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl lg:text-4xl font-bold mb-4 text-gray-900">
+      <section className="py-16 bg-slate-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl lg:text-4xl font-bold mb-4 text-blue-600">
               Our Proven Process
             </h2>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Simple steps to bring your vision to life
+            <p className="text-xl text-slate-600 max-w-3xl mx-auto">
+              We follow a streamlined approach to deliver exceptional results on time
             </p>
           </div>
           
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {/* Step 1 */}
-            <div className="text-center group">
-              <div className="relative mb-6">
-                <div className="w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-105 transition-transform">
-                  <span className="text-white text-2xl font-bold">1</span>
-                </div>
-                <div className="absolute top-10 left-1/2 transform -translate-x-1/2 w-px h-16 bg-blue-200 hidden lg:block"></div>
+            <div className="text-center">
+              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold">1</div>
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">Discovery</h3>
-              <p className="text-gray-600 text-sm leading-relaxed">
-                We understand your business goals and requirements
-              </p>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">Discovery</h3>
+              <p className="text-gray-600">We understand your business goals and requirements through detailed consultation</p>
             </div>
             
-            {/* Step 2 */}
-            <div className="text-center group">
-              <div className="relative mb-6">
-                <div className="w-20 h-20 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-105 transition-transform">
-                  <span className="text-white text-2xl font-bold">2</span>
-                </div>
-                <div className="absolute top-10 left-1/2 transform -translate-x-1/2 w-px h-16 bg-purple-200 hidden lg:block"></div>
+            <div className="text-center">
+              <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center text-white font-bold">2</div>
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">Design</h3>
-              <p className="text-gray-600 text-sm leading-relaxed">
-                Create stunning designs that reflect your brand identity
-              </p>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">Design</h3>
+              <p className="text-gray-600">Create stunning mockups and prototypes that align with your brand identity</p>
             </div>
             
-            {/* Step 3 */}
-            <div className="text-center group">
-              <div className="relative mb-6">
-                <div className="w-20 h-20 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-105 transition-transform">
-                  <span className="text-white text-2xl font-bold">3</span>
-                </div>
-                <div className="absolute top-10 left-1/2 transform -translate-x-1/2 w-px h-16 bg-green-200 hidden lg:block"></div>
+            <div className="text-center">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center text-white font-bold">3</div>
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">Development</h3>
-              <p className="text-gray-600 text-sm leading-relaxed">
-                Build with modern technologies and best practices
-              </p>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">Development</h3>
+              <p className="text-gray-600">Build your website using modern technologies and best practices</p>
             </div>
             
-            {/* Step 4 */}
-            <div className="text-center group">
-              <div className="relative mb-6">
-                <div className="w-20 h-20 bg-orange-600 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-105 transition-transform">
-                  <span className="text-white text-2xl font-bold">4</span>
-                </div>
+            <div className="text-center">
+              <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="w-8 h-8 bg-orange-600 rounded-full flex items-center justify-center text-white font-bold">4</div>
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">Launch</h3>
-              <p className="text-gray-600 text-sm leading-relaxed">
-                Deploy and provide ongoing support for success
-              </p>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">Launch</h3>
+              <p className="text-gray-600">Deploy your website and provide ongoing support for optimal performance</p>
             </div>
           </div>
         </div>
