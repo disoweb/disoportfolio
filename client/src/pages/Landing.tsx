@@ -119,7 +119,7 @@ interface LiveNotificationProps {
 export function LiveNotification({
   message,
   onClose,
-  duration = 10000,
+  duration = 20000,
 }: LiveNotificationProps) {
   const [city, setCity] = useState(getRandomCity());
 
@@ -298,7 +298,7 @@ export default function Landing() {
           showRandomNotification();
         }
       },
-      Math.random() * 10000 + 15000,
+      Math.random() * 20000 + 25000,
     );
 
     return () => {
@@ -363,7 +363,7 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       <SEOHead
-        title="DiSO Webs - Professional Web Development Services in Nigeria"
+        title="DiSO Webs - Modern Web Development Services in Nigeria"
         description="Transform your business with stunning, high-performance websites. We deliver exceptional digital experiences for startups to enterprises without breaking the bank. Get started today!"
         keywords="web development, website design, Nigeria, Lagos, Abuja, e-commerce, web apps, landing pages, digital solutions, responsive design"
         structuredData={{
@@ -499,7 +499,7 @@ export default function Landing() {
           {/* Compact 2x2 Grid with High-Quality Logo Images */}
           <div className="grid grid-cols-2 gap-6 max-w-md mx-auto">
             {/* Google */}
-            <div className="group flex items-center justify-center p-6 bg-white rounded-xl border border-gray-100 hover:border-gray-200 hover:shadow-lg transition-all duration-300">
+            <div className="group flex items-center justify-center p-4 bg-white rounded-xl border border-gray-100 hover:border-gray-200 hover:shadow-lg transition-all duration-300">
               <img 
                 src="https://images.unsplash.com/photo-1573804633927-bfcbcd909acd?w=100&h=100&fit=crop&crop=center"
                 alt="Google"
@@ -508,7 +508,7 @@ export default function Landing() {
             </div>
             
             {/* Microsoft */}
-            <div className="group flex items-center justify-center p-6 bg-white rounded-xl border border-gray-100 hover:border-gray-200 hover:shadow-lg transition-all duration-300">
+            <div className="group flex items-center justify-center p-4 bg-white rounded-xl border border-gray-100 hover:border-gray-200 hover:shadow-lg transition-all duration-300">
               <img 
                 src="https://images.unsplash.com/photo-1633419461186-7d40a38105ec?w=100&h=100&fit=crop&crop=center"
                 alt="Microsoft"
@@ -517,7 +517,7 @@ export default function Landing() {
             </div>
             
             {/* Apple */}
-            <div className="group flex items-center justify-center p-6 bg-white rounded-xl border border-gray-100 hover:border-gray-200 hover:shadow-lg transition-all duration-300">
+            <div className="group flex items-center justify-center p-4 bg-white rounded-xl border border-gray-100 hover:border-gray-200 hover:shadow-lg transition-all duration-300">
               <img 
                 src="https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=100&h=100&fit=crop&crop=center"
                 alt="Apple"
@@ -526,7 +526,7 @@ export default function Landing() {
             </div>
             
             {/* Amazon */}
-            <div className="group flex items-center justify-center p-6 bg-white rounded-xl border border-gray-100 hover:border-gray-200 hover:shadow-lg transition-all duration-300">
+            <div className="group flex items-center justify-center p-4 bg-white rounded-xl border border-gray-100 hover:border-gray-200 hover:shadow-lg transition-all duration-300">
               <img 
                 src="https://images.unsplash.com/photo-1523474253046-8cd2748b5fd2?w=100&h=100&fit=crop&crop=center"
                 alt="Amazon"
@@ -690,134 +690,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Why Choose DiSO Webs Section */}
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold mb-4 text-blue-600">
-              Why 500+ Businesses Choose DiSO Webs
-            </h2>
-            <p className="text-xl text-slate-600 max-w-3xl mx-auto">
-              We don't just build websites - we create digital experiences that drive results
-            </p>
-          </div>
-          
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <Card className="p-6 hover:shadow-xl transition-all duration-300 border-l-4 border-l-blue-500">
-              <CardContent className="pt-0">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                    <TrendingUp className="h-6 w-6 text-blue-600" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-gray-900">
-                    Proven ROI
-                  </h3>
-                </div>
-                <p className="text-gray-600 mb-4">
-                  Our clients see an average of 300% increase in online conversions within 6 months of launch.
-                </p>
-                <div className="text-2xl font-bold text-blue-600">300% ROI</div>
-              </CardContent>
-            </Card>
 
-            <Card className="p-6 hover:shadow-xl transition-all duration-300 border-l-4 border-l-green-500">
-              <CardContent className="pt-0">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                    <Clock className="h-6 w-6 text-green-600" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-gray-900">
-                    Lightning Fast Delivery
-                  </h3>
-                </div>
-                <p className="text-gray-600 mb-4">
-                  Most projects delivered within 7-14 days without compromising quality or functionality.
-                </p>
-                <div className="text-2xl font-bold text-green-600">7-14 Days</div>
-              </CardContent>
-            </Card>
-
-            <Card className="p-6 hover:shadow-xl transition-all duration-300 border-l-4 border-l-purple-500">
-              <CardContent className="pt-0">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-                    <Shield className="h-6 w-6 text-purple-600" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-gray-900">
-                    100% Satisfaction
-                  </h3>
-                </div>
-                <p className="text-gray-600 mb-4">
-                  Unlimited revisions and 30-day money-back guarantee. Your success is our success.
-                </p>
-                <div className="text-2xl font-bold text-purple-600">100%</div>
-              </CardContent>
-            </Card>
-
-            <Card className="p-6 hover:shadow-xl transition-all duration-300 border-l-4 border-l-orange-500">
-              <CardContent className="pt-0">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
-                    <HeadphonesIcon className="h-6 w-6 text-orange-600" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-gray-900">
-                    24/7 Support
-                  </h3>
-                </div>
-                <p className="text-gray-600 mb-4">
-                  Round-the-clock technical support and maintenance to keep your website running smoothly.
-                </p>
-                <div className="text-2xl font-bold text-orange-600">24/7</div>
-              </CardContent>
-            </Card>
-
-            <Card className="p-6 hover:shadow-xl transition-all duration-300 border-l-4 border-l-red-500">
-              <CardContent className="pt-0">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
-                    <Award className="h-6 w-6 text-red-600" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-gray-900">
-                    Industry Recognition
-                  </h3>
-                </div>
-                <p className="text-gray-600 mb-4">
-                  Award-winning design team with 5+ years experience building enterprise-level solutions.
-                </p>
-                <div className="text-2xl font-bold text-red-600">5+ Years</div>
-              </CardContent>
-            </Card>
-
-            <Card className="p-6 hover:shadow-xl transition-all duration-300 border-l-4 border-l-teal-500">
-              <CardContent className="pt-0">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 bg-teal-100 rounded-xl flex items-center justify-center">
-                    <Smartphone className="h-6 w-6 text-teal-600" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-gray-900">
-                    Mobile-First Design
-                  </h3>
-                </div>
-                <p className="text-gray-600 mb-4">
-                  90%+ of your visitors will be on mobile. We ensure perfect performance on every device.
-                </p>
-                <div className="text-2xl font-bold text-teal-600">90%+ Mobile</div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="mt-16 text-center">
-            <Button 
-              onClick={() => document.getElementById('services')?.scrollIntoView({ behavior: 'smooth' })}
-              size="lg"
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105"
-            >
-              Start Your Project Today
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
-          </div>
-        </div>
-      </section>
 
       {/* Features Section */}
       <section className="py-10 lg:py-24 bg-slate-50">
