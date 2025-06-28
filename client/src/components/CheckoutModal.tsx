@@ -20,6 +20,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -202,10 +203,11 @@ export default function CheckoutModal({
         };
 
         const response = await apiRequest("POST", "/api/checkout-sessions", sessionData);
+        const responseData = await response.json();
         
-        if (response.sessionToken) {
+        if (responseData.sessionToken) {
           // Redirect to auth with session token
-          setLocation(`/auth?checkout=${response.sessionToken}`);
+          setLocation(`/auth?checkout=${responseData.sessionToken}`);
         } else {
           toast({
             title: "Error",
@@ -262,6 +264,10 @@ export default function CheckoutModal({
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="w-full max-w-xs mx-auto max-h-[80vh] overflow-y-auto p-0 rounded-xl">
+        <DialogTitle className="sr-only">Order {service.name}</DialogTitle>
+        <DialogDescription className="sr-only">
+          Complete your order for {service.name} - ₦{totalPrice.toLocaleString()}
+        </DialogDescription>
         {/* Header with service info and trust badges */}
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 border-b">
           <div className="flex items-center justify-between mb-2">
