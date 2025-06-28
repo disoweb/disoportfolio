@@ -189,22 +189,15 @@ export class DatabaseStorage implements IStorage {
   // User operations
   async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user;
+    return user as User || undefined;
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    console.log('🔍 DEBUG: getUserByEmail called with:', email.substring(0, 5) + '***');
     try {
       const [user] = await db.select().from(users).where(eq(users.email, email));
-      console.log('🔍 DEBUG: getUserByEmail result:', user ? {
-        id: user.id,
-        email: user.email.substring(0, 5) + '***',
-        provider: user.provider,
-        idType: typeof user.id
-      } : 'null');
-      return user;
+      return user as User || undefined;
     } catch (error) {
-      console.error('🔍 DEBUG: getUserByEmail error:', error);
+      console.error('getUserByEmail error:', error);
       throw error;
     }
   }
@@ -1282,7 +1275,7 @@ export class DatabaseStorage implements IStorage {
 
   // Referral system methods
   async generateReferralCode(userId: string): Promise<string> {
-    let referralCode: string;
+    let referralCode = "";
     let isUnique = false;
 
     while (!isUnique) {
@@ -1307,7 +1300,7 @@ export class DatabaseStorage implements IStorage {
       successfulReferrals: 0,
     }).onConflictDoNothing();
 
-    return referralCode!;
+    return referralCode;
   }
 
   async getUserByReferralCode(referralCode: string): Promise<User | undefined> {
@@ -1363,7 +1356,7 @@ export class DatabaseStorage implements IStorage {
     try {
       // Create referral record
       await this.createReferral({
-        referrerId: orderUser.referredBy,
+        referrerId: orderUser.referredBy!,
         referredUserId: orderUser.id,
         orderId: order.id,
         commissionAmount: commissionAmount.toFixed(2),
@@ -1685,15 +1678,6 @@ export class DatabaseStorage implements IStorage {
       .where(eq(seoAnalytics.id, id))
       .returning();
     return updatedAnalytics;
-  }
-
-  async updateSeoKeyword(id: string, updates: Partial<InsertSeoKeyword>): Promise<SeoKeyword> {
-    const [updatedKeyword] = await db
-      .update(seoKeywords)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(seoKeywords.id, id))
-      .returning();
-    return updatedKeyword;
   }
 }
 

@@ -11,18 +11,23 @@ class CacheManager {
   }
 
   private async initializeRedis() {
+    // Only attempt Redis connection if explicitly configured
+    const redisUrl = process.env.REDIS_URL || process.env.REDISCLOUD_URL;
+    
+    if (!redisUrl || redisUrl.includes('localhost')) {
+      console.log('ℹ️ [CACHE] Redis not configured, using memory cache');
+      this.isRedisConnected = false;
+      return;
+    }
+
     try {
-      // Try to connect to Redis if available
-      const redisUrl = process.env.REDIS_URL || process.env.REDISCLOUD_URL || 'redis://localhost:6379';
-      
       this.redis = new Redis(redisUrl, {
-        retryDelayOnFailover: 100,
-        maxRetriesPerRequest: 3,
+        maxRetriesPerRequest: 1,
         lazyConnect: true,
         enableReadyCheck: true,
         keepAlive: 30000,
-        connectTimeout: 10000,
-        commandTimeout: 5000,
+        connectTimeout: 5000,
+        commandTimeout: 3000,
       });
 
       await this.redis.ping();
@@ -31,18 +36,25 @@ class CacheManager {
 
       // Set up error handling
       this.redis.on('error', (err) => {
-        console.warn('⚠️ [CACHE] Redis connection lost, falling back to memory cache:', err.message);
         this.isRedisConnected = false;
+        // Silently fall back to memory cache in production
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn('⚠️ [CACHE] Redis connection lost, falling back to memory cache');
+        }
       });
 
       this.redis.on('connect', () => {
-        console.log('✅ [CACHE] Redis reconnected');
         this.isRedisConnected = true;
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('✅ [CACHE] Redis reconnected');
+        }
       });
 
     } catch (error) {
-      console.warn('⚠️ [CACHE] Redis not available, using memory cache:', (error as Error).message);
       this.isRedisConnected = false;
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn('⚠️ [CACHE] Redis not available, using memory cache');
+      }
     }
   }
 
@@ -105,7 +117,8 @@ class CacheManager {
       }
 
       // Invalidate memory cache
-      for (const key of this.memoryCache.keys()) {
+      const memoryKeys = Array.from(this.memoryCache.keys());
+      for (const key of memoryKeys) {
         if (key.includes(pattern.replace('*', ''))) {
           this.memoryCache.delete(key);
         }
@@ -118,7 +131,8 @@ class CacheManager {
   // Clean up expired memory cache entries
   private cleanupMemoryCache(): void {
     const now = Date.now();
-    for (const [key, entry] of this.memoryCache.entries()) {
+    const entries = Array.from(this.memoryCache.entries());
+    for (const [key, entry] of entries) {
       if (entry.expires < now) {
         this.memoryCache.delete(key);
       }
