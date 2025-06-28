@@ -44,17 +44,12 @@ export default function Checkout() {
     sessionStorage.removeItem('payment_in_progress');
     sessionStorage.removeItem('checkout_ready_for_payment');
     
-    console.log('Checkout page - URL params:', {
-      serviceId,
-      price,
-      addons,
-      checkout: checkoutParam
-    });
+
     
     // First priority: Restore from database checkout session if available
     const sessionToken = sessionStorage.getItem('checkoutSessionToken') || checkoutParam;
     if (sessionToken && !serviceData) {
-      console.log('Checkout page - Fetching session from database:', sessionToken);
+
       
       fetch(`/api/checkout-sessions/${sessionToken}`)
       .then(res => res.json())
@@ -88,7 +83,7 @@ export default function Checkout() {
       const service = services.find((s: any) => s.id === serviceId);
       
       if (service) {
-        console.log('Checkout page - Found service from API:', service);
+
         
         // Transform service data to ensure consistent price handling
         const transformedService = {
@@ -119,9 +114,7 @@ export default function Checkout() {
           setTotalPrice(basePrice + addonPrice);
         }
         
-        console.log('Checkout page - Service data set from URL params');
-      } else {
-        console.log('Checkout page - Service not found in API response');
+
       }
     }
   }, [serviceId, services, price, addons, serviceData]);
@@ -201,22 +194,28 @@ export default function Checkout() {
         </div>
 
         {/* Streamlined Checkout Form */}
-        <CheckoutForm 
-          service={{
-            id: serviceData.id,
-            name: serviceData.name,
-            price: finalTotal.toString(),
-            description: serviceData.description,
-          }}
-          totalPrice={finalTotal}
-          selectedAddOns={selectedAddOns}
-          sessionData={sessionData}
-          onSuccess={() => {
-            // Don't redirect here - let CheckoutForm handle the flow
-            // If payment URL exists, CheckoutForm will show loader and redirect to Paystack
-            // If no payment URL, CheckoutForm will show success message
-          }}
-        />
+        {serviceData ? (
+          <CheckoutForm 
+            service={{
+              id: serviceData.id,
+              name: serviceData.name,
+              price: finalTotal.toString(),
+              description: serviceData.description,
+            }}
+            totalPrice={finalTotal}
+            selectedAddOns={selectedAddOns}
+            sessionData={sessionData}
+            onSuccess={() => {
+              // Don't redirect here - let CheckoutForm handle the flow
+              // If payment URL exists, CheckoutForm will show loader and redirect to Paystack
+              // If no payment URL, CheckoutForm will show success message
+            }}
+          />
+        ) : (
+          <div className="text-center py-8">
+            <p className="text-gray-500">Loading checkout information...</p>
+          </div>
+        )}
       </div>
 
       <Footer />
