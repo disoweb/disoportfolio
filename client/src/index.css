@@ -271,3 +271,37 @@
     scroll-behavior: auto;
   }
 }
+
+/* Mobile-optimized checkout form styles */
+@media (max-width: 640px) {
+  /* Ensure forms fit in mobile viewport */
+  .checkout-mobile-container {
+    min-height: calc(100vh - 200px);
+    padding-top: 0.5rem;
+    padding-bottom: 1rem;
+  }
+  
+  /* Compact spacing for mobile */
+  .checkout-mobile-form {
+    gap: 0.75rem;
+  }
+  
+  /* Touch-friendly input sizing */
+  .checkout-mobile-input {
+    min-height: 2.25rem;
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+  
+  /* Optimized textarea height */
+  .checkout-mobile-textarea {
+    min-height: 4rem;
+    resize: none;
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+  
+  /* Compact buttons */
+  .checkout-mobile-button {
+    min-height: 2.5rem;
+    font-size: 0.875rem;
+  }
+}

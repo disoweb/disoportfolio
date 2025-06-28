@@ -485,184 +485,184 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
   return (
     <>
       <Card className="w-full max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <CreditCard className="h-5 w-5" />
+      <CardHeader className="pb-3 sm:pb-6 px-4 sm:px-6 pt-4 sm:pt-6">
+        <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+          <CreditCard className="h-4 w-4 sm:h-5 sm:w-5" />
           Complete Your Order
         </CardTitle>
-        <CardDescription>
+        <CardDescription className="text-sm">
           {currentStep === 1 
-            ? "Please provide your contact information to get started" 
-            : "Review your details and proceed with payment"
+            ? "Provide your contact information" 
+            : "Review and proceed with payment"
           }
         </CardDescription>
       </CardHeader>
       
-      <CardContent>
+      <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
         {currentStep === 1 ? (
-          <form onSubmit={contactForm.handleSubmit(onContactSubmit)} className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="fullName">Full Name *</Label>
+          <form onSubmit={contactForm.handleSubmit(onContactSubmit)} className="space-y-4 sm:space-y-6">
+            <div className="space-y-1.5">
+              <Label htmlFor="fullName" className="text-sm font-medium">Full Name *</Label>
               <div className="relative">
-                <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <User className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
                 <Input
                   id="fullName"
                   {...contactForm.register("fullName")}
-                  className="pl-10"
+                  className="pl-10 h-9 sm:h-10"
                   placeholder="Your full name"
                 />
               </div>
               {contactForm.formState.errors.fullName && (
-                <p className="text-sm text-red-500">{contactForm.formState.errors.fullName.message}</p>
+                <p className="text-xs text-red-500">{contactForm.formState.errors.fullName.message}</p>
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="email">Email Address *</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="email" className="text-sm font-medium">Email Address *</Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Mail className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
                 <Input
                   id="email"
                   type="email"
                   {...contactForm.register("email")}
-                  className="pl-10"
+                  className="pl-10 h-9 sm:h-10"
                   placeholder="your@email.com"
                 />
               </div>
               {contactForm.formState.errors.email && (
-                <p className="text-sm text-red-500">{contactForm.formState.errors.email.message}</p>
+                <p className="text-xs text-red-500">{contactForm.formState.errors.email.message}</p>
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number *</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="phone" className="text-sm font-medium">Phone Number *</Label>
               <div className="relative">
-                <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Phone className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
                 <Input
                   id="phone"
                   {...contactForm.register("phone")}
-                  className="pl-10"
+                  className="pl-10 h-9 sm:h-10"
                   placeholder="+234 123 456 7890"
                 />
               </div>
               {contactForm.formState.errors.phone && (
-                <p className="text-sm text-red-500">{contactForm.formState.errors.phone.message}</p>
+                <p className="text-xs text-red-500">{contactForm.formState.errors.phone.message}</p>
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="company">Company (Optional)</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="company" className="text-sm font-medium">Company (Optional)</Label>
               <div className="relative">
-                <Building2 className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Building2 className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
                 <Input
                   id="company"
                   {...contactForm.register("company")}
-                  className="pl-10"
+                  className="pl-10 h-9 sm:h-10"
                   placeholder="Your company name"
                 />
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="projectDescription">Project Description *</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="projectDescription" className="text-sm font-medium">Project Description *</Label>
               <div className="relative">
-                <FileText className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <FileText className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
                 <Textarea
                   id="projectDescription"
                   {...contactForm.register("projectDescription")}
-                  className="pl-10 min-h-[100px]"
-                  placeholder="Tell us about your project requirements, goals, and any specific features you need..."
+                  className="pl-10 min-h-[70px] sm:min-h-[100px] text-sm"
+                  placeholder="Brief description of your project..."
                 />
               </div>
               {contactForm.formState.errors.projectDescription && (
-                <p className="text-sm text-red-500">{contactForm.formState.errors.projectDescription.message}</p>
+                <p className="text-xs text-red-500">{contactForm.formState.errors.projectDescription.message}</p>
               )}
             </div>
 
-            <Button type="submit" className="w-full">
+            <Button type="submit" className="w-full h-10 sm:h-11">
               Continue to Payment
             </Button>
           </form>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {/* Order Summary */}
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h3 className="font-semibold mb-2">Order Summary</h3>
-              <div className="space-y-2 text-sm">
+            <div className="bg-gray-50 p-3 sm:p-4 rounded-lg">
+              <h3 className="font-semibold mb-2 text-sm sm:text-base">Order Summary</h3>
+              <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
                 <div className="flex justify-between">
                   <span>Service:</span>
-                  <span>{service.name}</span>
+                  <span className="font-medium">{service.name}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Contact:</span>
-                  <span>{contactData?.fullName} ({contactData?.email})</span>
+                  <span className="font-medium truncate ml-2">{contactData?.fullName}</span>
                 </div>
-                <div className="flex justify-between font-semibold">
+                <div className="flex justify-between font-semibold text-sm sm:text-base">
                   <span>Total:</span>
                   <span>₦{totalPrice.toLocaleString()}</span>
                 </div>
               </div>
             </div>
 
-            <form onSubmit={paymentForm.handleSubmit(onPaymentSubmit)} className="space-y-6">
-              <div className="space-y-4">
-                <Label>Project Timeline</Label>
+            <form onSubmit={paymentForm.handleSubmit(onPaymentSubmit)} className="space-y-4 sm:space-y-6">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Project Timeline</Label>
                 <Select onValueChange={(value) => paymentForm.setValue("timeline", value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select expected timeline" />
+                  <SelectTrigger className="h-9 sm:h-10">
+                    <SelectValue placeholder="Select timeline" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="1-2 weeks">1-2 weeks (Rush delivery)</SelectItem>
+                    <SelectItem value="1-2 weeks">1-2 weeks (Rush)</SelectItem>
                     <SelectItem value="2-4 weeks">2-4 weeks (Standard)</SelectItem>
                     <SelectItem value="4-6 weeks">4-6 weeks (Extended)</SelectItem>
-                    <SelectItem value="6+ weeks">6+ weeks (Complex project)</SelectItem>
+                    <SelectItem value="6+ weeks">6+ weeks (Complex)</SelectItem>
                   </SelectContent>
                 </Select>
                 {paymentForm.formState.errors.timeline && (
-                  <p className="text-sm text-red-500">{paymentForm.formState.errors.timeline.message}</p>
+                  <p className="text-xs text-red-500">{paymentForm.formState.errors.timeline.message}</p>
                 )}
               </div>
 
-              <div className="space-y-4">
-                <Label>Payment Method</Label>
-                <RadioGroup value="paystack" className="grid grid-cols-1 gap-4">
-                  <div className="flex items-center space-x-2 border rounded-lg p-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Payment Method</Label>
+                <RadioGroup value="paystack" className="grid grid-cols-1">
+                  <div className="flex items-center space-x-2 border rounded-lg p-3">
                     <RadioGroupItem value="paystack" id="paystack" />
                     <Label htmlFor="paystack" className="flex-1">
                       <div className="flex items-center justify-between">
                         <div>
-                          <div className="font-medium">Paystack</div>
-                          <div className="text-sm text-gray-500">Secure payment with cards, bank transfer, USSD</div>
+                          <div className="font-medium text-sm">Paystack</div>
+                          <div className="text-xs text-gray-500">Secure card & bank payments</div>
                         </div>
-                        <div className="text-sm text-green-600 font-medium">Recommended</div>
+                        <div className="text-xs text-green-600 font-medium">Recommended</div>
                       </div>
                     </Label>
                   </div>
                 </RadioGroup>
               </div>
 
-              <div className="flex gap-3">
+              <div className="flex gap-2 sm:gap-3 pt-2">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => setCurrentStep(1)}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-1.5 h-9 sm:h-10 px-3 sm:px-4"
                 >
-                  <ArrowLeft className="h-4 w-4" />
+                  <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   Back
                 </Button>
                 <Button 
                   type="submit" 
-                  className="flex-1"
+                  className="flex-1 h-9 sm:h-10"
                   disabled={paymentCooldown > 0}
                 >
                   {paymentCooldown > 0 ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <Clock className="h-4 w-4" />
-                      Wait {paymentCooldown}s
+                    <span className="flex items-center justify-center gap-1.5">
+                      <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                      <span className="text-sm">Wait {paymentCooldown}s</span>
                     </span>
                   ) : (
-                    `Pay ₦${totalPrice.toLocaleString()}`
+                    <span className="text-sm sm:text-base">Pay ₦{totalPrice.toLocaleString()}</span>
                   )}
                 </Button>
               </div>
