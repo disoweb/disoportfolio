@@ -1,6 +1,13 @@
 
 import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
+
+// Google Analytics types
+declare global {
+  interface Window {
+    gtag?: (...args: any[]) => void;
+  }
+}
 import { apiRequest } from '@/lib/queryClient';
 
 interface SEOAnalyticsProps {
@@ -25,8 +32,8 @@ export default function SEOAnalytics({ page }: SEOAnalyticsProps) {
         // Only track in production or when analytics is enabled
         if (process.env.NODE_ENV === 'production' && seoSettings.googleAnalyticsId) {
           // Track with Google Analytics
-          if (typeof gtag !== 'undefined') {
-            gtag('config', seoSettings.googleAnalyticsId, {
+          if (typeof window.gtag !== 'undefined') {
+            window.gtag('config', seoSettings.googleAnalyticsId, {
               page_title: document.title,
               page_location: window.location.href,
               page_path: window.location.pathname
@@ -44,7 +51,7 @@ export default function SEOAnalytics({ page }: SEOAnalyticsProps) {
           userAgent: navigator.userAgent
         });
       } catch (error) {
-        console.debug('Analytics tracking error:', error);
+        // Silently handle analytics errors in production
       }
     };
 
@@ -67,8 +74,8 @@ export default function SEOAnalytics({ page }: SEOAnalyticsProps) {
         
         // Track milestone scroll depths
         if ([25, 50, 75, 90].includes(scrollPercent)) {
-          if (typeof gtag !== 'undefined') {
-            gtag('event', 'scroll', {
+          if (typeof window.gtag !== 'undefined') {
+            window.gtag('event', 'scroll', {
               event_category: 'engagement',
               event_label: `${scrollPercent}%`,
               value: scrollPercent

@@ -70,20 +70,13 @@ export async function setupAuth(app: Express) {
       { usernameField: 'email' },
       async (email, password, done) => {
         try {
-          console.log('🔍 [LOGIN DEBUG] Login attempt for email:', email);
           const user = await storage.getUserByEmail(email);
           
           if (!user) {
             console.log('❌ [LOGIN DEBUG] User not found for email:', email);
             return done(null, false, { message: 'Invalid email or password' });
           }
-          
-          console.log('🔍 [LOGIN DEBUG] User found:', {
-            id: user.id,
-            email: user.email,
-            hasPassword: !!user.password,
-            passwordLength: user.password?.length
-          });
+
           
           if (!user.password) {
             console.log('❌ [LOGIN DEBUG] User has no password');
@@ -91,9 +84,7 @@ export async function setupAuth(app: Express) {
           }
 
           // Use bcrypt for all password comparisons
-          console.log('🔍 [LOGIN DEBUG] Comparing passwords...');
           const isValid = await comparePasswords(password, user.password);
-          console.log('🔍 [LOGIN DEBUG] Password comparison result:', isValid);
           
           if (!isValid) {
             console.log('❌ [LOGIN DEBUG] Password comparison failed');
@@ -631,60 +622,43 @@ export async function setupAuth(app: Express) {
     const clientIP = req.ip || req.connection.remoteAddress || 'unknown';
     
     try {
-      console.log('🔍 DEBUG: Forgot password request started');
       const { email } = req.body;
-      console.log('🔍 DEBUG: Email received:', email ? email.substring(0, 5) + '***' : 'undefined');
 
       if (!email) {
-        console.log('🔍 DEBUG: Email validation failed - no email provided');
         auditLog('forgot_password_validation_failed', undefined, { clientIP });
         return res.status(400).json({ message: "Email is required" });
       }
 
       const sanitizedEmail = sanitizeInput(email).toLowerCase();
-      console.log('🔍 DEBUG: Sanitized email:', sanitizedEmail.substring(0, 5) + '***');
 
       if (!validateEmail(sanitizedEmail)) {
-        console.log('🔍 DEBUG: Email format validation failed');
         auditLog('forgot_password_invalid_email', undefined, { email: sanitizedEmail.substring(0, 5) + '***', clientIP });
         return res.status(400).json({ message: "Invalid email format" });
       }
 
-      console.log('🔍 DEBUG: Looking up user by email...');
       const user = await storage.getUserByEmail(sanitizedEmail);
-      console.log('🔍 DEBUG: User found:', user ? `ID: ${user.id}, Provider: ${user.provider}` : 'null');
       
       // Always return success to prevent email enumeration attacks
       if (!user || user.provider !== 'local') {
-        console.log('🔍 DEBUG: User not found or not local provider - returning success anyway');
         auditLog('forgot_password_user_not_found', undefined, { email: sanitizedEmail.substring(0, 5) + '***', clientIP });
         return res.json({ message: "If an account exists with this email, you will receive password reset instructions." });
       }
 
       // Generate secure reset token
-      console.log('🔍 DEBUG: Generating reset token...');
       const resetToken = crypto.randomBytes(32).toString('hex');
       const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
-      console.log('🔍 DEBUG: Reset token generated, length:', resetToken.length);
-      console.log('🔍 DEBUG: Expires at:', expiresAt.toISOString());
-      console.log('🔍 DEBUG: User ID type:', typeof user.id, 'Value:', user.id);
 
-      console.log('🔍 DEBUG: About to create password reset token...');
       await storage.createPasswordResetToken(user.id, resetToken, expiresAt);
-      console.log('🔍 DEBUG: Password reset token created successfully');
 
       // Generate reset URL
       const resetUrl = `${req.protocol}://${req.get('host')}/reset-password?token=${resetToken}`;
-      console.log('🔍 DEBUG: Reset URL generated:', resetUrl.replace(resetToken, 'HIDDEN_TOKEN'));
 
       // Send password reset email
-      console.log('🔍 DEBUG: Attempting to send email...');
       const emailSent = await emailService.sendEmail({
         to: user.email,
         subject: "Password Reset - DiSO Webs",
         html: emailService.generatePasswordResetEmail(resetUrl, user.firstName || 'there')
       });
-      console.log('🔍 DEBUG: Email sent result:', emailSent);
 
       if (emailSent) {
         auditLog('forgot_password_success', user.id, { email: sanitizedEmail.substring(0, 5) + '***', clientIP });
@@ -692,10 +666,8 @@ export async function setupAuth(app: Express) {
         auditLog('forgot_password_email_failed', user.id, { email: sanitizedEmail.substring(0, 5) + '***', clientIP });
       }
 
-      console.log('🔍 DEBUG: Forgot password process completed successfully');
       res.json({ message: "If an account exists with this email, you will receive password reset instructions." });
     } catch (error) {
-      console.error("🔍 DEBUG: Forgot password error details:");
       console.error("Error message:", (error as Error).message);
       console.error("Error stack:", (error as Error).stack);
       console.error("Full error object:", error);

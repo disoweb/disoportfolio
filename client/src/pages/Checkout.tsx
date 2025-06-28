@@ -122,13 +122,7 @@ export default function Checkout() {
   // Only show error if we have no way to get service data
   const hasPendingCheckout = sessionStorage.getItem('pendingCheckout');
   
-  console.log('Checkout page - Checking error conditions:', {
-    serviceId: !!serviceId,
-    serviceData: !!serviceData,
-    hasPendingCheckout: !!hasPendingCheckout,
-    hasCheckoutParam: !!checkoutParam,
-    servicesLoading
-  });
+
   
   if (!serviceId && !serviceData && !hasPendingCheckout && !checkoutParam && !servicesLoading) {
     return (
