@@ -543,92 +543,72 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Our Process Section - Modern Minimalist Design */}
-      <section className="py-20 bg-white">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-light mb-4 text-gray-900">
+      {/* Our Process Section */}
+      <section className="py-16 bg-gray-50">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl lg:text-4xl font-bold mb-4 text-gray-900">
               Our Proven Process
             </h2>
-            <p className="text-lg text-gray-500 max-w-2xl mx-auto font-light">
-              A streamlined approach that delivers exceptional results
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              Simple steps to bring your vision to life
             </p>
           </div>
           
-          <div className="space-y-12">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             {/* Step 1 */}
-            <div className="flex items-start space-x-8 group">
-              <div className="flex-shrink-0">
-                <div className="w-12 h-12 bg-gray-900 text-white rounded-lg flex items-center justify-center font-medium text-lg">
-                  01
+            <div className="text-center group">
+              <div className="relative mb-6">
+                <div className="w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-105 transition-transform">
+                  <span className="text-white text-2xl font-bold">1</span>
                 </div>
+                <div className="absolute top-10 left-1/2 transform -translate-x-1/2 w-px h-16 bg-blue-200 hidden lg:block"></div>
               </div>
-              <div className="flex-1 pt-2">
-                <h3 className="text-xl font-medium text-gray-900 mb-2">Discovery</h3>
-                <p className="text-gray-600 leading-relaxed">
-                  Understanding your vision, goals, and requirements through comprehensive consultation and research.
-                </p>
-              </div>
-            </div>
-
-            {/* Connector Line */}
-            <div className="flex justify-start ml-6">
-              <div className="w-px h-8 bg-gray-200"></div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-3">Discovery</h3>
+              <p className="text-gray-600 text-sm leading-relaxed">
+                We understand your business goals and requirements
+              </p>
             </div>
             
             {/* Step 2 */}
-            <div className="flex items-start space-x-8 group">
-              <div className="flex-shrink-0">
-                <div className="w-12 h-12 bg-gray-900 text-white rounded-lg flex items-center justify-center font-medium text-lg">
-                  02
+            <div className="text-center group">
+              <div className="relative mb-6">
+                <div className="w-20 h-20 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-105 transition-transform">
+                  <span className="text-white text-2xl font-bold">2</span>
                 </div>
+                <div className="absolute top-10 left-1/2 transform -translate-x-1/2 w-px h-16 bg-purple-200 hidden lg:block"></div>
               </div>
-              <div className="flex-1 pt-2">
-                <h3 className="text-xl font-medium text-gray-900 mb-2">Design</h3>
-                <p className="text-gray-600 leading-relaxed">
-                  Creating intuitive user experiences and visual designs that reflect your brand identity.
-                </p>
-              </div>
-            </div>
-
-            {/* Connector Line */}
-            <div className="flex justify-start ml-6">
-              <div className="w-px h-8 bg-gray-200"></div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-3">Design</h3>
+              <p className="text-gray-600 text-sm leading-relaxed">
+                Create stunning designs that reflect your brand identity
+              </p>
             </div>
             
             {/* Step 3 */}
-            <div className="flex items-start space-x-8 group">
-              <div className="flex-shrink-0">
-                <div className="w-12 h-12 bg-gray-900 text-white rounded-lg flex items-center justify-center font-medium text-lg">
-                  03
+            <div className="text-center group">
+              <div className="relative mb-6">
+                <div className="w-20 h-20 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-105 transition-transform">
+                  <span className="text-white text-2xl font-bold">3</span>
                 </div>
+                <div className="absolute top-10 left-1/2 transform -translate-x-1/2 w-px h-16 bg-green-200 hidden lg:block"></div>
               </div>
-              <div className="flex-1 pt-2">
-                <h3 className="text-xl font-medium text-gray-900 mb-2">Development</h3>
-                <p className="text-gray-600 leading-relaxed">
-                  Building robust, scalable solutions using modern technologies and industry best practices.
-                </p>
-              </div>
-            </div>
-
-            {/* Connector Line */}
-            <div className="flex justify-start ml-6">
-              <div className="w-px h-8 bg-gray-200"></div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-3">Development</h3>
+              <p className="text-gray-600 text-sm leading-relaxed">
+                Build with modern technologies and best practices
+              </p>
             </div>
             
             {/* Step 4 */}
-            <div className="flex items-start space-x-8 group">
-              <div className="flex-shrink-0">
-                <div className="w-12 h-12 bg-gray-900 text-white rounded-lg flex items-center justify-center font-medium text-lg">
-                  04
+            <div className="text-center group">
+              <div className="relative mb-6">
+                <div className="w-20 h-20 bg-orange-600 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-105 transition-transform">
+                  <span className="text-white text-2xl font-bold">4</span>
                 </div>
               </div>
-              <div className="flex-1 pt-2">
-                <h3 className="text-xl font-medium text-gray-900 mb-2">Launch</h3>
-                <p className="text-gray-600 leading-relaxed">
-                  Deploying your solution and providing ongoing support to ensure optimal performance.
-                </p>
-              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-3">Launch</h3>
+              <p className="text-gray-600 text-sm leading-relaxed">
+                Deploy and provide ongoing support for success
+              </p>
             </div>
           </div>
         </div>
