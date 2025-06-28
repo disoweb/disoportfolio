@@ -22,17 +22,20 @@ export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
     );
   }
 
-  // If not authenticated, redirect immediately
-  if (!isAuthenticated || !user) {
-    React.useEffect(() => {
+  // Handle authentication redirect with proper hook usage
+  React.useEffect(() => {
+    if (!isLoading && (!isAuthenticated || !user)) {
       toast({
         title: "Authentication Required",
         description: "Please log in to access this page.",
         variant: "destructive",
       });
       window.location.href = '/auth';
-    }, [toast]);
+    }
+  }, [isLoading, isAuthenticated, user, toast]);
 
+  // If not authenticated, show loading/redirect state
+  if (!isAuthenticated || !user) {
     return fallback || (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
