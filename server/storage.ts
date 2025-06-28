@@ -204,7 +204,8 @@ export class DatabaseStorage implements IStorage {
 
   async getUserById(id: string): Promise<User | null> {
     try {
-      const [user] = await db.select().from(users).where(eq(users.id, id)).limit(1);
+      const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
+      const user = result[0] as User;
       return user || null;
     } catch (error) {
       console.error('🔍 DEBUG: getUserById error:', error);
@@ -213,8 +214,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(userData: UpsertUser): Promise<User> {
-    const [user] = await db.insert(users).values(userData).returning();
-    return user;
+    const result = await db.insert(users).values(userData).returning();
+    return result[0] as User;
   }
 
   async createAdminUser(email: string, hashedPassword: string): Promise<User> {
@@ -553,7 +554,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Project operations - Optimized for speed
-  async getUserProjects(userId: string) {
+  async getUserProjects(userId: string): Promise<Project[]> {
     try {
       // Simplified query - remove joins and heavy processing
       const userProjects = await db
@@ -562,17 +563,7 @@ export class DatabaseStorage implements IStorage {
         .where(eq(projects.userId, userId))
         .orderBy(desc(projects.createdAt));
 
-      // Minimal processing for instant loading
-      return userProjects.map(project => ({
-        ...project,
-        // Use existing data without complex calculations
-        projectName: project.projectName || 'Project',
-        progressPercentage: project.progressPercentage || 25,
-        timelineDays: project.timelineDays || 28,
-        // Return raw dates for frontend processing
-        startDate: project.startDate?.toISOString() || project.createdAt?.toISOString(),
-        dueDate: project.dueDate?.toISOString() || new Date(Date.now() + 28 * 24 * 60 * 60 * 1000).toISOString()
-      }));
+      return userProjects;
     } catch (error) {
       console.error("Error fetching user projects:", error);
       throw error;
@@ -1678,6 +1669,27 @@ export class DatabaseStorage implements IStorage {
       .where(eq(seoAnalytics.id, id))
       .returning();
     return updatedAnalytics;
+  }
+
+  async getAllSeoAudits(): Promise<SeoAudit[]> {
+    return await db
+      .select()
+      .from(seoAudits)
+      .orderBy(desc(seoAudits.createdAt));
+  }
+
+  async createSeoAudit(auditData: InsertSeoAudit): Promise<SeoAudit> {
+    const [newAudit] = await db.insert(seoAudits).values(auditData).returning();
+    return newAudit;
+  }
+
+  async updateSeoAudit(id: string, updates: Partial<InsertSeoAudit>): Promise<SeoAudit> {
+    const [updatedAudit] = await db
+      .update(seoAudits)
+      .set(updates)
+      .where(eq(seoAudits.id, id))
+      .returning();
+    return updatedAudit;
   }
 }
 

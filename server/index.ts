@@ -11,6 +11,34 @@ import {
 } from "./security";
 import { SessionManager } from "./sessionManager";
 
+// Add process error handlers to prevent crashes
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+  auditLog('server_uncaught_exception', undefined, { error: err.message, stack: err.stack });
+  // Don't exit process in production to avoid downtime
+  if (process.env.NODE_ENV !== 'production') {
+    process.exit(1);
+  }
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  auditLog('server_unhandled_rejection', undefined, { reason: String(reason) });
+  // Don't exit process in production to avoid downtime
+});
+
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully...');
+  auditLog('server_shutdown', undefined, { signal: 'SIGTERM' });
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT received, shutting down gracefully...');
+  auditLog('server_shutdown', undefined, { signal: 'SIGINT' });
+  process.exit(0);
+});
+
 const app = express();
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: false, limit: '10mb' }));
@@ -587,12 +615,36 @@ app.use((req, res, next) => {
 (async () => {
   const server = await registerRoutes(app);
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+  app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
+    
+    // Log error details for debugging
+    console.error('Express error handler:', {
+      status,
+      message,
+      url: req.url,
+      method: req.method,
+      stack: err.stack
+    });
+    
+    // Audit log the error
+    auditLog('server_express_error', undefined, { 
+      status, 
+      message, 
+      url: req.url, 
+      method: req.method 
+    });
 
-    res.status(status).json({ message });
-    throw err;
+    // Send error response
+    if (!res.headersSent) {
+      res.status(status).json({ message });
+    }
+    
+    // Don't re-throw in production to prevent crashes
+    if (process.env.NODE_ENV !== 'production') {
+      throw err;
+    }
   });
 
   // importantly only setup vite in development and after
