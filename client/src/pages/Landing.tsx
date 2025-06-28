@@ -496,121 +496,42 @@ export default function Landing() {
             </p>
           </div>
           
-          {/* Desktop: Grid layout */}
-          <div className="hidden md:grid md:grid-cols-3 lg:grid-cols-6 gap-12 items-center justify-items-center">
-            {/* Microsoft */}
-            <div className="flex items-center justify-center h-16 w-16 hover:scale-105 transition-all duration-300">
-              <svg className="h-10 w-10" viewBox="0 0 96 96">
-                <rect x="0" y="0" width="44" height="44" fill="#F25022"/>
-                <rect x="52" y="0" width="44" height="44" fill="#7FBA00"/>
-                <rect x="0" y="52" width="44" height="44" fill="#00A4EF"/>
-                <rect x="52" y="52" width="44" height="44" fill="#FFB900"/>
-              </svg>
+          {/* Compact 2x2 Grid with High-Quality Logo Images */}
+          <div className="grid grid-cols-2 gap-6 max-w-md mx-auto">
+            {/* Google */}
+            <div className="group flex items-center justify-center p-6 bg-white rounded-xl border border-gray-100 hover:border-gray-200 hover:shadow-lg transition-all duration-300">
+              <img 
+                src="https://images.unsplash.com/photo-1573804633927-bfcbcd909acd?w=100&h=100&fit=crop&crop=center"
+                alt="Google"
+                className="h-12 w-12 object-contain group-hover:scale-105 transition-transform duration-300"
+              />
             </div>
             
-            {/* Google */}
-            <div className="flex items-center justify-center h-16 w-24 hover:scale-105 transition-all duration-300">
-              <svg className="h-8 w-auto" viewBox="0 0 533.5 544.3">
-                <path d="M533.5 278.4c0-18.5-1.5-37.1-4.7-55.3H272.1v104.8h147c-6.1 33.8-25.7 63.7-54.4 82.7v68h87.7c51.5-47.4 81.1-117.4 81.1-200.2z" fill="#4285f4"/>
-                <path d="M272.1 544.3c73.4 0 135.3-24.1 180.4-65.7l-87.7-68c-24.4 16.6-55.9 26-92.6 26-71.4 0-131.8-48.2-153.4-112.9H28.9v70.1c46.2 91.9 140.3 150.5 243.2 150.5z" fill="#34a853"/>
-                <path d="M119.3 324.3c-11.4-33.8-11.4-70.4 0-104.2V150H28.9c-38.6 76.9-38.6 167.5 0 244.4l90.4-70.1z" fill="#fbbc04"/>
-                <path d="M272.1 107.7c38.8-.6 76.3 14 104.4 40.8l77.7-77.7C405 24.6 339.7-.8 272.1 0 169.2 0 75.1 58.6 28.9 150.4l90.4 70.1c21.5-64.5 81.8-112.9 152.8-112.8z" fill="#ea4335"/>
-              </svg>
+            {/* Microsoft */}
+            <div className="group flex items-center justify-center p-6 bg-white rounded-xl border border-gray-100 hover:border-gray-200 hover:shadow-lg transition-all duration-300">
+              <img 
+                src="https://images.unsplash.com/photo-1633419461186-7d40a38105ec?w=100&h=100&fit=crop&crop=center"
+                alt="Microsoft"
+                className="h-12 w-12 object-contain group-hover:scale-105 transition-transform duration-300"
+              />
+            </div>
+            
+            {/* Apple */}
+            <div className="group flex items-center justify-center p-6 bg-white rounded-xl border border-gray-100 hover:border-gray-200 hover:shadow-lg transition-all duration-300">
+              <img 
+                src="https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=100&h=100&fit=crop&crop=center"
+                alt="Apple"
+                className="h-12 w-12 object-contain group-hover:scale-105 transition-transform duration-300"
+              />
             </div>
             
             {/* Amazon */}
-            <div className="flex items-center justify-center h-16 w-20 hover:scale-105 transition-all duration-300">
-              <svg className="h-8 w-auto" viewBox="0 0 100 30" fill="#232f3e">
-                <path d="M100 20.85c-1.39.62-3.17 1.05-5.56 1.05-4.19 0-7.22-1.43-8.59-4.26-1.77 2.83-4.26 4.26-7.42 4.26-3.29 0-5.56-2.02-5.56-5.24 0-4.33 3.29-6.67 9.44-6.67h3.23v-1.37c0-2.02-1.37-3.09-3.62-3.09-1.94 0-3.29 1.07-3.29 2.83h-6.05c0-4.19 3.62-7.42 9.27-7.42 5.72 0 9.27 3.02 9.27 7.96v10.44c0 1.51.54 2.02 1.51 2.02.35 0 .81-.08 1.37-.27v3.76zm-13.55-8.67h-2.63c-2.7 0-3.76.97-3.76 2.63 0 1.29.89 2.15 2.42 2.15 2.42 0 3.97-1.29 3.97-3.49v-1.29zM46.93 21.39c-3.83 0-6.4-2.69-6.4-6.72s2.57-6.72 6.4-6.72c2.15 0 3.76 1.13 4.53 2.96V8.2h5.88v12.74h-5.88v-.27c-.77 1.83-2.38 2.96-4.53 2.96v-2.24zm2.02-2.15c1.83 0 3.02-1.29 3.02-3.49s-1.19-3.49-3.02-3.49-3.02 1.29-3.02 3.49 1.19 3.49 3.02 3.49z"/>
-                <path d="M37.63 21.82c-5.18 3.83-12.69 5.88-19.15 5.88C8.26 27.7.75 22.52.75 14.67c0-4.91 2.69-8.74 7.15-10.25 3.23-1.07 7.69-.81 10.87.54.89.38 1.51 1.29 1.51 2.24v.08c0 1.67-1.51 2.83-3.09 2.38-1.83-.54-3.76-.81-5.56-.35-1.83.54-2.96 2.24-2.96 4.19 0 3.83 4.33 6.94 10.06 6.94 3.09 0 6.18-.81 8.48-2.24 1.51-1.07 3.49-.43 4.19 1.13.81 1.64.27 3.62-1.24 4.64l-2.51-2.35z"/>
-              </svg>
-            </div>
-            
-            {/* Netflix */}
-            <div className="flex items-center justify-center h-16 w-24 hover:scale-105 transition-all duration-300">
-              <svg className="h-10 w-auto" viewBox="0 0 1024 276.742">
-                <g fill="#e50914">
-                  <path d="M140.803 258.904c-15.404 2.705-31.079 3.516-47.294 5.676l-49.458-144.856v151.073c-15.404 1.621-29.457 3.783-44.051 5.945v-276.742h41.08l56.212 157.021v-157.021h43.511v258.904z"/>
-                  <path d="M244.375 141.608v94.394c0 33.549-11.649 44.137-24.426 44.137-12.777 0-21.808-10.588-21.808-33.549v-94.394h-29.23v94.394c0 58.456 16.234 86.165 51.038 86.165 34.804 0 53.834-27.709 53.834-86.165v-94.394h-29.408z"/>
-                  <path d="M331.941 179.328c8.354 0 17.872-1.141 26.804-1.141v59.027c-26.627 1.996-61.431 4.564-91.506 6.384v-244.317h91.506v59.027h-67.258v121.02z"/>
-                  <path d="M405.149 179.328c8.354 0 17.872-1.141 26.804-1.141v59.027c-26.627 1.996-61.431 4.564-91.506 6.384v-244.317h91.506v59.027h-67.258v121.02z"/>
-                  <path d="M462.685 179.328c8.354 0 17.872-1.141 26.804-1.141v59.027c-26.627 1.996-61.431 4.564-91.506 6.384v-244.317h91.506v59.027h-67.258v121.02z"/>
-                </g>
-              </svg>
-            </div>
-            
-            {/* Spotify */}
-            <div className="flex items-center justify-center h-16 w-16 hover:scale-105 transition-all duration-300">
-              <svg className="h-10 w-10" viewBox="0 0 24 24" fill="#1DB954">
-                <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.586 14.424c-.18.295-.563.387-.857.207-2.35-1.434-5.305-1.76-8.786-.963-.335.077-.67-.133-.746-.47-.077-.334.132-.67.47-.745 3.808-.871 7.077-.496 9.713 1.115.293.18.386.563.206.856zm1.223-2.723c-.226.367-.706.482-1.072.257-2.687-1.652-6.785-2.131-9.965-1.166-.413.125-.849-.106-.973-.517-.125-.413.106-.849.517-.973 3.632-1.102 8.147-.568 11.234 1.328.366.226.481.706.256 1.072v-.001zm.105-2.835C14.692 8.95 9.375 8.775 6.297 9.71c-.492.15-1.01-.126-1.16-.618-.149-.492.126-1.011.618-1.161 3.534-1.073 9.404-.865 13.115 1.338.445.264.590.838.326 1.282-.263.444-.838.590-1.282.325z"/>
-              </svg>
-            </div>
-            
-            {/* Facebook/Meta */}
-            <div className="flex items-center justify-center h-16 w-16 hover:scale-105 transition-all duration-300">
-              <svg className="h-10 w-10" viewBox="0 0 24 24" fill="#1877f2">
-                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-              </svg>
-            </div>
-          </div>
-
-          {/* Mobile: Horizontal scrollable carousel showing 3 logos at a time */}
-          <div className="md:hidden overflow-x-auto scrollbar-hide">
-            <div className="flex space-x-8 pb-4" style={{ width: 'max-content' }}>
-              {/* Microsoft */}
-              <div className="flex items-center justify-center h-16 w-20 flex-shrink-0 hover:scale-105 transition-all duration-300">
-                <svg className="h-10 w-10" viewBox="0 0 96 96">
-                  <rect x="0" y="0" width="44" height="44" fill="#F25022"/>
-                  <rect x="52" y="0" width="44" height="44" fill="#7FBA00"/>
-                  <rect x="0" y="52" width="44" height="44" fill="#00A4EF"/>
-                  <rect x="52" y="52" width="44" height="44" fill="#FFB900"/>
-                </svg>
-              </div>
-              
-              {/* Google */}
-              <div className="flex items-center justify-center h-16 w-24 flex-shrink-0 hover:scale-105 transition-all duration-300">
-                <svg className="h-8 w-auto" viewBox="0 0 533.5 544.3">
-                  <path d="M533.5 278.4c0-18.5-1.5-37.1-4.7-55.3H272.1v104.8h147c-6.1 33.8-25.7 63.7-54.4 82.7v68h87.7c51.5-47.4 81.1-117.4 81.1-200.2z" fill="#4285f4"/>
-                  <path d="M272.1 544.3c73.4 0 135.3-24.1 180.4-65.7l-87.7-68c-24.4 16.6-55.9 26-92.6 26-71.4 0-131.8-48.2-153.4-112.9H28.9v70.1c46.2 91.9 140.3 150.5 243.2 150.5z" fill="#34a853"/>
-                  <path d="M119.3 324.3c-11.4-33.8-11.4-70.4 0-104.2V150H28.9c-38.6 76.9-38.6 167.5 0 244.4l90.4-70.1z" fill="#fbbc04"/>
-                  <path d="M272.1 107.7c38.8-.6 76.3 14 104.4 40.8l77.7-77.7C405 24.6 339.7-.8 272.1 0 169.2 0 75.1 58.6 28.9 150.4l90.4 70.1c21.5-64.5 81.8-112.9 152.8-112.8z" fill="#ea4335"/>
-                </svg>
-              </div>
-              
-              {/* Amazon */}
-              <div className="flex items-center justify-center h-16 w-20 flex-shrink-0 hover:scale-105 transition-all duration-300">
-                <svg className="h-8 w-auto" viewBox="0 0 100 30" fill="#232f3e">
-                  <path d="M100 20.85c-1.39.62-3.17 1.05-5.56 1.05-4.19 0-7.22-1.43-8.59-4.26-1.77 2.83-4.26 4.26-7.42 4.26-3.29 0-5.56-2.02-5.56-5.24 0-4.33 3.29-6.67 9.44-6.67h3.23v-1.37c0-2.02-1.37-3.09-3.62-3.09-1.94 0-3.29 1.07-3.29 2.83h-6.05c0-4.19 3.62-7.42 9.27-7.42 5.72 0 9.27 3.02 9.27 7.96v10.44c0 1.51.54 2.02 1.51 2.02.35 0 .81-.08 1.37-.27v3.76zm-13.55-8.67h-2.63c-2.7 0-3.76.97-3.76 2.63 0 1.29.89 2.15 2.42 2.15 2.42 0 3.97-1.29 3.97-3.49v-1.29zM46.93 21.39c-3.83 0-6.4-2.69-6.4-6.72s2.57-6.72 6.4-6.72c2.15 0 3.76 1.13 4.53 2.96V8.2h5.88v12.74h-5.88v-.27c-.77 1.83-2.38 2.96-4.53 2.96v-2.24zm2.02-2.15c1.83 0 3.02-1.29 3.02-3.49s-1.19-3.49-3.02-3.49-3.02 1.29-3.02 3.49 1.19 3.49 3.02 3.49z"/>
-                  <path d="M37.63 21.82c-5.18 3.83-12.69 5.88-19.15 5.88C8.26 27.7.75 22.52.75 14.67c0-4.91 2.69-8.74 7.15-10.25 3.23-1.07 7.69-.81 10.87.54.89.38 1.51 1.29 1.51 2.24v.08c0 1.67-1.51 2.83-3.09 2.38-1.83-.54-3.76-.81-5.56-.35-1.83.54-2.96 2.24-2.96 4.19 0 3.83 4.33 6.94 10.06 6.94 3.09 0 6.18-.81 8.48-2.24 1.51-1.07 3.49-.43 4.19 1.13.81 1.64.27 3.62-1.24 4.64l-2.51-2.35z"/>
-                </svg>
-              </div>
-              
-              {/* Netflix */}
-              <div className="flex items-center justify-center h-16 w-24 flex-shrink-0 hover:scale-105 transition-all duration-300">
-                <svg className="h-10 w-auto" viewBox="0 0 1024 276.742">
-                  <g fill="#e50914">
-                    <path d="M140.803 258.904c-15.404 2.705-31.079 3.516-47.294 5.676l-49.458-144.856v151.073c-15.404 1.621-29.457 3.783-44.051 5.945v-276.742h41.08l56.212 157.021v-157.021h43.511v258.904z"/>
-                    <path d="M244.375 141.608v94.394c0 33.549-11.649 44.137-24.426 44.137-12.777 0-21.808-10.588-21.808-33.549v-94.394h-29.23v94.394c0 58.456 16.234 86.165 51.038 86.165 34.804 0 53.834-27.709 53.834-86.165v-94.394h-29.408z"/>
-                    <path d="M331.941 179.328c8.354 0 17.872-1.141 26.804-1.141v59.027c-26.627 1.996-61.431 4.564-91.506 6.384v-244.317h91.506v59.027h-67.258v121.02z"/>
-                    <path d="M405.149 179.328c8.354 0 17.872-1.141 26.804-1.141v59.027c-26.627 1.996-61.431 4.564-91.506 6.384v-244.317h91.506v59.027h-67.258v121.02z"/>
-                    <path d="M462.685 179.328c8.354 0 17.872-1.141 26.804-1.141v59.027c-26.627 1.996-61.431 4.564-91.506 6.384v-244.317h91.506v59.027h-67.258v121.02z"/>
-                  </g>
-                </svg>
-              </div>
-              
-              {/* Spotify */}
-              <div className="flex items-center justify-center h-16 w-20 flex-shrink-0 hover:scale-105 transition-all duration-300">
-                <svg className="h-10 w-10" viewBox="0 0 24 24" fill="#1DB954">
-                  <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.586 14.424c-.18.295-.563.387-.857.207-2.35-1.434-5.305-1.76-8.786-.963-.335.077-.67-.133-.746-.47-.077-.334.132-.67.47-.745 3.808-.871 7.077-.496 9.713 1.115.293.18.386.563.206.856zm1.223-2.723c-.226.367-.706.482-1.072.257-2.687-1.652-6.785-2.131-9.965-1.166-.413.125-.849-.106-.973-.517-.125-.413.106-.849.517-.973 3.632-1.102 8.147-.568 11.234 1.328.366.226.481.706.256 1.072v-.001zm.105-2.835C14.692 8.95 9.375 8.775 6.297 9.71c-.492.15-1.01-.126-1.16-.618-.149-.492.126-1.011.618-1.161 3.534-1.073 9.404-.865 13.115 1.338.445.264.590.838.326 1.282-.263.444-.838.590-1.282.325z"/>
-                </svg>
-              </div>
-              
-              {/* Facebook/Meta */}
-              <div className="flex items-center justify-center h-16 w-20 flex-shrink-0 hover:scale-105 transition-all duration-300">
-                <svg className="h-10 w-10" viewBox="0 0 24 24" fill="#1877f2">
-                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                </svg>
-              </div>
+            <div className="group flex items-center justify-center p-6 bg-white rounded-xl border border-gray-100 hover:border-gray-200 hover:shadow-lg transition-all duration-300">
+              <img 
+                src="https://images.unsplash.com/photo-1523474253046-8cd2748b5fd2?w=100&h=100&fit=crop&crop=center"
+                alt="Amazon"
+                className="h-12 w-12 object-contain group-hover:scale-105 transition-transform duration-300"
+              />
             </div>
           </div>
           
