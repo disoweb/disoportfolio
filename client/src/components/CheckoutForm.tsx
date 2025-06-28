@@ -14,14 +14,12 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
-import { CreditCard, ArrowLeft, User, Mail, Phone, Building2, FileText, CheckCircle, Clock } from "lucide-react";
+import { CreditCard, ArrowLeft, User, Phone, FileText, CheckCircle, Clock } from "lucide-react";
 import PaymentLoader from "@/components/PaymentLoader";
 
 const contactSchema = z.object({
   fullName: z.string().min(2, "Full name must be at least 2 characters"),
-  email: z.string().email("Please enter a valid email"),
   phone: z.string().min(10, "Please enter a valid phone number"),
-  company: z.string().optional(),
   projectDescription: z.string().min(10, "Please provide a detailed project description"),
 });
 
@@ -82,9 +80,7 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
     resolver: zodResolver(contactSchema),
     defaultValues: storedContactData || {
       fullName: "",
-      email: user?.email || "",
       phone: "",
-      company: "",
       projectDescription: "",
     },
   });
@@ -110,12 +106,7 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
     return () => clearTimeout(timer);
   }, [watchedValues, contactForm]);
 
-  // Auto-populate email when user becomes authenticated
-  useEffect(() => {
-    if (user?.email && !contactForm.getValues().email) {
-      contactForm.setValue('email', user.email);
-    }
-  }, [user, contactForm]);
+  // Remove email auto-population since email field is removed
 
   const orderMutation = useMutation({
     mutationFn: async (data: PaymentForm & { 
@@ -128,9 +119,9 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
         serviceId: service.id,
         contactInfo: {
           fullName: contactData.fullName,
-          email: contactData.email,
+          email: user?.email || "noemail@example.com",
           phone: contactData.phone,
-          company: contactData.company,
+          company: "",
         },
         projectDetails: {
           description: contactData.projectDescription,
@@ -148,7 +139,7 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
         const timeSinceAuth = Date.now() - parseInt(authTimestamp);
         if (timeSinceAuth < 10000) { // Within 10 seconds of auth completion
           // Wait for session to fully stabilize
-          await new Promise(resolve => setTimeout(resolve, 1500));
+          await new Promise(resolve => setTimeout(resolve, 1000));
         }
         // Clear the auth flags after use
         sessionStorage.removeItem('auth_completed');
@@ -524,22 +515,7 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
               )}
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="email" className="text-sm font-medium">Email Address *</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                <Input
-                  id="email"
-                  type="email"
-                  {...contactForm.register("email")}
-                  className="pl-10 h-9 sm:h-10"
-                  placeholder="your@email.com"
-                />
-              </div>
-              {contactForm.formState.errors.email && (
-                <p className="text-xs text-red-500">{contactForm.formState.errors.email.message}</p>
-              )}
-            </div>
+
 
             <div className="space-y-1.5">
               <Label htmlFor="phone" className="text-sm font-medium">Phone Number *</Label>
@@ -557,18 +533,7 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
               )}
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="company" className="text-sm font-medium">Company (Optional)</Label>
-              <div className="relative">
-                <Building2 className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                <Input
-                  id="company"
-                  {...contactForm.register("company")}
-                  className="pl-10 h-9 sm:h-10"
-                  placeholder="Your company name"
-                />
-              </div>
-            </div>
+
 
             <div className="space-y-1.5">
               <Label htmlFor="projectDescription" className="text-sm font-medium">Project Description *</Label>

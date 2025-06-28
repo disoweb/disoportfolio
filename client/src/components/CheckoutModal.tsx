@@ -29,9 +29,7 @@ import {
   CreditCard,
   ArrowLeft,
   User,
-  Mail,
   Phone,
-  Building2,
   FileText,
   Clock,
   X,
@@ -42,9 +40,7 @@ import PaymentLoader from "@/components/PaymentLoader";
 
 const contactSchema = z.object({
   fullName: z.string().min(2, "Full name must be at least 2 characters"),
-  email: z.string().email("Please enter a valid email address"),
   phone: z.string().min(10, "Please enter a valid phone number"),
-  companyName: z.string().optional(),
   projectDescription: z
     .string()
     .min(10, "Please provide a brief description of your project"),
@@ -94,9 +90,7 @@ export default function CheckoutModal({
     resolver: zodResolver(contactSchema),
     defaultValues: {
       fullName: "",
-      email: "",
       phone: "",
-      companyName: "",
       projectDescription: "",
     },
   });
@@ -232,9 +226,9 @@ export default function CheckoutModal({
       serviceName: service.name,
       servicePrice: totalPrice,
       contactName: contactData.fullName,
-      contactEmail: contactData.email,
+      contactEmail: user?.email || "noemail@example.com",
       contactPhone: contactData.phone,
-      companyName: contactData.companyName || "",
+      companyName: "",
       projectDescription: contactData.projectDescription,
       customRequests: `Timeline: ${data.timeline}`,
       addOns: selectedAddOns,
@@ -337,29 +331,7 @@ export default function CheckoutModal({
                 )}
               </div>
 
-              <div className="space-y-1">
-                <Label
-                  htmlFor="email"
-                  className="text-xs font-medium text-gray-700"
-                >
-                  Email Address *
-                </Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="email"
-                    type="email"
-                    {...contactForm.register("email")}
-                    className="pl-10 h-9 text-sm"
-                    placeholder="your@email.com"
-                  />
-                </div>
-                {contactForm.formState.errors.email && (
-                  <p className="text-xs text-red-500">
-                    {contactForm.formState.errors.email.message}
-                  </p>
-                )}
-              </div>
+
 
               <div className="space-y-1">
                 <Label
@@ -384,23 +356,7 @@ export default function CheckoutModal({
                 )}
               </div>
 
-              <div className="space-y-1">
-                <Label
-                  htmlFor="companyName"
-                  className="text-xs font-medium text-gray-700"
-                >
-                  Company Name (Optional)
-                </Label>
-                <div className="relative">
-                  <Building2 className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="companyName"
-                    {...contactForm.register("companyName")}
-                    className="pl-10 h-9 text-sm"
-                    placeholder="Your company"
-                  />
-                </div>
-              </div>
+
 
               <div className="space-y-1">
                 <Label
