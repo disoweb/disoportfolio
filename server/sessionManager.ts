@@ -61,7 +61,7 @@ export function createSessionMiddleware(config: SessionConfig): session.SessionO
     saveUninitialized: false, // Don't create session until something stored
     rolling: false, // Don't reset expiry on every request - this can cause issues
     cookie: {
-      secure: false, // Allow non-HTTPS for development
+      secure: true, // Required for sameSite: 'none'
       httpOnly: true,
       maxAge: config.cookieMaxAge || 7 * 24 * 60 * 60 * 1000, // 7 days default
       sameSite: 'none', // Allow cross-site cookies for iframe environments
