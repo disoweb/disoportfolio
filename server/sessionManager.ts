@@ -123,27 +123,41 @@ export const SessionManager = {
   // Get current user from session
   async getCurrentUser(req: Request): Promise<User | null> {
     try {
+      console.log('🔍 [SESSION DEBUG] Getting current user, sessionID:', req.sessionID);
+      console.log('🔍 [SESSION DEBUG] Session data:', {
+        userId: req.session?.userId,
+        passport: req.session?.passport,
+        loginTime: req.session?.loginTime,
+        lastActivity: req.session?.lastActivity
+      });
       
       // Check for userId in session
       if (req.session?.userId) {
+        console.log('🔍 [SESSION DEBUG] Found userId in session:', req.session.userId);
         const user = await storage.getUserById(req.session.userId);
         if (user) {
+          console.log('🔍 [SESSION DEBUG] User found in database:', user.id);
           // Update last activity
           req.session.lastActivity = Date.now();
           return user;
         } else {
+          console.log('🔍 [SESSION DEBUG] User not found in database for ID:', req.session.userId);
         }
       } else {
+        console.log('🔍 [SESSION DEBUG] No userId in session');
       }
       
       // Check for passport user
       if (req.session?.passport?.user) {
+        console.log('🔍 [SESSION DEBUG] Found passport user:', req.session.passport.user);
         const passportUser = req.session.passport.user;
         const userId = typeof passportUser === 'string' ? passportUser : passportUser.id;
         
         if (userId) {
+          console.log('🔍 [SESSION DEBUG] Extracting userId from passport:', userId);
           const user = await storage.getUserById(userId);
           if (user) {
+            console.log('🔍 [SESSION DEBUG] User found via passport, migrating session');
             // Migrate to our session format
             req.session.userId = user.id;
             req.session.lastActivity = Date.now();

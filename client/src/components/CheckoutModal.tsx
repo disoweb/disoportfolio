@@ -151,6 +151,7 @@ export default function CheckoutModal({
     },
     onError: (error: any) => {
       setShowPaymentLoader(false);
+      console.error("Order creation error:", error);
 
       if (error.message?.includes("cancelled")) {
         setPaymentCooldown(30);
@@ -209,6 +210,7 @@ export default function CheckoutModal({
           });
         }
       } catch (error) {
+        console.error("Checkout session creation error:", error);
         toast({
           title: "Error",
           description: "Failed to save checkout data. Please try again.",

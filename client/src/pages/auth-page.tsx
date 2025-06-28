@@ -88,7 +88,7 @@ export default function AuthPage() {
         }
       }
     } catch (error) {
-      // Silently handle session fetch errors
+      console.log('Error fetching checkout session:', error);
     }
     
     // Fallback to session storage
@@ -105,7 +105,7 @@ export default function AuthPage() {
           phone: contactData.phone || "",
         };
       } catch (error) {
-        // Silently handle data parsing errors
+        console.log('Error parsing checkout contact data:', error);
       }
     }
     return {};

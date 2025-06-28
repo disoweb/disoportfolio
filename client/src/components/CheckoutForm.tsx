@@ -165,6 +165,7 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
           if (authCheck.ok) {
             const userData = await authCheck.json();
             if (userData && userData.id) {
+              console.log(`🔐 AUTH CHECK: Authentication verified on attempt ${attempt + 1}`);
               authVerified = true;
               break;
             }
@@ -173,6 +174,7 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
           }
         } catch (error) {
           lastError = error instanceof Error ? error.message : 'Network error';
+          console.log(`🔐 AUTH CHECK: Attempt ${attempt + 1} failed:`, lastError);
         }
         
         // Progressive delay between attempts
@@ -182,6 +184,7 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
       }
       
       if (!authVerified) {
+        console.error('🔐 AUTH CHECK: All authentication attempts failed. Last error:', lastError);
         throw new Error("Authentication required - session may have expired. Please log in again.");
       }
 
