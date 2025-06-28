@@ -14,7 +14,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
-import { CreditCard, ArrowLeft, User, Mail, Phone, Building2, FileText, CheckCircle } from "lucide-react";
+import { CreditCard, ArrowLeft, User, Mail, Phone, Building2, FileText, CheckCircle, Clock } from "lucide-react";
 import PaymentLoader from "@/components/PaymentLoader";
 
 const contactSchema = z.object({
@@ -71,6 +71,7 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
   const [contactData, setContactData] = useState<ContactForm | null>(null);
   const [showPaymentLoader, setShowPaymentLoader] = useState(false);
   const [showStreamlinedConfirmation, setShowStreamlinedConfirmation] = useState(false);
+  const [paymentCooldown, setPaymentCooldown] = useState(0);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { user } = useAuth();
@@ -364,6 +365,13 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
       setShowStreamlinedConfirmation(true);
       setCurrentStep(2);
       
+      // Calculate remaining cooldown
+      const timeSinceLastAttempt = now - parseInt(lastPaymentAttempt);
+      const remainingCooldown = Math.max(0, 30000 - timeSinceLastAttempt);
+      if (remainingCooldown > 0) {
+        setPaymentCooldown(Math.ceil(remainingCooldown / 1000));
+      }
+      
       // Show a message that they need to manually proceed
       toast({
         title: "Payment Cancelled",
@@ -371,6 +379,16 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
       });
     }
   }, [user, sessionData, orderMutation, selectedAddOns, totalPrice]);
+
+  // Countdown timer for payment cooldown
+  useEffect(() => {
+    if (paymentCooldown > 0) {
+      const timer = setTimeout(() => {
+        setPaymentCooldown(prev => Math.max(0, prev - 1));
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [paymentCooldown]);
 
 
 
@@ -633,8 +651,19 @@ export default function CheckoutForm({ service, totalPrice, selectedAddOns, sess
                   <ArrowLeft className="h-4 w-4" />
                   Back
                 </Button>
-                <Button type="submit" className="flex-1">
-                  Pay ₦{totalPrice.toLocaleString()}
+                <Button 
+                  type="submit" 
+                  className="flex-1"
+                  disabled={paymentCooldown > 0}
+                >
+                  {paymentCooldown > 0 ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <Clock className="h-4 w-4" />
+                      Wait {paymentCooldown}s
+                    </span>
+                  ) : (
+                    `Pay ₦${totalPrice.toLocaleString()}`
+                  )}
                 </Button>
               </div>
             </form>
